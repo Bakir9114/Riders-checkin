@@ -24,17 +24,23 @@
                     const longitude = position.coords.longitude;
                     console.log("Latitude:", latitude, "Longitude:", longitude);
                     // You can now use these coordinates to do something, like display them on a map
-                    const targetLatitude = 28.460881;
-                    const targetLongitude = 77.079305;
+                    const targetLatitude = 28.460874;  // Updated target latitude
+                    const targetLongitude = 77.079312; // Updated target longitude
                     const allowedDistance = 200; // in meters
 
                     const distance = calculateDistance(latitude, longitude, targetLatitude, targetLongitude);
 
                     if (distance <= allowedDistance) {
                          console.log("User is within the allowed distance");
+                         // yahan par main checkin-form ko display karwaunga
+                         document.getElementById("checkin-form").style.display = "block";
+                         populateRiderDropdown(); // Populate dropdown here, after location check
+
                     } else {
                         console.error("User is outside the allowed distance.");
                         alert("You are outside the allowed area (200 meters). This website will not work for you.");
+                        // agar user allowed distance se bahar hai to form ko hide kar dunga
+                        document.getElementById("checkin-form").style.display = "none";
                     }
 
 
@@ -84,7 +90,7 @@
     <div class="container mx-auto p-4">
         <h1 class="text-2xl font-semibold text-blue-600 mb-6 text-center">Rider Check-in/Check-out</h1>
 
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8" id="checkin-form" style="display: none;">
             <form id="checkin-form" class="space-y-4">
                 <div>
                     <label for="rider-name" class="block text-gray-700 text-sm font-bold mb-2">Rider Name:</label>
@@ -114,4 +120,306 @@
                         <option value="7 AM to 5 PM">7 AM to 5 PM</option>
                         <option value="8 AM to 6 PM">8 AM to 6 PM</option>
                         <option value="4 PM to 2 AM">4 PM to 2 AM</option>
-                        <option value="8 PM to 6 AM">8 PM to 6 AM
+                        <option value="8 PM to 6 AM">8 PM to 6 AM</option>
+                        <option value="10 PM to 8 AM">10 PM to 8 AM</option>
+                        <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
+                    </select>
+                    <div id="shift-time-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                </div>
+
+                <div id="checkout-fields" style="display: none;">
+                    <div>
+                        <label for="check-out-time" class="block text-gray-700 text-sm font-bold mb-2">Check-Out Time:</label>
+                        <input type="time" id="check-out-time" name="check-out-time"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="check-out-time-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="total-rides" class="block text-gray-700 text-sm font-bold mb-2">Total Rides a Day:</label>
+                        <input type="number" id="total-rides" name="total-rides"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="total-rides-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="total-kms" class="block text-gray-700 text-sm font-bold mb-2">Total Travelled KMs:</label>
+                        <input type="number" id="total-kms" name="total-kms"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="total-kms-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="last-order" class="block text-gray-700 text-sm font-bold mb-2">If this is your last order:</label>
+                        <select id="last-order" name="last-order"
+                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                        </select>
+                        <div id="last-order-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="last-order-pickup-time" class="block text-gray-700 text-sm font-bold mb-2">Last Order Pick-up Time:</label>
+                        <input type="time" id="last-order-pickup-time" name="last-order-pickup-time"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="last-order-pickup-time-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="manual-order" class="block text-gray-700 text-sm font-bold mb-2">Total Manual Orders:</label>
+                        <input type="number" id="manual-order" name="manual-order"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="manual-order-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="total-manual-kms" class="block text-gray-700 text-sm font-bold mb-2">Total Manual KMs:</label>
+                        <input type="number" id="total-manual-kms" name="total-manual-kms"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="total-manual-kms-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+                    Submit
+                </button>
+            </form>
+
+            <div id="success-message" class="mt-6 text-center bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded" style="display: none;">
+                <strong class="font-bold">Success!</strong>
+                <span class="block sm:inline">You are now checked in.</span>
+            </div>
+
+            <div id="error-message" class="mt-6 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" style="display: none;">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline" id="error-text"></span>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Check-in Records</h2>
+            <table id="checkin-table" class="min-w-full table-auto rounded-lg hidden">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Date</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Rider Name</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Action</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Shift Time</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Check-in Time</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Check-Out Time</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Total Rides a Day</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Total Travelled KMs</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Last Order</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Last Order Pick-up Time</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Total Manual Orders</th>
+                        <th class="px-4 py-2 text-left text-gray-600 font-semibold uppercase">Total Manual KMs</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                    <tr>
+                        <td colspan="12" class="px-4 py-2 text-center text-gray-500">No riders checked in yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p id="no-checkins-message" class="text-center text-gray-500">No riders checked in yet.</p>
+        </div>
+    </div>
+
+    <script>
+        const checkinForm = document.getElementById('checkin-form');
+        const riderNameInput = document.getElementById('rider-name');
+        const actionInput = document.getElementById('action');
+        const shiftTimeField = document.getElementById('shift-time-field');
+        const shiftTimeInput = document.getElementById('shift-time');
+        const successMessage = document.getElementById('success-message');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const riderNameError = document.getElementById('rider-name-error');
+        const actionError = document.getElementById('action-error');
+        const shiftTimeError = document.getElementById('shift-time-error');
+        const checkinTable = document.getElementById('checkin-table');
+        const noCheckinsMessage = document.getElementById('no-checkins-message');
+
+        // Get the new input fields
+        const checkOutTimeInput = document.getElementById('check-out-time');
+        const totalRidesInput = document.getElementById('total-rides');
+        const totalKmsInput = document.getElementById('total-kms');
+        const lastOrderInput = document.getElementById('last-order');
+        const lastOrderPickupTimeInput = document.getElementById('last-order-pickup-time');
+        const manualOrderInput = document.getElementById('manual-order');
+        const totalManualKmsInput = document.getElementById('total-manual-kms'); // Get the Total Manual KMs input
+        const checkoutFields = document.getElementById('checkout-fields');
+
+
+        let checkins = [];
+        // Use the provided Google Apps Script URLs
+        const checkinScriptURL = "https://script.google.com/macros/s/AKfycbzcrZWsIMkt_bD46ht9wx2Y3jWo8R061hnBXtiAf_gCYBbYQcGAajvrCXjhsE7-RP2Bzw/exec";
+        const checkoutScriptURL = "https://script.google.com/macros/s/AKfycbzRBMP8HMZ9rcEKW-O_zGIomiEL8w-MladRKjAijpIhESVKooakEhesN6aX1iaZ-iIW-A/exec";
+
+        // Rider names array
+        const riderNames = [
+            "Abhishek", "Aishvary Meena", "Ashu", "Deepak Kushwah", "Deepanshu Panchal",
+            "Jagbir Singh", "Krishan Kumar", "Kuldeep", "Munesh Kumar", "Nirmal Poddar",
+            "Pankaj Chhabra", "Pardeep Kashyap", "Raja Dahiya", "Raja Kumar", "Ravinder Raoshab",
+            "Ravi Babu", "Satyaprakash", "Shelendra Kumar", "Shivam", "Sourabh", "Sourabh Kumar",
+            "Sunil Kumar", "Sunny Bro", "Suraj Thakur", "Surender Banjara", "Surendra Kumar",
+            "Sumit", "Sumit Singh", "Uttam Kumar", "Vikas Gupta", "Vishal", "Vishnu Pathak", "Yogesh Kumar"
+        ];
+
+        function populateRiderDropdown() {
+            const riderNameSelect = document.getElementById('rider-name');
+            riderNameSelect.innerHTML = '<option value="" disabled selected>Select Rider</option>'; //clear existing options
+            // Sort the rider names array alphabetically
+            riderNames.sort();
+            riderNames.forEach(riderName => {
+                let option = document.createElement('option');
+                option.value = riderName;
+                option.textContent = riderName;
+                riderNameSelect.appendChild(option);
+            });
+        }
+
+        function validateName() {
+            if (riderNameInput.value.trim() === "") {
+                riderNameError.textContent = "Please select your name.";
+                riderNameError.style.display = "block";
+                return false;
+            } else {
+                riderNameError.style.display = "none";
+                return true;
+            }
+        }
+
+        function validateAction() {
+            if (actionInput.value === "") {
+                actionError.textContent = "Please select an action.";
+                actionError.style.display = "block";
+                return false;
+            } else {
+                actionError.style.display = "none";
+                if (actionInput.value === "checkout"){
+                    checkoutFields.style.display = "block";
+                    shiftTimeField.style.display = "none";
+                }
+                else{
+                    checkoutFields.style.display = "none";
+                    shiftTimeField.style.display = "block";
+                }
+                return true;
+            }
+        }
+
+        function validateShiftTime() {
+            if (actionInput.value === "checkin" && shiftTimeInput.value === "") {
+                shiftTimeError.textContent = "Please enter your shift time.";
+                shiftTimeError.style.display = "block";
+                return false;
+            } else {
+                shiftTimeError.style.display = "none";
+                return true;
+            }
+        }
+
+
+
+        riderNameInput.addEventListener('input', validateName);
+        actionInput.addEventListener('change', validateAction);
+        shiftTimeInput.addEventListener('input', validateShiftTime);
+
+
+        checkinForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            if (validateName() && validateAction() && validateShiftTime()) {
+                const riderName = riderNameInput.value.trim();
+                const action = actionInput.value; // Get the selected action
+                const shiftTime = action === "checkin" ? shiftTimeInput.value : "";
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+                const year = now.getFullYear();
+                const formattedDate = `${day}/${month}/${year}`;
+                const checkinTime = `${formattedDate}, ${now.toLocaleTimeString()}`; // Combine date and time with comma and space
+
+
+                // Get the values of the new input fields
+                const checkOutTime = action === "checkout" ? checkOutTimeInput.value : "";
+                const totalRides = action === "checkout" ? totalRidesInput.value : "";
+                const totalKms = action === "checkout" ? totalKmsInput.value : "";
+                const lastOrder = action === "checkout" ? lastOrderInput.value : "";
+                const lastOrderPickupTime = action === "checkout" ? lastOrderPickupTimeInput.value: "";
+                const manualOrder = action === "checkout" ? manualOrderInput.value : "";
+                const totalManualKms = action === "checkout" ? totalManualKmsInput.value : ""; // Get the Total Manual KMs value
+
+                let scriptURL = "";
+                if (action === "checkin") {
+                    scriptURL = checkinScriptURL;
+                } else if (action === "checkout") {
+                    scriptURL = checkoutScriptURL;
+                }
+
+
+                checkins.push({ riderName, shiftTime, checkinTime, action, formattedDate, checkOutTime, totalRides, totalKms, lastOrder, lastOrderPickupTime, manualOrder, totalManualKms});
+                updateCheckinTable();
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+                checkinForm.reset();
+
+                // Send data to Google Sheets
+                sendDataToGoogleSheets(scriptURL, riderName, shiftTime, checkinTime, action, formattedDate, checkOutTime, totalRides, totalKms, lastOrder, lastOrderPickupTime, manualOrder, totalManualKms);
+            } else {
+                errorMessage.style.display = 'block';
+                errorText.textContent = "Please fix the errors in the form.";
+                successMessage.style.display = 'none';
+            }
+        });
+
+        function updateCheckinTable() {
+            const tableBody = checkinTable.querySelector('tbody');
+            tableBody.innerHTML = ''; // Clear the table body
+
+            if (checkins.length === 0) {
+                checkinTable.classList.add('hidden');
+                noCheckinsMessage.classList.remove('hidden');
+            } else {
+                checkinTable.classList.remove('hidden');
+                noCheckinsMessage.classList.add('hidden');
+                checkins.forEach(checkin => {
+                    const row = tableBody.insertRow();
+                    const dateCell = row.insertCell(); // Date Column Added at the beginning
+                    const nameCell = row.insertCell();
+                    const actionCell = row.insertCell();
+                    const shiftTimeCell = row.insertCell();
+                    const checkinTimeCell = row.insertCell();
+                    const checkOutTimeCell = row.insertCell();
+                    const totalRidesCell = row.insertCell();
+                    const totalKmsCell = row.insertCell();
+                    const lastOrderCell = row.insertCell();
+                    const lastOrderPickupTimeCell = row.insertCell();
+                    const manualOrderCell = row.insertCell();
+                    const totalManualKmsCell = row.insertCell(); // Display Total Manual KMs
+
+                    dateCell.textContent = checkin.formattedDate; // Display Formatted Date
+                    nameCell.textContent = checkin.riderName;
+                    actionCell.textContent = checkin.action;
+                    shiftTimeCell.textContent = checkin.shiftTime;
+                    checkinTimeCell.textContent = checkin.checkinTime; // Display date and time
+                    checkOutTimeCell.textContent = checkin.checkOutTime;
+                    totalRidesCell.textContent = checkin.totalRides;
+                    totalKmsCell.textContent = checkin.totalKms;
+                    lastOrderCell.textContent = checkin.lastOrder;
+                    lastOrderPickupTimeCell.textContent = checkin.lastOrderPickupTime;
+                    manualOrderCell.textContent = checkin.manualOrder;
+                    totalManualKmsCell.textContent = checkin.totalManualKms; // Display Total Manual KMs
+
+
+                    dateCell.classList.add('px-4', 'py-2');
+                    nameCell.classList.add('px-4', 'py-2');
+                    actionCell.classList.add('px-4', 'py-2');
+                    shiftTimeCell.classList.add('px-4', 'py-2');
+                    checkinTimeCell.classList.add('px-4', 'py-2');
+                    checkOutTimeCell.classList.add('px-4', 'py-2');
+                    totalRidesCell.classList.add('px-4', 'py-2');
+                    totalKmsCell.classList.add('px-4', 'py-2');
+                    lastOrderCell.classList.add('px-4', 'py-2');
+                    lastOrderPickupTimeCell.classList.add('px-4', 'py-2');
+                    manualOrderCell.classList.add('px-4', 'py-2');
+                    totalManualKmsCell.classList.add('px-4', 'py-2');
+                });
+            }
+      
