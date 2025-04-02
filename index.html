@@ -85,15 +85,34 @@
 
                     if (distance <= 200) {
                         document.getElementById('buttons').style.display = 'block';
+                        document.getElementById('access-denied').style.display = 'none';
                     } else {
                         document.getElementById('access-denied').style.display = 'block';
+                        document.getElementById('buttons').style.display = 'none';
                     }
                 }, error => {
                     console.error("Geolocation error:", error);
-                    alert('Geolocation access denied. Unable to verify location. Please ensure location services are enabled and allow this site to access your location.');
+                    let errorMessage = 'Geolocation access denied. ';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Permission denied. Please allow location access.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "The request to get user location timed out.";
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            errorMessage += "An unknown error occurred.";
+                            break;
+                    }
+                    alert(errorMessage + " " + errorMessage + " Please ensure location services are enabled and allow this site to access your location."); //show detailed error
+                    document.getElementById('buttons').style.display = 'none';
+                    document.getElementById('access-denied').style.display = 'block';
                 }, {
                     enableHighAccuracy: true,
-                    timeout: 10000,
+                    timeout: 20000,
                     maximumAge: 0
                 });
             } else {
@@ -101,8 +120,6 @@
                 document.getElementById('buttons').style.display = 'block';
             }
         }
-
-
 
         function openForm(url) {
             let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
@@ -134,12 +151,11 @@
                         alert('Please select your shift time.');
                     }
                 };
-
             } else {
                 shiftTimeSelection.style.display = 'none';
                 checkInButton.onclick = function() {
                     openForm('https://docs.google.com/forms/d/e/1FAIpQLScGzx3G6WBI5LzGH_54sPVyg642i_F-ekLPpMaW0zJybCyPtQ/viewform?usp=sharing');
-                }
+                };
             }
         }
     </script>
