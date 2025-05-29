@@ -26,7 +26,7 @@
                        focus:outline-none focus:ring-4 focus:ring-blue-300">
                 Check-In
             </button>
-            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing')"
+            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&ouid=113357258141914692297')"
                 class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg
                        transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto
                        focus:outline-none focus:ring-4 focus:ring-green-300">
@@ -245,7 +245,7 @@
                         // 2. Right-click on the "Shift Time" question and select "Inspect" (or "Inspect Element").
                         // 3. Look for an input field related to the question. Its 'name' attribute will be something like 'entry.1234567890'.
                         //    The number after 'entry.' is your entry ID.
-                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&entry.1234567890=${encodeURIComponent(shiftTime)}`; // Placeholder ID
+                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing&ouid=113357258141914692297&entry.1234567890=${encodeURIComponent(shiftTime)}`; // Updated Check-In form link
                         openForm(checkInUrl);
                         hideModal(); // Hide modal if it's open
                     } else {
