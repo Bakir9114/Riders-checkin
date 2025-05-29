@@ -4,177 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RCIS (Rider Check-In System)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* Apply Inter font to the body */
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-            background-color: #f4f4f4;
-            position: relative;
-        }
-        .logo {
-            width: 250px;
-            margin-bottom: 20px;
-        }
-        h1 {
-            font-size: 36px;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        button {
-            display: inline-block;
-            padding: 20px 40px;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 10px;
-            margin: 20px;
-            transition: 0.3s;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-            transform: scale(1.1);
-        }
-        #buttons {
-            display: none;
-        }
-        #access-denied {
-            display: none;
-            color: red;
-            font-size: 20px;
-            margin-top: 50px;
-        }
-        #shift-time-selection {
-            display: none;
-            margin-top: 20px;
-            text-align: center;
-        }
-        #shift-time-selection select {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            margin-left: 10px;
+            font-family: 'Inter', sans-serif;
         }
     </style>
-    <script>
-        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-            const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        function checkLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
-                    const allowedLat = 28.460845;
-                    const allowedLon = 77.079439;
-                    const distance = getDistanceFromLatLonInMeters(userLat, userLon, allowedLat, allowedLon);
-
-                    if (distance <= 200) {
-                        document.getElementById('buttons').style.display = 'block';
-                        document.getElementById('access-denied').style.display = 'none';
-                    } else {
-                        document.getElementById('access-denied').style.display = 'block';
-                        document.getElementById('buttons').style.display = 'none';
-                    }
-                }, error => {
-                    console.error("Geolocation error:", error);
-                    let errorMessage = 'Geolocation access denied. ';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMessage += "Permission denied. Please allow location access.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMessage += "Location information is unavailable.";
-                            break;
-                        case error.TIMEOUT:
-                            errorMessage += "The request to get user location timed out.";
-                            break;
-                        case error.UNKNOWN_ERROR:
-                            errorMessage += "An unknown error occurred.";
-                            break;
-                    }
-                    alert(errorMessage + " " + errorMessage + " Please ensure location services are enabled and allow this site to access your location."); //show detailed error
-                    document.getElementById('buttons').style.display = 'none';
-                    document.getElementById('access-denied').style.display = 'block';
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 20000,
-                    maximumAge: 0
-                });
-            } else {
-                alert('Geolocation is not supported by this browser.');
-                document.getElementById('buttons').style.display = 'block';
-            }
-        }
-
-        function openForm(url) {
-            let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
-            if (formWindow) {
-                let checkClosed = setInterval(function() {
-                    if (formWindow && formWindow.closed) {
-                        clearInterval(checkClosed);
-                        window.location.reload();
-                    }
-                }, 1000);
-            } else {
-                alert("Pop-up blocked. Please allow pop-ups for this site.");
-            }
-        }
-
-        document.addEventListener('contextmenu', event => event.preventDefault());
-
-        function showShiftTimeSelection(action) {
-            const shiftTimeSelection = document.getElementById('shift-time-selection');
-            const checkInButton = document.getElementById('check-in-button');
-            if (action === 'checkin') {
-                shiftTimeSelection.style.display = 'block';
-                checkInButton.onclick = function() {
-                    const shiftTime = document.getElementById('shift-time-select').value;
-                    if (shiftTime) {
-                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSfzDStVTdLCGf2N9mO8H-LaKANcAeE2QR6BuYIadVmVMz0j8w/viewform?usp=sharing&entry.xxxxxxxxxxxx=${shiftTime}`;
-                        openForm(checkInUrl);
-                    } else {
-                        alert('Please select your shift time.');
-                    }
-                };
-            } else {
-                shiftTimeSelection.style.display = 'none';
-                checkInButton.onclick = function() {
-                    openForm('https://docs.google.com/forms/d/e/1FAIpQLScGzx3G6WBI5LzGH_54sPVyg642i_F-ekLPpMaW0zJybCyPtQ/viewform?usp=sharing');
-                };
-            }
-        }
-    </script>
 </head>
-<body onload="checkLocation()">
-    <div style="display: flex; flex-direction: column; align-items: center;">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="flex flex-col items-center bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full">
+        <h1 class="text-5xl font-extrabold text-gray-800 mb-10 text-center leading-tight">
+            RCIS (Rider Check-In System)
+        </h1>
 
-        <h1>RCIS (Rider Check-In System)</h1>
-
-        <div id="buttons">
-            <button id="check-in-button" onclick="showShiftTimeSelection('checkin')">  Check-In
+        <div id="buttons" class="hidden flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
+            <button id="check-in-button" onclick="showShiftTimeSelection('checkin')"
+                class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg
+                       transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto
+                       focus:outline-none focus:ring-4 focus:ring-blue-300">
+                Check-In
             </button>
-            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLScGzx3G6WBI5LzGH_54sPVyg642i_F-ekLPpMaW0zJybCyPtQ/viewform?usp=sharing')">
+            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing')"
+                class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg
+                       transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto
+                       focus:outline-none focus:ring-4 focus:ring-green-300">
                 Check-Out
             </button>
         </div>
 
-        <div id="shift-time-selection" style="display: none;">  <label for="shift-time-select">Select Shift Time:</label>
-            <select id="shift-time-select">
+        <div id="shift-time-selection" class="hidden mt-8 text-center flex flex-col items-center space-y-4 w-full">
+            <label for="shift-time-select" class="text-xl font-semibold text-gray-700">Select Shift Time:</label>
+            <select id="shift-time-select"
+                    class="p-4 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           shadow-sm w-full max-w-xs sm:max-w-md">
                 <option value="">Select Shift Time</option>
                 <option value="7 AM to 5 PM">7 AM to 5 PM</option>
                 <option value="8 AM to 6 PM">8 AM to 6 PM</option>
@@ -183,9 +47,227 @@
                 <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                 <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
             </select>
+            <button id="confirm-shift-button"
+                    class="px-8 py-4 text-xl font-bold text-white bg-blue-600 rounded-xl shadow-lg
+                           transition-all duration-300 hover:bg-blue-700 hover:scale-105
+                           focus:outline-none focus:ring-4 focus:ring-blue-300">
+                Confirm Shift
+            </button>
         </div>
 
-        <p id="access-denied">Access denied: You are not within the allowed location range.</p>
+        <p id="access-denied" class="hidden text-red-600 text-2xl font-semibold mt-12 text-center">
+            Access denied: You are not within the allowed location range.
+        </p>
     </div>
+
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center transform scale-95 opacity-0 transition-all duration-300" id="modal-content-wrapper">
+            <h3 id="modal-title" class="text-2xl font-bold text-gray-800 mb-4"></h3>
+            <p id="modal-message" class="text-lg text-gray-700 mb-6"></p>
+            <button onclick="hideModal()"
+                    class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md
+                           transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Calculates the distance between two geographical coordinates (latitude and longitude)
+         * using the Haversine formula.
+         * @param {number} lat1 - Latitude of the first point.
+         * @param {number} lon1 - Longitude of the first point.
+         * @param {number} lat2 - Latitude of the second point.
+         * @param {number} lon2 - Longitude of the second point.
+         * @returns {number} Distance in meters.
+         */
+        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radius of Earth in meters
+            const dLat = (lat2 - lat1) * Math.PI / 180; // Convert degrees to radians
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distance in meters
+        }
+
+        /**
+         * Displays a custom modal with a given title and message.
+         * @param {string} title - The title of the modal.
+         * @param {string} message - The message content of the modal.
+         */
+        function showModal(title, message) {
+            const modal = document.getElementById('custom-modal');
+            const modalContentWrapper = document.getElementById('modal-content-wrapper');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            modal.classList.remove('hidden');
+            // Animate modal entry
+            setTimeout(() => {
+                modalContentWrapper.classList.remove('scale-95', 'opacity-0');
+                modalContentWrapper.classList.add('scale-100', 'opacity-100');
+            }, 10); // Small delay for transition to apply
+        }
+
+        /**
+         * Hides the custom modal.
+         */
+        function hideModal() {
+            const modal = document.getElementById('custom-modal');
+            const modalContentWrapper = document.getElementById('modal-content-wrapper');
+            // Animate modal exit
+            modalContentWrapper.classList.remove('scale-100', 'opacity-100');
+            modalContentWrapper.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Match transition duration
+        }
+
+        /**
+         * Checks the user's current geographical location against an allowed range.
+         * If within range, displays check-in/out buttons; otherwise, shows an access denied message.
+         * Handles geolocation errors and displays them via the custom modal.
+         */
+        function checkLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    // Allowed location coordinates (Gurgaon, India)
+                    const allowedLat = 28.460845;
+                    const allowedLon = 77.079439;
+                    const distance = getDistanceFromLatLonInMeters(userLat, userLon, allowedLat, allowedLon);
+
+                    // Check if user is within 200 meters of the allowed location
+                    if (distance <= 200) {
+                        document.getElementById('buttons').classList.remove('hidden');
+                        document.getElementById('access-denied').classList.add('hidden');
+                    } else {
+                        document.getElementById('access-denied').classList.remove('hidden');
+                        document.getElementById('buttons').classList.add('hidden');
+                        showModal('Location Error', `Access denied: You are ${Math.round(distance)} meters away from the allowed location. Please move closer.`);
+                    }
+                }, error => {
+                    // Log error code and message for better debugging
+                    console.error("Geolocation error:", error.code, error.message);
+                    let errorMessage = 'Geolocation access denied. ';
+                    let hideButtons = true; // Default to hiding buttons
+                    let showAccessDenied = true; // Default to showing access denied message
+
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Permission denied. Please allow location access in your browser settings. You can still proceed, but your location won't be verified.";
+                            hideButtons = false; // Do NOT hide buttons for permission denied
+                            showAccessDenied = false; // Do NOT show generic access denied message
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Location information is unavailable. Try again later.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "The request to get your location timed out. Please check your internet connection.";
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            errorMessage += "An unknown error occurred while trying to get your location.";
+                            break;
+                    }
+                    showModal('Geolocation Error', errorMessage);
+
+                    if (hideButtons) {
+                        document.getElementById('buttons').classList.add('hidden');
+                    } else {
+                        document.getElementById('buttons').classList.remove('hidden'); // Ensure buttons are visible
+                    }
+
+                    if (showAccessDenied) {
+                        document.getElementById('access-denied').classList.remove('hidden');
+                    } else {
+                        document.getElementById('access-denied').classList.add('hidden'); // Ensure access denied is hidden
+                    }
+                }, {
+                    enableHighAccuracy: true, // Request high accuracy location
+                    timeout: 20000,           // 20 seconds timeout
+                    maximumAge: 0             // No cached location, get fresh one
+                });
+            } else {
+                // Geolocation not supported by the browser
+                showModal('Browser Error', 'Geolocation is not supported by this browser. Please use a modern browser.');
+                document.getElementById('buttons').classList.add('hidden'); // Hide buttons if geo not supported
+                document.getElementById('access-denied').classList.remove('hidden'); // Show access denied
+            }
+        }
+
+        /**
+         * Opens a new window/tab with the given URL (Google Form).
+         * Includes a check to reload the main page when the form window is closed.
+         * @param {string} url - The URL of the form to open.
+         */
+        function openForm(url) {
+            let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
+            if (formWindow) {
+                // Check if the opened window is closed every second
+                let checkClosed = setInterval(function() {
+                    if (formWindow && formWindow.closed) {
+                        clearInterval(checkClosed); // Stop checking once closed
+                        window.location.reload();   // Reload the main page
+                    }
+                }, 1000);
+            } else {
+                // If pop-up is blocked, show a message via custom modal
+                showModal('Pop-up Blocked', "Pop-up blocked. Please allow pop-ups for this site to open the form.");
+            }
+        }
+
+        /**
+         * Displays or hides the shift time selection dropdown based on the action (checkin/checkout).
+         * Dynamically updates the click handler for the "Confirm Shift" button.
+         * @param {string} action - 'checkin' to show shift selection, any other value to hide.
+         */
+        function showShiftTimeSelection(action) {
+            const shiftTimeSelection = document.getElementById('shift-time-selection');
+            const confirmShiftButton = document.getElementById('confirm-shift-button');
+            
+            if (action === 'checkin') {
+                shiftTimeSelection.classList.remove('hidden'); // Show the shift selection
+                document.getElementById('buttons').classList.add('hidden'); // Hide original buttons
+
+                // Set the click handler for the new 'Confirm Shift' button
+                confirmShiftButton.onclick = function() {
+                    const shiftTime = document.getElementById('shift-time-select').value;
+                    if (shiftTime) {
+                        // Construct the check-in URL with the selected shift time
+                        // IMPORTANT: 'entry.xxxxxxxxxxxx' is a placeholder for the actual Google Form entry ID
+                        // for your "Shift Time" field. You MUST replace 'xxxxxxxxxxxx' with the correct ID.
+                        // To find the correct entry ID:
+                        // 1. Open your Google Form in edit mode.
+                        // 2. Right-click on the "Shift Time" question and select "Inspect" (or "Inspect Element").
+                        // 3. Look for an input field related to the question. Its 'name' attribute will be something like 'entry.1234567890'.
+                        //    The number after 'entry.' is your entry ID.
+                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&entry.1234567890=${encodeURIComponent(shiftTime)}`; // Placeholder ID
+                        openForm(checkInUrl);
+                        hideModal(); // Hide modal if it's open
+                    } else {
+                        // If no shift time is selected, show an error via custom modal
+                        showModal('Selection Required', 'Please select your shift time before proceeding.');
+                    }
+                };
+            } else {
+                // This 'else' block is for cases where 'showShiftTimeSelection' might be called
+                // with an action other than 'checkin' (e.g., if we had a dedicated checkout button
+                // that also used this function, which is not the current design).
+                // For the current design, checkout button directly calls openForm.
+                shiftTimeSelection.classList.add('hidden'); // Hide the shift selection
+                document.getElementById('buttons').classList.remove('hidden'); // Show original buttons
+            }
+        }
+
+        // Prevent context menu (right-click) for a cleaner UI, though not strictly necessary for functionality.
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // Call checkLocation when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', checkLocation);
+    </script>
 </body>
 </html>
