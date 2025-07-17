@@ -148,32 +148,37 @@
                     } else {
                         document.getElementById('access-denied').classList.remove('hidden');
                         document.getElementById('buttons').classList.add('hidden');
-                        showModal('Location Error', `Access denied: You are ${Math.round(distance)} meters away from the allowed location. Please move closer.`);
+                        showModal('Location Error', `पहुँच अस्वीकृत: आप अनुमत स्थान से ${Math.round(distance)} मीटर दूर हैं। कृपया करीब आएं।`);
                     }
                 }, error => {
                     // Log error code and message for better debugging
                     console.error("Geolocation error:", error.code, error.message);
-                    let errorMessage = 'Geolocation access denied. ';
+                    let errorMessage = 'Geolocation पहुँच अस्वीकृत। ';
                     let hideButtons = true; // Default to hiding buttons
                     let showAccessDenied = true; // Default to showing access denied message
 
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
-                            errorMessage += "Permission denied. Please allow location access in your browser settings. You can still proceed, but your location won't be verified.";
+                            // Specific message for permissions policy or user denial
+                            if (error.message.includes("permissions policy")) {
+                                errorMessage += "इस दस्तावेज़ में Geolocation अनुमतियों नीति द्वारा अक्षम कर दिया गया है। आप अभी भी आगे बढ़ सकते हैं, लेकिन आपके स्थान का सत्यापन नहीं किया जाएगा।";
+                            } else {
+                                errorMessage += "अनुमति अस्वीकृत। कृपया अपने ब्राउज़र सेटिंग्स में स्थान पहुँच की अनुमति दें। आप अभी भी आगे बढ़ सकते हैं, लेकिन आपके स्थान का सत्यापन नहीं किया जाएगा।";
+                            }
                             hideButtons = false; // Do NOT hide buttons for permission denied
                             showAccessDenied = false; // Do NOT show generic access denied message
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            errorMessage += "Location information is unavailable. Try again later.";
+                            errorMessage += "स्थान की जानकारी अनुपलब्ध है। कृपया बाद में पुनः प्रयास करें।";
                             break;
                         case error.TIMEOUT:
-                            errorMessage += "The request to get your location timed out. Please check your internet connection.";
+                            errorMessage += "आपका स्थान प्राप्त करने का अनुरोध समय समाप्त हो गया। कृपया अपने इंटरनेट कनेक्शन की जाँच करें।";
                             break;
                         case error.UNKNOWN_ERROR:
-                            errorMessage += "An unknown error occurred while trying to get your location.";
+                            errorMessage += "आपका स्थान प्राप्त करने का प्रयास करते समय एक अज्ञात त्रुटि हुई।";
                             break;
                     }
-                    showModal('Geolocation Error', errorMessage);
+                    showModal('Geolocation त्रुटि', errorMessage);
 
                     if (hideButtons) {
                         document.getElementById('buttons').classList.add('hidden');
@@ -193,7 +198,7 @@
                 });
             } else {
                 // Geolocation not supported by the browser
-                showModal('Browser Error', 'Geolocation is not supported by this browser. Please use a modern browser.');
+                showModal('ब्राउज़र त्रुटि', 'इस ब्राउज़र द्वारा Geolocation समर्थित नहीं है। कृपया एक आधुनिक ब्राउज़र का उपयोग करें।');
                 document.getElementById('buttons').classList.add('hidden'); // Hide buttons if geo not supported
                 document.getElementById('access-denied').classList.remove('hidden'); // Show access denied
             }
@@ -216,17 +221,17 @@
                     }
                 }, 1000);
 
-                // Refresh the opened form window every 2 minutes (120000 milliseconds)
+                // Refresh the opened form window every 1 minute (60000 milliseconds)
                 let refreshForm = setInterval(function() {
                     if (formWindow && !formWindow.closed) {
                         formWindow.location.reload();
                     } else {
                         clearInterval(refreshForm); // Clear interval if window is closed
                     }
-                }, 120000); // 2 minutes
+                }, 60000); // 1 minute
             } else {
                 // If pop-up is blocked, show a message via custom modal
-                showModal('Pop-up Blocked', "Pop-up blocked. Please allow pop-ups for this site to open the form.");
+                showModal('पॉप-अप ब्लॉक किया गया', "पॉप-अप ब्लॉक किया गया। फॉर्म खोलने के लिए कृपया इस साइट के लिए पॉप-अप की अनुमति दें।");
             }
         }
 
@@ -260,7 +265,7 @@
                         hideModal(); // Hide modal if it's open
                     } else {
                         // If no shift time is selected, show an error via custom modal
-                        showModal('Selection Required', 'Please select your shift time before proceeding.');
+                        showModal('चयन आवश्यक', 'कृपया आगे बढ़ने से पहले अपनी शिफ्ट का समय चुनें।');
                     }
                 };
             } else {
@@ -279,10 +284,10 @@
         // Call checkLocation when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             checkLocation();
-            // Refresh the main page every 2 minutes (120000 milliseconds)
+            // Refresh the main page every 1 minute (60000 milliseconds)
             setInterval(function() {
                 window.location.reload();
-            }, 120000);
+            }, 60000); // 1 minute
         });
     </script>
 </body>
