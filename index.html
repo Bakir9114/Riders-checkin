@@ -202,6 +202,7 @@
         /**
          * Opens a new window/tab with the given URL (Google Form).
          * Includes a check to reload the main page when the form window is closed.
+         * Also adds a refresh interval for the opened form window.
          * @param {string} url - The URL of the form to open.
          */
         function openForm(url) {
@@ -214,6 +215,15 @@
                         window.location.reload();   // Reload the main page
                     }
                 }, 1000);
+
+                // Refresh the opened form window every 2 minutes (120000 milliseconds)
+                let refreshForm = setInterval(function() {
+                    if (formWindow && !formWindow.closed) {
+                        formWindow.location.reload();
+                    } else {
+                        clearInterval(refreshForm); // Clear interval if window is closed
+                    }
+                }, 120000); // 2 minutes
             } else {
                 // If pop-up is blocked, show a message via custom modal
                 showModal('Pop-up Blocked', "Pop-up blocked. Please allow pop-ups for this site to open the form.");
@@ -267,7 +277,13 @@
         document.addEventListener('contextmenu', event => event.preventDefault());
 
         // Call checkLocation when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', checkLocation);
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLocation();
+            // Refresh the main page every 2 minutes (120000 milliseconds)
+            setInterval(function() {
+                window.location.reload();
+            }, 120000);
+        });
     </script>
 </body>
 </html>
