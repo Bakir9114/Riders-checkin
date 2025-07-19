@@ -21,15 +21,15 @@
 
         <div id="buttons" class="hidden flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
             <button id="check-in-button" onclick="showShiftTimeSelection('checkin')"
-                class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg
-                       transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto
-                       focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg
+                           transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto
+                           focus:outline-none focus:ring-4 focus:ring-blue-300">
                 Check-In
             </button>
             <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&ouid=113357258141914692297')"
-                class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg
-                       transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto
-                       focus:outline-none focus:ring-4 focus:ring-green-300">
+                    class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg
+                           transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto
+                           focus:outline-none focus:ring-4 focus:ring-green-300">
                 Check-Out
             </button>
         </div>
@@ -205,89 +205,71 @@
         }
 
         /**
-         * Opens a new window/tab with the given URL (Google Form).
-         * Includes a check to reload the main page when the form window is closed.
-         * Also adds a refresh interval for the opened form window.
+         * Opens a new window/tab with the given URL (Google Form) and closes it after 1 minute.
          * @param {string} url - The URL of the form to open.
          */
         function openForm(url) {
             let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
             if (formWindow) {
-                // Check if the opened window is closed every second
+                // Inform the user about the 1-minute time limit.
+                showModal('Samay Seema', 'Kripya dhyan dein, form 1 minute ke baad apne aap band ho jayega. Kripya samay par form bharein.');
+
+                // Set a timeout to close the form window after 1 minute (60000 milliseconds).
+                const formTimeout = setTimeout(() => {
+                    if (formWindow && !formWindow.closed) {
+                        formWindow.close();
+                        // Inform the user that the time is up.
+                        showModal('Samay Samapt', 'Form bharne ka samay samapt ho gaya hai. Page ab refresh hoga.');
+                    }
+                }, 60000);
+
+                // Check every second if the window has been closed (by user or by script).
                 let checkClosed = setInterval(function() {
-                    if (formWindow && formWindow.closed) {
-                        clearInterval(checkClosed); // Stop checking once closed
-                        window.location.reload();   // Reload the main page
+                    if (!formWindow || formWindow.closed) {
+                        clearInterval(checkClosed); // Stop the interval.
+                        clearTimeout(formTimeout);  // Also clear the timeout.
+                        window.location.reload();   // Reload the main page.
                     }
                 }, 1000);
-
-                // Refresh the opened form window every 1 minute (60000 milliseconds)
-                let refreshForm = setInterval(function() {
-                    if (formWindow && !formWindow.closed) {
-                        formWindow.location.reload();
-                    } else {
-                        clearInterval(refreshForm); // Clear interval if window is closed
-                    }
-                }, 60000); // 1 minute
             } else {
-                // If pop-up is blocked, show a message via custom modal
+                // If pop-up is blocked, show a message via custom modal.
                 showModal('पॉप-अप ब्लॉक किया गया', "पॉप-अप ब्लॉक किया गया। फॉर्म खोलने के लिए कृपया इस साइट के लिए पॉप-अप की अनुमति दें।");
             }
         }
 
         /**
-         * Displays or hides the shift time selection dropdown based on the action (checkin/checkout).
-         * Dynamically updates the click handler for the "Confirm Shift" button.
-         * @param {string} action - 'checkin' to show shift selection, any other value to hide.
+         * Displays or hides the shift time selection dropdown based on the action.
+         * @param {string} action - 'checkin' to show shift selection.
          */
         function showShiftTimeSelection(action) {
             const shiftTimeSelection = document.getElementById('shift-time-selection');
             const confirmShiftButton = document.getElementById('confirm-shift-button');
             
             if (action === 'checkin') {
-                shiftTimeSelection.classList.remove('hidden'); // Show the shift selection
-                document.getElementById('buttons').classList.add('hidden'); // Hide original buttons
+                shiftTimeSelection.classList.remove('hidden');
+                document.getElementById('buttons').classList.add('hidden');
 
-                // Set the click handler for the new 'Confirm Shift' button
                 confirmShiftButton.onclick = function() {
                     const shiftTime = document.getElementById('shift-time-select').value;
                     if (shiftTime) {
-                        // Construct the check-in URL with the selected shift time
-                        // IMPORTANT: 'entry.xxxxxxxxxxxx' is a placeholder for the actual Google Form entry ID
-                        // for your "Shift Time" field. You MUST replace 'xxxxxxxxxxxx' with the correct ID.
-                        // To find the correct entry ID:
-                        // 1. Open your Google Form in edit mode.
-                        // 2. Right-click on the "Shift Time" question and select "Inspect" (or "Inspect Element").
-                        // 3. Look for an input field related to the question. Its 'name' attribute will be something like 'entry.1234567890'.
-                        //    The number after 'entry.' is your entry ID.
-                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing&ouid=113357258141914692297&entry.1234567890=${encodeURIComponent(shiftTime)}`; // Updated Check-In form link
+                        // IMPORTANT: Replace '1234567890' with the actual entry ID from your Google Form.
+                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing&ouid=113357258141914692297&entry.1234567890=${encodeURIComponent(shiftTime)}`;
                         openForm(checkInUrl);
-                        hideModal(); // Hide modal if it's open
                     } else {
-                        // If no shift time is selected, show an error via custom modal
                         showModal('चयन आवश्यक', 'कृपया आगे बढ़ने से पहले अपनी शिफ्ट का समय चुनें।');
                     }
                 };
-            } else {
-                // This 'else' block is for cases where 'showShiftTimeSelection' might be called
-                // with an action other than 'checkin' (e.g., if we had a dedicated checkout button
-                // that also used this function, which is not the current design).
-                // For the current design, checkout button directly calls openForm.
-                shiftTimeSelection.classList.add('hidden'); // Hide the shift selection
-                document.getElementById('buttons').classList.remove('hidden'); // Show original buttons
             }
         }
 
-        // Prevent context menu (right-click) for a cleaner UI, though not strictly necessary for functionality.
+        // Prevent context menu (right-click).
         document.addEventListener('contextmenu', event => event.preventDefault());
 
-        // Call checkLocation when the DOM is fully loaded
+        // Call checkLocation when the DOM is fully loaded.
         document.addEventListener('DOMContentLoaded', function() {
             checkLocation();
-            // Refresh the main page every 1 minute (60000 milliseconds)
-            setInterval(function() {
-                window.location.reload();
-            }, 60000); // 1 minute
+            // REMOVED: The automatic 1-minute refresh of the main page is removed.
+            // The page will now only reload after the form window is closed.
         });
     </script>
 </body>
