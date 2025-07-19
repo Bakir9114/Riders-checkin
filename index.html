@@ -161,9 +161,9 @@
                 navigator.geolocation.getCurrentPosition(position => {
                     const userLat = position.coords.latitude;
                     const userLon = position.coords.longitude;
-                    // Allowed location coordinates (Gurgaon, India) - UPDATED
-                    const allowedLat = 28.459497; 
-                    const allowedLon = 77.026634;
+                    // Allowed location coordinates (Gurgaon, India) - UPDATED TO GURGAON COORDINATES
+                    const allowedLat = 28.460845;
+                    const allowedLon = 77.079439;
                     const distance = getDistanceFromLatLonInMeters(userLat, userLon, allowedLat, allowedLon);
 
                     // Check if user is within 200 meters of the allowed location
