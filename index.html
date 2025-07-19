@@ -73,6 +73,9 @@
     </div>
 
     <script>
+        // Global variable for the main page reload timer
+        let mainPageReloadTimer;
+
         /**
          * Calculates the distance between two geographical coordinates (latitude and longitude)
          * using the Haversine formula.
@@ -127,8 +130,24 @@
         }
 
         /**
+         * Starts a 1-minute timer that reloads the main page.
+         * Clears any previously set timer.
+         */
+        function startMainPageTimer() {
+            clearTimeout(mainPageReloadTimer); // Ensure only one timer is active
+            mainPageReloadTimer = setTimeout(() => {
+                showModal('Samay Samapt', 'Website ka samay samapt ho gaya hai. Kripya link dobara kholein.');
+                // Give a brief moment for modal to show, then reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // 1.5 seconds to allow modal to be seen
+            }, 60000); // 1 minute (60000 milliseconds)
+        }
+
+        /**
          * Checks the user's current geographical location against an allowed range.
-         * If within range, displays check-in/out buttons; otherwise, shows an access denied message.
+         * If within range, displays check-in/out buttons and starts the main page timer;
+         * otherwise, shows an access denied message.
          * Handles geolocation errors and displays them via the custom modal.
          */
         function checkLocation() {
@@ -145,6 +164,7 @@
                     if (distance <= 200) {
                         document.getElementById('buttons').classList.remove('hidden');
                         document.getElementById('access-denied').classList.add('hidden');
+                        startMainPageTimer(); // Start timer only if access is granted
                     } else {
                         document.getElementById('access-denied').classList.remove('hidden');
                         document.getElementById('buttons').classList.add('hidden');
@@ -154,8 +174,8 @@
                     // Log error code and message for better debugging
                     console.error("Geolocation error:", error.code, error.message);
                     let errorMessage = 'Geolocation पहुँच अस्वीकृत। ';
-                    let hideButtons = true; // Default to hiding buttons
-                    let showAccessDenied = true; // Default to showing access denied message
+                    let hideButtons = true;
+                    let showAccessDenied = true;
 
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
@@ -165,8 +185,8 @@
                             } else {
                                 errorMessage += "अनुमति अस्वीकृत। कृपया अपने ब्राउज़र सेटिंग्स में स्थान पहुँच की अनुमति दें। आप अभी भी आगे बढ़ सकते हैं, लेकिन आपके स्थान का सत्यापन नहीं किया जाएगा।";
                             }
-                            hideButtons = false; // Do NOT hide buttons for permission denied
-                            showAccessDenied = false; // Do NOT show generic access denied message
+                            hideButtons = false; // Allow buttons to be shown
+                            showAccessDenied = false; // Do not show generic access denied message
                             break;
                         case error.POSITION_UNAVAILABLE:
                             errorMessage += "स्थान की जानकारी अनुपलब्ध है। कृपया बाद में पुनः प्रयास करें।";
@@ -184,56 +204,59 @@
                         document.getElementById('buttons').classList.add('hidden');
                     } else {
                         document.getElementById('buttons').classList.remove('hidden'); // Ensure buttons are visible
+                        startMainPageTimer(); // Start timer if buttons are shown despite geo error
                     }
 
                     if (showAccessDenied) {
                         document.getElementById('access-denied').classList.remove('hidden');
                     } else {
-                        document.getElementById('access-denied').classList.add('hidden'); // Ensure access denied is hidden
+                        document.getElementById('access-denied').classList.add('hidden');
                     }
                 }, {
-                    enableHighAccuracy: true, // Request high accuracy location
-                    timeout: 20000,           // 20 seconds timeout
-                    maximumAge: 0             // No cached location, get fresh one
+                    enableHighAccuracy: true,
+                    timeout: 20000,            // 20 seconds timeout
+                    maximumAge: 0              // No cached location, get fresh one
                 });
             } else {
                 // Geolocation not supported by the browser
                 showModal('ब्राउज़र त्रुटि', 'इस ब्राउज़र द्वारा Geolocation समर्थित नहीं है। कृपया एक आधुनिक ब्राउज़र का उपयोग करें।');
-                document.getElementById('buttons').classList.add('hidden'); // Hide buttons if geo not supported
-                document.getElementById('access-denied').classList.remove('hidden'); // Show access denied
+                document.getElementById('buttons').classList.add('hidden');
+                document.getElementById('access-denied').classList.remove('hidden');
             }
         }
 
         /**
-         * Opens a new window/tab with the given URL (Google Form) and closes it after 1 minute.
+         * Opens a new window/tab with the given URL (Google Form) and manages timeouts.
          * @param {string} url - The URL of the form to open.
          */
         function openForm(url) {
             let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
             if (formWindow) {
-                // Inform the user about the 1-minute time limit.
+                clearTimeout(mainPageReloadTimer); // Stop the main page timer while the form is open
                 showModal('Samay Seema', 'Kripya dhyan dein, form 1 minute ke baad apne aap band ho jayega. Kripya samay par form bharein.');
 
-                // Set a timeout to close the form window after 1 minute (60000 milliseconds).
                 const formTimeout = setTimeout(() => {
                     if (formWindow && !formWindow.closed) {
                         formWindow.close();
-                        // Inform the user that the time is up.
                         showModal('Samay Samapt', 'Form bharne ka samay samapt ho gaya hai. Page ab refresh hoga.');
+                        // Reload main page after form closes due to timeout
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500); // Give a brief moment for modal to show
                     }
-                }, 60000);
+                }, 60000); // 1 minute for the form
 
-                // Check every second if the window has been closed (by user or by script).
                 let checkClosed = setInterval(function() {
                     if (!formWindow || formWindow.closed) {
                         clearInterval(checkClosed); // Stop the interval.
-                        clearTimeout(formTimeout);  // Also clear the timeout.
+                        clearTimeout(formTimeout);  // Also clear the form timeout.
                         window.location.reload();   // Reload the main page.
                     }
                 }, 1000);
             } else {
-                // If pop-up is blocked, show a message via custom modal.
+                // If pop-up is blocked, show a message via custom modal and restart main page timer
                 showModal('पॉप-अप ब्लॉक किया गया', "पॉप-अप ब्लॉक किया गया। फॉर्म खोलने के लिए कृपया इस साइट के लिए पॉप-अप की अनुमति दें।");
+                startMainPageTimer(); // Restart main page timer if form couldn't be opened
             }
         }
 
@@ -246,9 +269,10 @@
             const confirmShiftButton = document.getElementById('confirm-shift-button');
             
             if (action === 'checkin') {
-                shiftTimeSelection.classList.remove('hidden');
                 document.getElementById('buttons').classList.add('hidden');
-
+                shiftTimeSelection.classList.remove('hidden');
+                startMainPageTimer(); // Restart main page timer when shift selection appears, giving another minute for selection
+                
                 confirmShiftButton.onclick = function() {
                     const shiftTime = document.getElementById('shift-time-select').value;
                     if (shiftTime) {
@@ -257,6 +281,8 @@
                         openForm(checkInUrl);
                     } else {
                         showModal('चयन आवश्यक', 'कृपया आगे बढ़ने से पहले अपनी शिफ्ट का समय चुनें।');
+                        // Keep main page timer running, or restart if user needs more time to select
+                        startMainPageTimer(); // Restart timer if selection is needed
                     }
                 };
             }
@@ -268,8 +294,6 @@
         // Call checkLocation when the DOM is fully loaded.
         document.addEventListener('DOMContentLoaded', function() {
             checkLocation();
-            // REMOVED: The automatic 1-minute refresh of the main page is removed.
-            // The page will now only reload after the form window is closed.
         });
     </script>
 </body>
