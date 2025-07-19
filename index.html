@@ -26,7 +26,7 @@
                            focus:outline-none focus:ring-4 focus:ring-blue-300">
                 Check-In
             </button>
-            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&ouid=113357258141914692297')"
+            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&ouid=113357258141914692297', 'checkout')"
                     class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg
                            transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto
                            focus:outline-none focus:ring-4 focus:ring-green-300">
@@ -75,6 +75,12 @@
     <script>
         // Global variable for the main page reload timer
         let mainPageReloadTimer;
+
+        // IMPORTANT: Apne deploy kiye gaye Apps Script Web App ka URL yahaan paste karein.
+        // Yeh URL Apps Script project deploy karne ke baad milta hai.
+        // Yeh URL ab Check-In aur Check-Out dono ke liye upyog hoga.
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/a/macros/farmako.ai/s/AKfycbxJ3zMJbkKf25xe9hQ4bBPR8LTOSSJ_5AVOVB3zN3ET_FGQWdWzP8GgKadUuCO1fYg/exec'; 
+
 
         /**
          * Calculates the distance between two geographical coordinates (latitude and longitude)
@@ -171,22 +177,16 @@
                         showModal('Location Error', `पहुँच अस्वीकृत: आप अनुमत स्थान से ${Math.round(distance)} मीटर दूर हैं। कृपया करीब आएं।`);
                     }
                 }, error => {
-                    // Log error code and message for better debugging
                     console.error("Geolocation error:", error.code, error.message);
                     let errorMessage = 'Geolocation पहुँच अस्वीकृत। ';
-                    let hideButtons = true;
-                    let showAccessDenied = true;
 
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
-                            // Specific message for permissions policy or user denial
                             if (error.message.includes("permissions policy")) {
-                                errorMessage += "इस दस्तावेज़ में Geolocation अनुमतियों नीति द्वारा अक्षम कर दिया गया है। आप अभी भी आगे बढ़ सकते हैं, लेकिन आपके स्थान का सत्यापन नहीं किया जाएगा।";
+                                errorMessage += "इस दस्तावेज़ में Geolocation अनुमतियों नीति द्वारा अक्षम कर दिया गया है।";
                             } else {
-                                errorMessage += "अनुमति अस्वीकृत। कृपया अपने ब्राउज़र सेटिंग्स में स्थान पहुँच की अनुमति दें। आप अभी भी आगे बढ़ सकते हैं, लेकिन आपके स्थान का सत्यापन नहीं किया जाएगा।";
+                                errorMessage += "अनुमति अस्वीकृत। कृपया अपने ब्राउज़र सेटिंग्स में स्थान पहुँच की अनुमति दें।";
                             }
-                            hideButtons = false; // Allow buttons to be shown
-                            showAccessDenied = false; // Do not show generic access denied message
                             break;
                         case error.POSITION_UNAVAILABLE:
                             errorMessage += "स्थान की जानकारी अनुपलब्ध है। कृपया बाद में पुनः प्रयास करें।";
@@ -200,25 +200,14 @@
                     }
                     showModal('Geolocation त्रुटि', errorMessage);
 
-                    if (hideButtons) {
-                        document.getElementById('buttons').classList.add('hidden');
-                    } else {
-                        document.getElementById('buttons').classList.remove('hidden'); // Ensure buttons are visible
-                        startMainPageTimer(); // Start timer if buttons are shown despite geo error
-                    }
-
-                    if (showAccessDenied) {
-                        document.getElementById('access-denied').classList.remove('hidden');
-                    } else {
-                        document.getElementById('access-denied').classList.add('hidden');
-                    }
+                    document.getElementById('buttons').classList.add('hidden');
+                    document.getElementById('access-denied').classList.remove('hidden');
                 }, {
                     enableHighAccuracy: true,
-                    timeout: 20000,            // 20 seconds timeout
-                    maximumAge: 0              // No cached location, get fresh one
+                    timeout: 20000,
+                    maximumAge: 0
                 });
             } else {
-                // Geolocation not supported by the browser
                 showModal('ब्राउज़र त्रुटि', 'इस ब्राउज़र द्वारा Geolocation समर्थित नहीं है। कृपया एक आधुनिक ब्राउज़र का उपयोग करें।');
                 document.getElementById('buttons').classList.add('hidden');
                 document.getElementById('access-denied').classList.remove('hidden');
@@ -227,34 +216,45 @@
 
         /**
          * Opens a new window/tab with the given URL (Google Form) and manages timeouts.
+         * Triggers an Apps Script Web App to manage form state.
          * @param {string} url - The URL of the form to open.
+         * @param {string} formType - 'checkin' or 'checkout' to determine which Apps Script action to trigger.
          */
-        function openForm(url) {
+        function openForm(url, formType) {
             let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
             if (formWindow) {
                 clearTimeout(mainPageReloadTimer); // Stop the main page timer while the form is open
                 showModal('Samay Seema', 'Kripya dhyan dein, form 1 minute ke baad apne aap band ho jayega. Kripya samay par form bharein.');
 
+                // Apps Script Web App ko call karein with formType parameter
+                if (APPS_SCRIPT_WEB_APP_URL) {
+                    const appsScriptUrlWithParam = `${APPS_SCRIPT_WEB_APP_URL}?type=${formType}`;
+                    fetch(appsScriptUrlWithParam)
+                        .then(response => response.text())
+                        .then(data => console.log("Apps Script Response:", data))
+                        .catch(error => console.error('Error calling Apps Script:', error));
+                } else {
+                    console.warn("Apps Script Web App URL is not defined.");
+                }
+
                 const formTimeout = setTimeout(() => {
                     if (formWindow && !formWindow.closed) {
-                        formWindow.close();
+                        formWindow.close(); // Attempt to close the window (browser may block)
                         showModal('Samay Samapt', 'Form bharne ka samay samapt ho gaya hai. Page ab refresh hoga.');
-                        // Reload main page after form closes due to timeout
                         setTimeout(() => {
                             window.location.reload();
-                        }, 1500); // Give a brief moment for modal to show
+                        }, 1500);
                     }
                 }, 60000); // 1 minute for the form
 
                 let checkClosed = setInterval(function() {
                     if (!formWindow || formWindow.closed) {
-                        clearInterval(checkClosed); // Stop the interval.
-                        clearTimeout(formTimeout);  // Also clear the form timeout.
-                        window.location.reload();   // Reload the main page.
+                        clearInterval(checkClosed);
+                        clearTimeout(formTimeout);
+                        window.location.reload(); // Always reload main page when form window is confirmed closed
                     }
                 }, 1000);
             } else {
-                // If pop-up is blocked, show a message via custom modal and restart main page timer
                 showModal('पॉप-अप ब्लॉक किया गया', "पॉप-अप ब्लॉक किया गया। फॉर्म खोलने के लिए कृपया इस साइट के लिए पॉप-अप की अनुमति दें।");
                 startMainPageTimer(); // Restart main page timer if form couldn't be opened
             }
@@ -271,17 +271,16 @@
             if (action === 'checkin') {
                 document.getElementById('buttons').classList.add('hidden');
                 shiftTimeSelection.classList.remove('hidden');
-                startMainPageTimer(); // Restart main page timer when shift selection appears, giving another minute for selection
+                startMainPageTimer(); // Restart main page timer when shift selection appears
                 
                 confirmShiftButton.onclick = function() {
                     const shiftTime = document.getElementById('shift-time-select').value;
                     if (shiftTime) {
                         // IMPORTANT: Replace '1234567890' with the actual entry ID from your Google Form.
                         const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing&ouid=113357258141914692297&entry.1234567890=${encodeURIComponent(shiftTime)}`;
-                        openForm(checkInUrl);
+                        openForm(checkInUrl, 'checkin'); // Pass 'checkin' type
                     } else {
                         showModal('चयन आवश्यक', 'कृपया आगे बढ़ने से पहले अपनी शिफ्ट का समय चुनें।');
-                        // Keep main page timer running, or restart if user needs more time to select
                         startMainPageTimer(); // Restart timer if selection is needed
                     }
                 };
@@ -291,7 +290,7 @@
         // Prevent context menu (right-click).
         document.addEventListener('contextmenu', event => event.preventDefault());
 
-        // Call checkLocation when the DOM is fully loaded.
+        // Call checkLocation when the DOM is fully loaded to enforce location check.
         document.addEventListener('DOMContentLoaded', function() {
             checkLocation();
         });
