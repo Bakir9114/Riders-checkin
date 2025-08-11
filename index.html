@@ -43,7 +43,7 @@
                 <option value="7 AM to 5 PM">7 AM to 5 PM</option>
                 <option value="8 AM to 6 PM">8 AM to 6 PM</option>
                 <option value="4 PM to 2 AM">4 PM to 2 AM</option>
-                <option value="8 PM to 6 AM">8 PM to 6 AM</option>
+                <option value="8 PM to 6 AM">8 AM to 6 AM</option>
                 <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                 <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
             </select>
@@ -115,14 +115,27 @@
             }, 300);
         }
 
+        /**
+         * Starts a 2-minute timer that makes the page unusable.
+         * Clears any previously set timer.
+         */
         function startMainPageTimer() {
-            clearTimeout(mainPageReloadTimer);
+            clearTimeout(mainPageReloadTimer); // Ensure only one timer is active
             mainPageReloadTimer = setTimeout(() => {
-                showModal('Samay Samapt', 'Website ka samay samapt ho gaya hai. Kripya link dobara kholein.');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            }, 60000);
+                // Hide all interactive elements
+                document.getElementById('buttons').classList.add('hidden');
+                document.getElementById('shift-time-selection').classList.add('hidden');
+                document.querySelector('h1').style.display = 'none'; // Hide the main heading as well
+
+                // Show a permanent timeout message
+                const accessDeniedP = document.getElementById('access-denied');
+                accessDeniedP.innerText = 'Session time out. Kripya link se dobara kholein.';
+                accessDeniedP.classList.remove('hidden');
+
+                // Show a final modal message
+                showModal('Session Time Out', 'Is page ka samay samapt ho gaya hai. Ise dobara istemal karne ke liye link se kholein.');
+
+            }, 120000); // 2 minutes (120000 milliseconds)
         }
 
         function checkLocation() {
