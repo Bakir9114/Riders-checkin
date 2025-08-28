@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Style for Google Button */
         .google-btn {
             display: inline-flex;
             align-items: center;
@@ -40,8 +39,13 @@
             RCIS (Rider Check-In System)
         </h1>
 
+        <!-- Loading State -->
+        <div id="loading-state" class="my-8">
+            <p class="text-xl text-gray-600">Loading...</p>
+        </div>
+
         <!-- Authentication Section -->
-        <div id="auth-section" class="w-full max-w-md mb-8 text-center">
+        <div id="auth-section" class="w-full max-w-md mb-8 text-center hidden">
             <div id="user-info" class="hidden mb-4 text-lg">
                 <p>Welcome, <span id="user-name" class="font-bold"></span>!</p>
                 <p id="user-email" class="text-gray-600"></p>
@@ -118,6 +122,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             // UI Elements
+            const loadingStateDiv = document.getElementById('loading-state');
+            const authSectionDiv = document.getElementById('auth-section');
             const googleSignInBtn = document.getElementById('google-signin-btn');
             const signOutBtn = document.getElementById('signout-btn');
             const userInfoDiv = document.getElementById('user-info');
@@ -125,30 +131,25 @@
             const userEmailSpan = document.getElementById('user-email');
             const actionButtonsDiv = document.getElementById('buttons');
 
-            // --- UPDATED: Using signInWithRedirect ---
             googleSignInBtn.onclick = () => {
                 auth.signInWithRedirect(provider);
             };
             
             signOutBtn.onclick = () => auth.signOut();
 
-            // Check for redirect result
+            // Check for redirect result first
             auth.getRedirectResult()
-                .then((result) => {
-                    if (result.user) {
-                        // User successfully signed in.
-                        // The onAuthStateChanged listener will handle the UI update.
-                        console.log("Signed in via redirect:", result.user);
-                    }
-                }).catch((error) => {
+                .catch((error) => {
                     console.error("Redirect Authentication Error:", error);
                     let errorMessage = `Sign-in fail ho gaya. Error: ${error.code} - ${error.message}`;
                     showModal('Authentication Error', errorMessage);
                 });
 
-
-            // Authentication State Listener
+            // onAuthStateChanged will handle all UI updates
             auth.onAuthStateChanged(user => {
+                loadingStateDiv.classList.add('hidden'); // Hide loading state
+                authSectionDiv.classList.remove('hidden'); // Show auth section
+
                 if (user) {
                     // User is signed in
                     userNameSpan.textContent = user.displayName;
@@ -156,20 +157,19 @@
                     userInfoDiv.classList.remove('hidden');
                     googleSignInBtn.classList.add('hidden');
                     signOutBtn.classList.remove('hidden');
-                    actionButtonsDiv.classList.remove('hidden'); // Show Check-In/Out buttons
+                    actionButtonsDiv.classList.remove('hidden');
                 } else {
                     // User is signed out
                     userInfoDiv.classList.add('hidden');
                     googleSignInBtn.classList.remove('hidden');
                     signOutBtn.classList.add('hidden');
-                    actionButtonsDiv.classList.add('hidden'); // Hide Check-In/Out buttons
+                    actionButtonsDiv.classList.add('hidden');
                     document.getElementById('shift-time-selection').classList.add('hidden');
                 }
             });
         });
 
 
-        // These functions are defined globally so they can be called by onclick attributes in the HTML
         function showModal(title, message, showOkButton = true) {
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerText = message;
