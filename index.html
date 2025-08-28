@@ -121,13 +121,13 @@
         // --- CONFIGURATION ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
         
-        // ZAROORI: Apne office ke sahi coordinates yahaan daalein
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
-        const ALLOWED_RADIUS_METERS = 200; // 200 meter ka daayra
+        const ALLOWED_RADIUS_METERS = 200;
 
         let currentUser = null;
         let cameraStream = null;
+        let formTimer = null; // Timer ke liye naya variable
 
         // --- CORE FUNCTIONS ---
 
@@ -199,10 +199,10 @@
             showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
             
             getLocation().then(location => {
-                // Location sahi hai, ab camera start karo
                 startCamera(type, formData, location);
+                // Location sahi milne par 2 minute ka timer start karo
+                startFormTimer();
             }).catch(error => {
-                // Location galat hai ya permission nahi mili
                 showModal('Location Error', error);
             });
         }
@@ -231,6 +231,32 @@
             return data;
         }
 
+        // --- TIMER FUNCTIONS ---
+
+        function startFormTimer() {
+            // Purana timer (agar koi hai) clear karo
+            if (formTimer) clearTimeout(formTimer);
+            
+            // Naya 2 minute (120000 ms) ka timer set karo
+            formTimer = setTimeout(() => {
+                resetDueToTimeout();
+            }, 120000); 
+        }
+
+        function resetDueToTimeout() {
+            stopCamera(); // Camera band karo
+            
+            // UI ko reset karo
+            document.getElementById('selfie-section').classList.add('hidden');
+            document.getElementById('forms-container').classList.add('hidden');
+            document.getElementById('checkin-form').classList.add('hidden');
+            document.getElementById('checkout-form').classList.add('hidden');
+            document.getElementById('buttons').classList.remove('hidden');
+            
+            // User ko batao ki time khatm ho gaya
+            showModal('Time Up!', 'Aapne 2 minute mein form nahi bhara. Kripya location dobara verify karein.');
+        }
+
         // --- GEOLOCATION & VALIDATION ---
 
         function getLocation() {
@@ -247,23 +273,21 @@
                         const distance = calculateDistance(userLat, userLon, OFFICE_LATITUDE, OFFICE_LONGITUDE);
 
                         if (distance <= ALLOWED_RADIUS_METERS) {
-                            // Rider location ke andar hai
                             resolve({ latitude: userLat, longitude: userLon });
                         } else {
-                            // Rider location ke bahar hai
                             reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain. Kripya office ke daayre mein aakar try karein.`);
                         }
                     },
                     () => {
                         reject('Location access nahi mila. Kripya permission dein.');
                     },
-                    { enableHighAccuracy: true } // For better accuracy
+                    { enableHighAccuracy: true }
                 );
             });
         }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth ka radius meters mein
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -274,7 +298,7 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            return R * c; // Doori meters mein
+            return R * c;
         }
 
         // --- CAMERA & SUBMISSION ---
@@ -296,6 +320,9 @@
         }
 
         function captureAndSubmit(type, formData, location) {
+            // Form submit ho raha hai, isliye timer ko roko
+            if (formTimer) clearTimeout(formTimer);
+
             const video = document.getElementById('camera-feed');
             const canvas = document.getElementById('photo-canvas');
             const context = canvas.getContext('2d');
@@ -333,6 +360,9 @@
         }
 
         async function submitData(type, formData, location, selfie) {
+            // Yahaan bhi timer clear kar do, safety ke liye
+            if (formTimer) clearTimeout(formTimer);
+            
             if (!currentUser) {
                 showModal('Error', 'Aap logged in nahi hain.');
                 return;
