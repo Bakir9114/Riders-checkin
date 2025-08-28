@@ -7,272 +7,217 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Apply Inter font to the body */
-        body {
-            font-family: 'Inter', sans-serif;
+        body { font-family: 'Inter', sans-serif; }
+        /* Style for Google Button */
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4285F4;
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 1.125rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .google-btn:hover {
+            background-color: #357ae8;
+        }
+        .google-btn svg {
+            margin-right: 0.75rem;
+            background: white;
+            border-radius: 50%;
+            padding: 2px;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="flex flex-col items-center bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full">
-        <h1 class="text-5xl font-extrabold text-gray-800 mb-10 text-center leading-tight">
+        <h1 class="text-5xl font-extrabold text-gray-800 mb-6 text-center leading-tight">
             RCIS (Rider Check-In System)
         </h1>
 
+        <!-- Authentication Section -->
+        <div id="auth-section" class="w-full max-w-md mb-8 text-center">
+            <div id="user-info" class="hidden mb-4 text-lg">
+                <p>Welcome, <span id="user-name" class="font-bold"></span>!</p>
+                <p id="user-email" class="text-gray-600"></p>
+            </div>
+            <button id="google-signin-btn" class="google-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="24" height="24" viewBox="0 0 48 48">
+                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.99,36.566,44,31.016,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                </svg>
+                Sign in with Google
+            </button>
+            <button id="signout-btn" class="hidden px-6 py-3 text-lg font-semibold text-white bg-red-600 rounded-lg shadow-md transition-all duration-300 hover:bg-red-700">
+                Sign Out
+            </button>
+        </div>
+
         <div id="buttons" class="hidden flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
-            <button id="check-in-button" onclick="showShiftTimeSelection('checkin')"
-                    class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg
-                           transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto
-                           focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <button id="check-in-button" onclick="showShiftTimeSelection()" class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto focus:outline-none focus:ring-4 focus:ring-blue-300">
                 Check-In
             </button>
-            <button onclick="openForm('https://docs.google.com/forms/d/e/1FAIpQLSdpke-yvIBQyT9BGaLj0oF9ycydW4yJ7NCGBK17L41VSdtGYw/viewform?usp=sharing&ouid=113357258141914692297', 'checkout')"
-                    class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg
-                           transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto
-                           focus:outline-none focus:ring-4 focus:ring-green-300">
+            <button id="check-out-button" onclick="submitData('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto focus:outline-none focus:ring-4 focus:ring-green-300">
                 Check-Out
             </button>
         </div>
 
         <div id="shift-time-selection" class="hidden mt-8 text-center flex flex-col items-center space-y-4 w-full">
             <label for="shift-time-select" class="text-xl font-semibold text-gray-700">Select Shift Time:</label>
-            <select id="shift-time-select"
-                    class="p-4 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                           shadow-sm w-full max-w-xs sm:max-w-md">
+            <select id="shift-time-select" class="p-4 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm w-full max-w-xs sm:max-w-md">
                 <option value="">Select Shift Time</option>
                 <option value="7 AM to 5 PM">7 AM to 5 PM</option>
                 <option value="8 AM to 6 PM">8 AM to 6 PM</option>
                 <option value="4 PM to 2 AM">4 PM to 2 AM</option>
-                <option value="8 PM to 6 AM">8 AM to 6 AM</option>
+                <option value="8 AM to 6 AM">8 AM to 6 AM</option>
                 <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                 <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
             </select>
-            <button id="confirm-shift-button"
-                    class="px-8 py-4 text-xl font-bold text-white bg-blue-600 rounded-xl shadow-lg
-                           transition-all duration-300 hover:bg-blue-700 hover:scale-105
-                           focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <button id="confirm-shift-button" onclick="submitData('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
                 Confirm Shift
             </button>
         </div>
-
-        <p id="access-denied" class="hidden text-red-600 text-2xl font-semibold mt-12 text-center">
-            Access denied: You are not within the allowed location range.
-        </p>
     </div>
 
     <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center transform scale-95 opacity-0 transition-all duration-300" id="modal-content-wrapper">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center" id="modal-content-wrapper">
             <h3 id="modal-title" class="text-2xl font-bold text-gray-800 mb-4"></h3>
             <p id="modal-message" class="text-lg text-gray-700 mb-6"></p>
-            <div id="modal-timer-display" class="text-xl font-bold text-red-600 mb-4"></div>
-            <button onclick="hideModal()"
-                    class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md
-                           transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">
                 OK
             </button>
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
     <script>
-        let mainPageReloadTimer;
-        // IMPORTANT: Apne deploy kiye gaye Apps Script Web App ka URL yahaan paste karein.
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/a/macros/farmako.ai/s/AKfycbxJ3zMJbkKf25xe9hQ4bBPR8LTOSSJ_5AVOVB3zN3ET_FGQWdWzP8GgKadUuCO1fYg/exec';
+        // Firebase Config has been updated with your project details.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBToBsWccnzG4xvZT7SqiKBaFGcR8bLPjg",
+            authDomain: "riders-check-in-check-out.firebaseapp.com",
+            projectId: "riders-check-in-check-out",
+            storageBucket: "riders-check-in-check-out.firebasestorage.app",
+            messagingSenderId: "563496526463",
+            appId: "1:563496526463:web:867574b572dbca6e8f554a",
+            measurementId: "G-0LF7PYCFFQ"
+        };
 
-        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-            const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
 
-        function showModal(title, message) {
-            const modal = document.getElementById('custom-modal');
-            const modalContentWrapper = document.getElementById('modal-content-wrapper');
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxI9JQKQGg9WHtkfwisKFnNd8TJAxaPMQGH64VperTU3-cpKzE-aNPfYwzsqsukamlgkw/exec';
+
+        // --- FIXED: Wait for the DOM to be fully loaded before running the script ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // UI Elements
+            const googleSignInBtn = document.getElementById('google-signin-btn');
+            const signOutBtn = document.getElementById('signout-btn');
+            const userInfoDiv = document.getElementById('user-info');
+            const userNameSpan = document.getElementById('user-name');
+            const userEmailSpan = document.getElementById('user-email');
+            const actionButtonsDiv = document.getElementById('buttons');
+
+            // Event Listeners
+            googleSignInBtn.onclick = () => auth.signInWithPopup(provider);
+            signOutBtn.onclick = () => auth.signOut();
+
+            // Authentication State Listener
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in
+                    userNameSpan.textContent = user.displayName;
+                    userEmailSpan.textContent = user.email;
+                    userInfoDiv.classList.remove('hidden');
+                    googleSignInBtn.classList.add('hidden');
+                    signOutBtn.classList.remove('hidden');
+                    actionButtonsDiv.classList.remove('hidden'); // Show Check-In/Out buttons
+                } else {
+                    // User is signed out
+                    userInfoDiv.classList.add('hidden');
+                    googleSignInBtn.classList.remove('hidden');
+                    signOutBtn.classList.add('hidden');
+                    actionButtonsDiv.classList.add('hidden'); // Hide Check-In/Out buttons
+                    document.getElementById('shift-time-selection').classList.add('hidden');
+                }
+            });
+        });
+
+
+        // These functions are defined globally so they can be called by onclick attributes in the HTML
+        function showModal(title, message, showOkButton = true) {
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerText = message;
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContentWrapper.classList.remove('scale-95', 'opacity-0');
-                modalContentWrapper.classList.add('scale-100', 'opacity-100');
-            }, 10);
+            document.getElementById('modal-ok-button').style.display = showOkButton ? 'inline-block' : 'none';
+            document.getElementById('custom-modal').classList.remove('hidden');
         }
 
         function hideModal() {
-            if (window.countdownInterval) {
-                clearInterval(window.countdownInterval);
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        function disableAllInputs() {
+            // Also disable the signout button
+            const signOutBtn = document.getElementById('signout-btn');
+            if(signOutBtn) signOutBtn.disabled = true;
+
+            document.getElementById('check-in-button').disabled = true;
+            document.getElementById('check-out-button').disabled = true;
+            document.getElementById('confirm-shift-button').disabled = true;
+        }
+
+        function showShiftTimeSelection() {
+            document.getElementById('buttons').classList.add('hidden');
+            document.getElementById('shift-time-selection').classList.remove('hidden');
+        }
+
+        async function submitData(type) {
+            const user = auth.currentUser;
+            if (!user) {
+                showModal('Error', 'Aap sign in nahi hain. Kripya pehle sign in karein.');
+                return;
             }
-            const modal = document.getElementById('custom-modal');
-            const modalContentWrapper = document.getElementById('modal-content-wrapper');
-            modalContentWrapper.classList.remove('scale-100', 'opacity-100');
-            modalContentWrapper.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
-        }
 
-        /**
-         * Starts a 2-minute timer that makes the page unusable.
-         * Clears any previously set timer.
-         */
-        function startMainPageTimer() {
-            clearTimeout(mainPageReloadTimer); // Ensure only one timer is active
-            mainPageReloadTimer = setTimeout(() => {
-                // Hide all interactive elements
-                document.getElementById('buttons').classList.add('hidden');
-                document.getElementById('shift-time-selection').classList.add('hidden');
-                document.querySelector('h1').style.display = 'none'; // Hide the main heading as well
+            const shiftTime = document.getElementById('shift-time-select').value;
+            if (type === 'checkin' && !shiftTime) {
+                showModal('Error', 'Kripya aage badhne ke liye shift time chunein.');
+                return;
+            }
 
-                // Show a permanent timeout message
-                const accessDeniedP = document.getElementById('access-denied');
-                accessDeniedP.innerText = 'Session time out. Kripya link se dobara kholein.';
-                accessDeniedP.classList.remove('hidden');
+            showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
 
-                // Show a final modal message
-                showModal('Session Time Out', 'Is page ka samay samapt ho gaya hai. Ise dobara istemal karne ke liye link se kholein.');
+            const dataPayload = {
+                type: type,
+                shiftTime: type === 'checkin' ? shiftTime : null,
+                riderName: user.displayName,
+                riderEmail: user.email
+            };
 
-            }, 120000); // 2 minutes (120000 milliseconds)
-        }
+            try {
+                await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(dataPayload)
+                });
+                
+                showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
+                disableAllInputs();
 
-        function checkLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
-                    const allowedLat = 28.460845;
-                    const allowedLon = 77.079439;
-                    const distance = getDistanceFromLatLonInMeters(userLat, userLon, allowedLat, allowedLon);
-
-                    if (distance <= 200) {
-                        document.getElementById('buttons').classList.remove('hidden');
-                        document.getElementById('access-denied').classList.add('hidden');
-                        startMainPageTimer();
-                    } else {
-                        document.getElementById('access-denied').classList.remove('hidden');
-                        document.getElementById('buttons').classList.add('hidden');
-                        showModal('Location Error', `पहुँच अस्वीकृत: आप अनुमत स्थान से ${Math.round(distance)} मीटर दूर हैं। कृपया करीब आएं।`);
-                    }
-                }, error => {
-                    console.error("Geolocation error:", error.code, error.message);
-                    let errorMessage = 'Geolocation पहुँच अस्वीकृत। ';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMessage += "अनुमति अस्वीकृत। कृपया अपने ब्राउज़र सेटिंग्स में स्थान पहुँच की अनुमति दें।";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMessage += "स्थान की जानकारी अनुपलब्ध है।";
-                            break;
-                        case error.TIMEOUT:
-                            errorMessage += "आपका स्थान प्राप्त करने का अनुरोध समय समाप्त हो गया।";
-                            break;
-                        default:
-                            errorMessage += "एक अज्ञात त्रुटि हुई।";
-                            break;
-                    }
-                    showModal('Geolocation त्रुटि', errorMessage);
-                    document.getElementById('buttons').classList.add('hidden');
-                    document.getElementById('access-denied').classList.remove('hidden');
-                }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
-            } else {
-                showModal('ब्राउज़र त्रुटि', 'इस ब्राउज़र द्वारा Geolocation समर्थित नहीं है।');
-                document.getElementById('buttons').classList.add('hidden');
-                document.getElementById('access-denied').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error:', error);
+                showModal('Error', 'Ek error aa gayi hai. Kripya dobara try karein.');
             }
         }
-        
-        function openForm(url, formType) {
-            let formWindow = window.open(url, '_blank', 'noopener,noreferrer');
-            if (formWindow) {
-                clearTimeout(mainPageReloadTimer);
-                showModal('Samay Seema', 'Kripya dhyan dein, form 2 minute ke baad apne aap band ho jayega.');
-                startCountdownInModal(120);
-
-                if (APPS_SCRIPT_WEB_APP_URL && !APPS_SCRIPT_WEB_APP_URL.includes('YOUR_DEPLOYMENT_ID')) {
-                    const appsScriptUrlWithParam = `${APPS_SCRIPT_WEB_APP_URL}?type=${formType}`;
-                    fetch(appsScriptUrlWithParam)
-                        .then(response => response.text())
-                        .then(data => console.log("Apps Script Response:", data))
-                        .catch(error => console.error('Error calling Apps Script:', error));
-                } else {
-                    console.warn("Apps Script Web App URL is not defined or is a placeholder.");
-                }
-
-                const formTimeout = setTimeout(() => {
-                    if (formWindow && !formWindow.closed) {
-                        formWindow.close();
-                        showModal('Samay Samapt', 'Form bharne ka samay samapt ho gaya hai. Page ab refresh hoga.');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    }
-                }, 120000);
-
-                let checkClosed = setInterval(function() {
-                    if (!formWindow || formWindow.closed) {
-                        clearInterval(checkClosed);
-                        clearTimeout(formTimeout);
-                        if (window.countdownInterval) {
-                            clearInterval(window.countdownInterval);
-                        }
-                        window.location.reload();
-                    }
-                }, 1000);
-            } else {
-                showModal('पॉप-अप ब्लॉक किया गया', "पॉप-अप ब्लॉक किया गया। फॉर्म खोलने के लिए कृपया इस साइट के लिए पॉप-अप की अनुमति दें।");
-                startMainPageTimer();
-            }
-        }
-        
-        function startCountdownInModal(duration) {
-            if (window.countdownInterval) {
-                clearInterval(window.countdownInterval);
-            }
-            const timerDisplay = document.getElementById('modal-timer-display');
-            let timer = duration;
-            let minutes, seconds;
-            window.countdownInterval = setInterval(() => {
-                minutes = parseInt(timer / 60, 10);
-                seconds = parseInt(timer % 60, 10);
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
-                timerDisplay.textContent = `Samay Shesh: ${minutes}:${seconds}`;
-                if (--timer < 0) {
-                    clearInterval(window.countdownInterval);
-                    timerDisplay.textContent = "Samay Samapt!";
-                }
-            }, 1000);
-        }
-
-        function showShiftTimeSelection(action) {
-            const shiftTimeSelection = document.getElementById('shift-time-selection');
-            const confirmShiftButton = document.getElementById('confirm-shift-button');
-            if (action === 'checkin') {
-                document.getElementById('buttons').classList.add('hidden');
-                shiftTimeSelection.classList.remove('hidden');
-                startMainPageTimer();
-                confirmShiftButton.onclick = function() {
-                    const shiftTime = document.getElementById('shift-time-select').value;
-                    if (shiftTime) {
-                        // ZAROORI: Yahan apne Check-In form ki asli 'entry ID' daalein.
-                        // 'entry.1234567890' ko apne form ki ID se replace karein.
-                        const checkInUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeGZFsMNslzWn1iIqBb0GNafZrhx5zK0ppDcNvEyRdgieulHg/viewform?usp=sharing&ouid=113357258141914692297&entry.1234567890=${encodeURIComponent(shiftTime)}`;
-                        openForm(checkInUrl, 'checkin');
-                    } else {
-                        showModal('चयन आवश्यक', 'कृपया आगे बढ़ने से पहले अपनी शिफ्ट का समय चुनें।');
-                        startMainPageTimer();
-                    }
-                };
-            }
-        }
-
-        document.addEventListener('contextmenu', event => event.preventDefault());
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLocation();
-        });
     </script>
 </body>
 </html>
