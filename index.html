@@ -21,7 +21,7 @@
             font-size: 1.125rem;
             border: none;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color: 0.3s;
         }
         .google-btn:hover {
             background-color: #357ae8;
@@ -125,21 +125,27 @@
             const userEmailSpan = document.getElementById('user-email');
             const actionButtonsDiv = document.getElementById('buttons');
 
-            // Event Listeners
+            // --- UPDATED: Using signInWithRedirect ---
             googleSignInBtn.onclick = () => {
-                auth.signInWithPopup(provider)
-                    .catch((error) => {
-                        console.error("Authentication Error:", error);
-                        let errorMessage = "Sign-in fail ho gaya. Kripya dobara try karein.";
-                        if (error.code === 'auth/popup-blocked') {
-                            errorMessage = "Aapke browser ne pop-up block kar diya hai. Kripya is site ke liye pop-ups allow karein aur page refresh karein.";
-                        } else if (error.code === 'auth/popup-closed-by-user') {
-                            errorMessage = "Aapne sign-in window band kar di. Kripya dobara try karein.";
-                        }
-                        showModal('Authentication Error', errorMessage);
-                    });
+                auth.signInWithRedirect(provider);
             };
+            
             signOutBtn.onclick = () => auth.signOut();
+
+            // Check for redirect result
+            auth.getRedirectResult()
+                .then((result) => {
+                    if (result.user) {
+                        // User successfully signed in.
+                        // The onAuthStateChanged listener will handle the UI update.
+                        console.log("Signed in via redirect:", result.user);
+                    }
+                }).catch((error) => {
+                    console.error("Redirect Authentication Error:", error);
+                    let errorMessage = `Sign-in fail ho gaya. Error: ${error.code} - ${error.message}`;
+                    showModal('Authentication Error', errorMessage);
+                });
+
 
             // Authentication State Listener
             auth.onAuthStateChanged(user => {
