@@ -8,177 +8,128 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .google-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #4285F4;
-            color: white;
-            border-radius: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            font-size: 1.125rem;
-            border: none;
-            cursor: pointer;
-            transition: background-color: 0.3s;
-        }
-        .google-btn:hover {
-            background-color: #357ae8;
-        }
-        .google-btn svg {
-            margin-right: 0.75rem;
-            background: white;
-            border-radius: 50%;
-            padding: 2px;
+        #camera-feed {
+            transform: scaleX(-1);
+            max-width: 100%;
+            border-radius: 0.75rem;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="flex flex-col items-center bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full">
-        <h1 class="text-5xl font-extrabold text-gray-800 mb-6 text-center leading-tight">
+    <div class="flex flex-col items-center bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-2xl w-full">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-8 text-center leading-tight">
             RCIS (Rider Check-In System)
         </h1>
 
-        <!-- Loading State -->
-        <div id="loading-state" class="my-8">
-            <p class="text-xl text-gray-600">Loading...</p>
+        <!-- Login Section -->
+        <div id="login-section" class="w-full max-w-md mb-8 text-center">
+            <label for="rider-id" class="text-2xl font-semibold text-gray-700">Enter Your Rider ID</label>
+            <input type="text" id="rider-id" placeholder="e.g., FAR001"
+                   class="mt-2 p-4 w-full text-xl text-center rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 shadow-sm uppercase">
+            
+            <label for="rider-pin" class="text-2xl font-semibold text-gray-700 mt-4 block">Enter Your Secret PIN</label>
+            <input type="password" id="rider-pin" placeholder="••••••"
+                   class="mt-2 p-4 w-full text-xl text-center rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 shadow-sm">
+
+            <button id="login-btn" onclick="loginRider()"
+                    class="mt-6 w-full px-8 py-4 text-2xl font-bold text-white bg-indigo-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-indigo-700">
+                Login
+            </button>
         </div>
 
-        <!-- Authentication Section -->
-        <div id="auth-section" class="w-full max-w-md mb-8 text-center hidden">
-            <div id="user-info" class="hidden mb-4 text-lg">
+        <!-- Main App Section (Hidden Initially) -->
+        <div id="app-section" class="hidden w-full text-center">
+            <div id="user-info" class="mb-8 text-2xl">
                 <p>Welcome, <span id="user-name" class="font-bold"></span>!</p>
-                <p id="user-email" class="text-gray-600"></p>
             </div>
-            <button id="google-signin-btn" class="google-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="24" height="24" viewBox="0 0 48 48">
-                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.99,36.566,44,31.016,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                </svg>
-                Sign in with Google
-            </button>
-            <button id="signout-btn" class="hidden px-6 py-3 text-lg font-semibold text-white bg-red-600 rounded-lg shadow-md transition-all duration-300 hover:bg-red-700">
-                Sign Out
-            </button>
-        </div>
 
-        <div id="buttons" class="hidden flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
-            <button id="check-in-button" onclick="showShiftTimeSelection()" class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto focus:outline-none focus:ring-4 focus:ring-blue-300">
-                Check-In
-            </button>
-            <button id="check-out-button" onclick="submitData('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto focus:outline-none focus:ring-4 focus:ring-green-300">
-                Check-Out
-            </button>
-        </div>
+            <!-- Main Action Buttons -->
+            <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
+                <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto">
+                    Check-In
+                </button>
+                <button id="check-out-button" onclick="showForm('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto">
+                    Check-Out
+                </button>
+            </div>
 
-        <div id="shift-time-selection" class="hidden mt-8 text-center flex flex-col items-center space-y-4 w-full">
-            <label for="shift-time-select" class="text-xl font-semibold text-gray-700">Select Shift Time:</label>
-            <select id="shift-time-select" class="p-4 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm w-full max-w-xs sm:max-w-md">
-                <option value="">Select Shift Time</option>
-                <option value="7 AM to 5 PM">7 AM to 5 PM</option>
-                <option value="8 AM to 6 PM">8 AM to 6 PM</option>
-                <option value="4 PM to 2 AM">4 PM to 2 AM</option>
-                <option value="8 AM to 6 AM">8 AM to 6 AM</option>
-                <option value="10 PM to 8 AM">10 PM to 8 AM</option>
-                <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
-            </select>
-            <button id="confirm-shift-button" onclick="submitData('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
-                Confirm Shift
-            </button>
+            <!-- Forms Container -->
+            <div id="forms-container" class="hidden w-full">
+                <!-- Check-In Form -->
+                <div id="checkin-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full">
+                    <label for="shift-time-select" class="text-xl font-semibold text-gray-700">Select Shift Time:</label>
+                    <select id="shift-time-select" class="p-4 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 shadow-sm w-full max-w-md">
+                        <option value="">Select Shift Time</option>
+                        <option value="7 AM to 5 PM">7 AM to 5 PM</option>
+                        <option value="8 AM to 6 PM">8 AM to 6 PM</option>
+                        <option value="4 PM to 2 AM">4 PM to 2 AM</option>
+                        <option value="8 PM to 6 AM">8 PM to 6 AM</option>
+                        <option value="10 PM to 8 AM">10 PM to 8 AM</option>
+                        <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
+                    </select>
+                    <button onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105">
+                        Next: Verify Location & Selfie
+                    </button>
+                </div>
+
+                <!-- Check-Out Form -->
+                <div id="checkout-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
+                    <h2 class="text-2xl font-bold text-gray-800">Check-Out Details</h2>
+                    <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <input type="number" id="total-kms" placeholder="Total Travelled Kms *" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <select id="last-order" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                        <option value="">Is this your Last Order? *</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                    <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <button onclick="startVerification('checkout')" class="w-full px-8 py-4 text-xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105">
+                        Next: Verify Location & Selfie
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selfie Verification Section -->
+            <div id="selfie-section" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
+                <h2 class="text-2xl font-bold text-gray-800">Live Selfie Verification</h2>
+                <p class="text-gray-600">Please take a clear selfie to confirm.</p>
+                <div class="w-full bg-gray-200 rounded-lg overflow-hidden shadow-inner">
+                    <video id="camera-feed" autoplay playsinline class="w-full h-auto"></video>
+                </div>
+                <canvas id="photo-canvas" class="hidden"></canvas>
+                <button id="capture-btn" class="w-full px-8 py-4 text-xl font-bold text-white bg-red-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-red-700 hover:scale-105">
+                    Take Selfie & Submit
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- Modal -->
     <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center" id="modal-content-wrapper">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
             <h3 id="modal-title" class="text-2xl font-bold text-gray-800 mb-4"></h3>
             <p id="modal-message" class="text-lg text-gray-700 mb-6"></p>
-            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md">
                 OK
             </button>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
     <script>
-        // Firebase Config has been updated with your project details.
-        const firebaseConfig = {
-            apiKey: "AIzaSyBToBsWccnzG4xvZT7SqiKBaFGcR8bLPjg",
-            authDomain: "riders-check-in-check-out.firebaseapp.com",
-            projectId: "riders-check-in-check-out",
-            storageBucket: "riders-check-in-check-out.firebasestorage.app",
-            messagingSenderId: "563496526463",
-            appId: "1:563496526463:web:867574b572dbca6e8f554a",
-            measurementId: "G-0LF7PYCFFQ"
-        };
+        // --- CONFIGURATION ---
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
+        
+        // ZAROORI: Apne office ke sahi coordinates yahaan daalein
+        const OFFICE_LATITUDE = 28.460845;
+        const OFFICE_LONGITUDE = 77.079439;
+        const ALLOWED_RADIUS_METERS = 200; // 200 meter ka daayra
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const provider = new firebase.auth.GoogleAuthProvider();
+        let currentUser = null;
+        let cameraStream = null;
 
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxI9JQKQGg9WHtkfwisKFnNd8TJAxaPMQGH64VperTU3-cpKzE-aNPfYwzsqsukamlgkw/exec';
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // UI Elements
-            const loadingStateDiv = document.getElementById('loading-state');
-            const authSectionDiv = document.getElementById('auth-section');
-            const googleSignInBtn = document.getElementById('google-signin-btn');
-            const signOutBtn = document.getElementById('signout-btn');
-            const userInfoDiv = document.getElementById('user-info');
-            const userNameSpan = document.getElementById('user-name');
-            const userEmailSpan = document.getElementById('user-email');
-            const actionButtonsDiv = document.getElementById('buttons');
-
-            // --- UPDATED: Set persistence to ensure login state is saved ---
-            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-                .then(() => {
-                    // Now that persistence is set, check for redirect result.
-                    return auth.getRedirectResult();
-                })
-                .then((result) => {
-                    if (result.user) {
-                        console.log("Signed in via redirect:", result.user);
-                    }
-                    // onAuthStateChanged will handle the UI updates regardless.
-                })
-                .catch((error) => {
-                    console.error("Authentication Initialization Error:", error);
-                    let errorMessage = `Sign-in process mein error aa gaya: ${error.code}`;
-                    showModal('Authentication Error', errorMessage);
-                });
-
-            googleSignInBtn.onclick = () => {
-                auth.signInWithRedirect(provider);
-            };
-            
-            signOutBtn.onclick = () => auth.signOut();
-
-            // onAuthStateChanged will handle all UI updates
-            auth.onAuthStateChanged(user => {
-                loadingStateDiv.classList.add('hidden'); // Hide loading state
-                authSectionDiv.classList.remove('hidden'); // Show auth section
-
-                if (user) {
-                    // User is signed in
-                    userNameSpan.textContent = user.displayName;
-                    userEmailSpan.textContent = user.email;
-                    userInfoDiv.classList.remove('hidden');
-                    googleSignInBtn.classList.add('hidden');
-                    signOutBtn.classList.remove('hidden');
-                    actionButtonsDiv.classList.remove('hidden');
-                } else {
-                    // User is signed out
-                    userInfoDiv.classList.add('hidden');
-                    googleSignInBtn.classList.remove('hidden');
-                    signOutBtn.classList.add('hidden');
-                    actionButtonsDiv.classList.add('hidden');
-                    document.getElementById('shift-time-selection').classList.add('hidden');
-                }
-            });
-        });
-
+        // --- CORE FUNCTIONS ---
 
         function showModal(title, message, showOkButton = true) {
             document.getElementById('modal-title').innerText = title;
@@ -191,57 +142,226 @@
             document.getElementById('custom-modal').classList.add('hidden');
         }
 
-        function disableAllInputs() {
-            const signOutBtn = document.getElementById('signout-btn');
-            if(signOutBtn) signOutBtn.disabled = true;
+        async function loginRider() {
+            const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
+            const secretPin = document.getElementById('rider-pin').value.trim();
 
-            document.getElementById('check-in-button').disabled = true;
-            document.getElementById('check-out-button').disabled = true;
-            document.getElementById('confirm-shift-button').disabled = true;
-        }
-
-        function showShiftTimeSelection() {
-            document.getElementById('buttons').classList.add('hidden');
-            document.getElementById('shift-time-selection').classList.remove('hidden');
-        }
-
-        async function submitData(type) {
-            const user = auth.currentUser;
-            if (!user) {
-                showModal('Error', 'Aap sign in nahi hain. Kripya pehle sign in karein.');
+            if (!riderId || !secretPin) {
+                showModal('Error', 'Kripya Rider ID aur Secret PIN dono daalein.');
                 return;
             }
-
-            const shiftTime = document.getElementById('shift-time-select').value;
-            if (type === 'checkin' && !shiftTime) {
-                showModal('Error', 'Kripya aage badhne ke liye shift time chunein.');
-                return;
-            }
-
-            showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
-
-            const dataPayload = {
-                type: type,
-                shiftTime: type === 'checkin' ? shiftTime : null,
-                riderName: user.displayName,
-                riderEmail: user.email
+            showModal('Logging In...', 'Aapki details verify ki ja rahi hai...', false);
+            
+            const payload = { 
+                action: 'login', 
+                riderId: riderId,
+                secretPin: secretPin
             };
 
             try {
-                await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    cache: 'no-cache',
+                    mode: 'cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(dataPayload)
+                    body: JSON.stringify(payload)
                 });
-                
-                showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
-                disableAllInputs();
-
+                const result = await response.json();
+                if (result.status === 'success') {
+                    currentUser = result.data;
+                    document.getElementById('user-name').textContent = currentUser.riderName;
+                    document.getElementById('login-section').classList.add('hidden');
+                    document.getElementById('app-section').classList.remove('hidden');
+                    hideModal();
+                } else {
+                    showModal('Login Failed', result.message || 'Aapki Rider ID ya PIN galat hai.');
+                }
             } catch (error) {
-                console.error('Error:', error);
-                showModal('Error', 'Ek error aa gayi hai. Kripya dobara try karein.');
+                showModal('Error', 'Login karne mein error aa gaya.');
+            }
+        }
+
+        function showForm(type) {
+            document.getElementById('buttons').classList.add('hidden');
+            document.getElementById('forms-container').classList.remove('hidden');
+            if (type === 'checkin') {
+                document.getElementById('checkin-form').classList.remove('hidden');
+                document.getElementById('checkout-form').classList.add('hidden');
+            } else {
+                document.getElementById('checkout-form').classList.remove('hidden');
+                document.getElementById('checkin-form').classList.add('hidden');
+            }
+        }
+
+        function startVerification(type) {
+            const formData = getFormData(type);
+            if (!formData) return;
+
+            showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
+            
+            getLocation().then(location => {
+                // Location sahi hai, ab camera start karo
+                startCamera(type, formData, location);
+            }).catch(error => {
+                // Location galat hai ya permission nahi mili
+                showModal('Location Error', error);
+            });
+        }
+
+        function getFormData(type) {
+            const data = {};
+            if (type === 'checkin') {
+                data.shiftTime = document.getElementById('shift-time-select').value;
+                if (!data.shiftTime) {
+                    showModal('Error', 'Kripya shift time chunein.');
+                    return null;
+                }
+            } else if (type === 'checkout') {
+                data.totalRides = document.getElementById('total-rides').value;
+                data.totalKms = document.getElementById('total-kms').value;
+                data.lastOrder = document.getElementById('last-order').value;
+                data.lastOrderTime = document.getElementById('last-order-time').value || "";
+                data.manualOrders = document.getElementById('manual-orders').value || "";
+                data.manualKms = document.getElementById('manual-kms').value || "";
+
+                if (!data.totalRides || !data.totalKms || !data.lastOrder) {
+                    showModal('Error', 'Kripya sabhi zaroori (*) fields bharein.');
+                    return null;
+                }
+            }
+            return data;
+        }
+
+        // --- GEOLOCATION & VALIDATION ---
+
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject('Aapke browser mein Geolocation support nahi hai.');
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLon = position.coords.longitude;
+                        
+                        const distance = calculateDistance(userLat, userLon, OFFICE_LATITUDE, OFFICE_LONGITUDE);
+
+                        if (distance <= ALLOWED_RADIUS_METERS) {
+                            // Rider location ke andar hai
+                            resolve({ latitude: userLat, longitude: userLon });
+                        } else {
+                            // Rider location ke bahar hai
+                            reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain. Kripya office ke daayre mein aakar try karein.`);
+                        }
+                    },
+                    () => {
+                        reject('Location access nahi mila. Kripya permission dein.');
+                    },
+                    { enableHighAccuracy: true } // For better accuracy
+                );
+            });
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth ka radius meters mein
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Doori meters mein
+        }
+
+        // --- CAMERA & SUBMISSION ---
+
+        async function startCamera(type, formData, location) {
+            hideModal();
+            document.getElementById('forms-container').classList.add('hidden');
+            document.getElementById('selfie-section').classList.remove('hidden');
+            
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                const videoElement = document.getElementById('camera-feed');
+                videoElement.srcObject = cameraStream;
+                document.getElementById('capture-btn').onclick = () => captureAndSubmit(type, formData, location);
+            } catch (err) {
+                showModal('Camera Error', 'Camera access nahi mila. Kripya permission dein.');
+                stopCamera();
+            }
+        }
+
+        function captureAndSubmit(type, formData, location) {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('photo-canvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const timestamp = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+            context.scale(-1, 1);
+            context.translate(-canvas.width, 0);
+            context.fillStyle = 'white';
+            context.font = 'bold 24px Inter';
+            context.strokeStyle = 'black';
+            context.lineWidth = 4;
+            const textX = 15;
+            const textY = canvas.height - 15;
+            context.strokeText(timestamp, textX, textY);
+            context.fillText(timestamp, textX, textY);
+            
+            const selfieData = canvas.toDataURL('image/jpeg', 0.8);
+
+            stopCamera();
+            submitData(type, formData, location, selfieData);
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('selfie-section').classList.add('hidden');
+        }
+
+        async function submitData(type, formData, location, selfie) {
+            if (!currentUser) {
+                showModal('Error', 'Aap logged in nahi hain.');
+                return;
+            }
+
+            const payload = {
+                action: 'submit', type: type,
+                riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
+                ...formData, ...location, selfie: selfie
+            };
+
+            showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
+
+            try {
+                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                    method: 'POST', mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
+                    document.getElementById('app-section').innerHTML = `<p class="text-2xl font-bold text-green-600">Thank You!</p>`;
+                } else {
+                    showModal('Submission Failed', result.message || 'Data submit nahi ho paaya.');
+                }
+            } catch (error) {
+                showModal('Error', 'Data submit karne mein error aa gaya.');
             }
         }
     </script>
