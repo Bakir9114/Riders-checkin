@@ -116,7 +116,6 @@
 
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxI9JQKQGg9WHtkfwisKFnNd8TJAxaPMQGH64VperTU3-cpKzE-aNPfYwzsqsukamlgkw/exec';
 
-        // --- FIXED: Wait for the DOM to be fully loaded before running the script ---
         document.addEventListener('DOMContentLoaded', function() {
             // UI Elements
             const googleSignInBtn = document.getElementById('google-signin-btn');
@@ -127,7 +126,19 @@
             const actionButtonsDiv = document.getElementById('buttons');
 
             // Event Listeners
-            googleSignInBtn.onclick = () => auth.signInWithPopup(provider);
+            googleSignInBtn.onclick = () => {
+                auth.signInWithPopup(provider)
+                    .catch((error) => {
+                        console.error("Authentication Error:", error);
+                        let errorMessage = "Sign-in fail ho gaya. Kripya dobara try karein.";
+                        if (error.code === 'auth/popup-blocked') {
+                            errorMessage = "Aapke browser ne pop-up block kar diya hai. Kripya is site ke liye pop-ups allow karein aur page refresh karein.";
+                        } else if (error.code === 'auth/popup-closed-by-user') {
+                            errorMessage = "Aapne sign-in window band kar di. Kripya dobara try karein.";
+                        }
+                        showModal('Authentication Error', errorMessage);
+                    });
+            };
             signOutBtn.onclick = () => auth.signOut();
 
             // Authentication State Listener
@@ -165,7 +176,6 @@
         }
 
         function disableAllInputs() {
-            // Also disable the signout button
             const signOutBtn = document.getElementById('signout-btn');
             if(signOutBtn) signOutBtn.disabled = true;
 
