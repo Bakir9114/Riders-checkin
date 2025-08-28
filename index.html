@@ -131,19 +131,29 @@
             const userEmailSpan = document.getElementById('user-email');
             const actionButtonsDiv = document.getElementById('buttons');
 
+            // --- UPDATED: Set persistence to ensure login state is saved ---
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    // Now that persistence is set, check for redirect result.
+                    return auth.getRedirectResult();
+                })
+                .then((result) => {
+                    if (result.user) {
+                        console.log("Signed in via redirect:", result.user);
+                    }
+                    // onAuthStateChanged will handle the UI updates regardless.
+                })
+                .catch((error) => {
+                    console.error("Authentication Initialization Error:", error);
+                    let errorMessage = `Sign-in process mein error aa gaya: ${error.code}`;
+                    showModal('Authentication Error', errorMessage);
+                });
+
             googleSignInBtn.onclick = () => {
                 auth.signInWithRedirect(provider);
             };
             
             signOutBtn.onclick = () => auth.signOut();
-
-            // Check for redirect result first
-            auth.getRedirectResult()
-                .catch((error) => {
-                    console.error("Redirect Authentication Error:", error);
-                    let errorMessage = `Sign-in fail ho gaya. Error: ${error.code} - ${error.message}`;
-                    showModal('Authentication Error', errorMessage);
-                });
 
             // onAuthStateChanged will handle all UI updates
             auth.onAuthStateChanged(user => {
