@@ -13,6 +13,18 @@
             max-width: 100%;
             border-radius: 0.75rem;
         }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #4f46e5;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
@@ -42,6 +54,13 @@
             <div id="user-info" class="mb-8 text-2xl">
                 <p>Welcome, <span id="user-name" class="font-bold"></span>!</p>
             </div>
+            
+            <!-- ✨ Gemini Motivational Message Box -->
+            <div id="gemini-message-box" class="hidden my-4 p-4 bg-purple-100 border-l-4 border-purple-500 text-purple-700 rounded-lg text-left">
+                <p class="font-bold">✨ Aaj Ka Tip</p>
+                <p id="gemini-message-text"></p>
+            </div>
+
 
             <!-- Main Action Buttons -->
             <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
@@ -85,7 +104,14 @@
                     <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
                     <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
-                    <button onclick="startVerification('checkout')" class="w-full px-8 py-4 text-xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105">
+                     
+                    <!-- ✨ Gemini Shift Summary Button -->
+                    <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-purple-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-purple-700">
+                        ✨ Get Shift Summary
+                    </button>
+                    <div id="summary-display" class="hidden mt-4 p-4 w-full bg-gray-100 rounded-lg text-left"></div>
+
+                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105">
                         Next: Verify Location & Selfie
                     </button>
                 </div>
@@ -120,6 +146,7 @@
     <script>
         // --- CONFIGURATION ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
+        const GEMINI_API_KEY = ""; // API key yahaan daalein agar zaroorat ho.
         
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
@@ -127,7 +154,66 @@
 
         let currentUser = null;
         let cameraStream = null;
-        let formTimer = null; // Timer ke liye naya variable
+        let formTimer = null; 
+
+        // --- GEMINI API FUNCTIONS ---
+
+        async function callGeminiAPI(prompt) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    console.error("Gemini API Error:", response);
+                    return "Sorry, abhi aapse baat nahi kar pa raha. Baad mein try karein.";
+                }
+
+                const result = await response.json();
+                return result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                return "Network error. Kripya apna connection check karein.";
+            }
+        }
+
+        async function getMotivationalMessage() {
+            const messageText = document.getElementById('gemini-message-text');
+            messageText.innerHTML = '<div class="loader mx-auto"></div>';
+            document.getElementById('gemini-message-box').classList.remove('hidden');
+
+            const prompt = "Act as a friendly manager for delivery riders in Gurugram, India. Generate a short, motivational, and safety-focused message for a rider starting their shift. Keep it under 25 words. Include a safety tip relevant to Indian traffic or weather. Be encouraging and use a mix of Hindi and English (Hinglish).";
+            
+            const message = await callGeminiAPI(prompt);
+            messageText.innerText = message;
+        }
+
+        async function getShiftSummary() {
+            const totalRides = document.getElementById('total-rides').value;
+            const totalKms = document.getElementById('total-kms').value;
+
+            if (!totalRides || !totalKms) {
+                showModal('Error', 'Kripya "Total Rides" aur "Total Kms" bharein.');
+                return;
+            }
+
+            const summaryDisplay = document.getElementById('summary-display');
+            summaryDisplay.innerHTML = '<div class="loader mx-auto"></div>';
+            summaryDisplay.classList.remove('hidden');
+
+            const prompt = `A delivery rider in Gurugram, India, just finished their shift. They completed ${totalRides} rides and travelled ${totalKms} kilometers. Generate a short, positive, and appreciative summary of their hard work. Suggest a simple way they can relax after their shift. Keep it under 30 words and use Hinglish.`;
+            
+            const summary = await callGeminiAPI(prompt);
+            summaryDisplay.innerText = summary;
+        }
+
 
         // --- CORE FUNCTIONS ---
 
@@ -141,6 +227,31 @@
         function hideModal() {
             document.getElementById('custom-modal').classList.add('hidden');
         }
+
+        
+        function updateButtonStates(hasCheckedIn) {
+            const checkInBtn = document.getElementById('check-in-button');
+            const checkOutBtn = document.getElementById('check-out-button');
+
+            if (hasCheckedIn) {
+                checkInBtn.disabled = true;
+                checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                checkInBtn.title = "Aap aaj pehle hi check-in kar chuke hain.";
+
+                checkOutBtn.disabled = false;
+                checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                checkOutBtn.title = "";
+            } else {
+                checkInBtn.disabled = false;
+                checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                checkInBtn.title = "";
+
+                checkOutBtn.disabled = true;
+                checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
+            }
+        }
+
 
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
@@ -172,6 +283,15 @@
                     document.getElementById('login-section').classList.add('hidden');
                     document.getElementById('app-section').classList.remove('hidden');
                     hideModal();
+                    
+                    updateButtonStates(currentUser.hasCheckedIn);
+
+                    if (!currentUser.hasCheckedIn) {
+                        getMotivationalMessage(); 
+                    } else {
+                         document.getElementById('gemini-message-box').classList.add('hidden');
+                    }
+
                 } else {
                     showModal('Login Failed', result.message || 'Aapki Rider ID ya PIN galat hai.');
                 }
@@ -191,6 +311,25 @@
                 document.getElementById('checkin-form').classList.add('hidden');
             }
         }
+        
+        function wrapText(context, text, maxWidth) {
+            const words = text.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                let word = words[i];
+                let width = context.measureText(currentLine + " " + word).width;
+                if (width < maxWidth) {
+                    currentLine += " " + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
 
         function startVerification(type) {
             const formData = getFormData(type);
@@ -198,9 +337,10 @@
 
             showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
             
-            getLocation().then(location => {
-                startCamera(type, formData, location);
-                // Location sahi milne par 2 minute ka timer start karo
+            getLocation().then(async location => {
+                showModal('Fetching Address...', 'Aapka address check kiya ja raha hai...', false);
+                const address = await getAddressFromCoordinates(location.latitude, location.longitude);
+                startCamera(type, formData, location, address);
                 startFormTimer();
             }).catch(error => {
                 showModal('Location Error', error);
@@ -231,33 +371,36 @@
             return data;
         }
 
-        // --- TIMER FUNCTIONS ---
-
         function startFormTimer() {
-            // Purana timer (agar koi hai) clear karo
             if (formTimer) clearTimeout(formTimer);
-            
-            // Naya 2 minute (120000 ms) ka timer set karo
             formTimer = setTimeout(() => {
                 resetDueToTimeout();
             }, 120000); 
         }
 
         function resetDueToTimeout() {
-            stopCamera(); // Camera band karo
-            
-            // UI ko reset karo
+            stopCamera(); 
             document.getElementById('selfie-section').classList.add('hidden');
             document.getElementById('forms-container').classList.add('hidden');
             document.getElementById('checkin-form').classList.add('hidden');
             document.getElementById('checkout-form').classList.add('hidden');
             document.getElementById('buttons').classList.remove('hidden');
-            
-            // User ko batao ki time khatm ho gaya
             showModal('Time Up!', 'Aapne 2 minute mein form nahi bhara. Kripya location dobara verify karein.');
         }
+        
+        async function getAddressFromCoordinates(latitude, longitude) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) { return "Address not found."; }
+                const data = await response.json();
+                return data.display_name || "Address could not be determined.";
+            } catch (error) {
+                console.error("Reverse geocoding error:", error);
+                return "Could not fetch address.";
+            }
+        }
 
-        // --- GEOLOCATION & VALIDATION ---
 
         function getLocation() {
             return new Promise((resolve, reject) => {
@@ -292,18 +435,14 @@
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
-
             const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                       Math.cos(φ1) * Math.cos(φ2) *
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
             return R * c;
         }
 
-        // --- CAMERA & SUBMISSION ---
-
-        async function startCamera(type, formData, location) {
+        async function startCamera(type, formData, location, address) {
             hideModal();
             document.getElementById('forms-container').classList.add('hidden');
             document.getElementById('selfie-section').classList.remove('hidden');
@@ -312,15 +451,14 @@
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 const videoElement = document.getElementById('camera-feed');
                 videoElement.srcObject = cameraStream;
-                document.getElementById('capture-btn').onclick = () => captureAndSubmit(type, formData, location);
+                document.getElementById('capture-btn').onclick = () => captureAndSubmit(type, formData, location, address);
             } catch (err) {
                 showModal('Camera Error', 'Camera access nahi mila. Kripya permission dein.');
                 stopCamera();
             }
         }
 
-        function captureAndSubmit(type, formData, location) {
-            // Form submit ho raha hai, isliye timer ko roko
+        function captureAndSubmit(type, formData, location, address) {
             if (formTimer) clearTimeout(formTimer);
 
             const video = document.getElementById('camera-feed');
@@ -334,22 +472,31 @@
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const timestamp = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
             context.scale(-1, 1);
             context.translate(-canvas.width, 0);
+
             context.fillStyle = 'white';
-            context.font = 'bold 24px Inter';
             context.strokeStyle = 'black';
             context.lineWidth = 4;
-            const textX = 15;
-            const textY = canvas.height - 15;
-            context.strokeText(timestamp, textX, textY);
-            context.fillText(timestamp, textX, textY);
+            
+            context.font = 'bold 18px Inter';
+            const addressLines = wrapText(context, address, canvas.width - 30);
+            let yPosition = 30; 
+            addressLines.forEach(line => {
+                context.strokeText(line, 15, yPosition);
+                context.fillText(line, 15, yPosition);
+                yPosition += 22;
+            });
+            
+            const timestamp = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+            context.font = 'bold 24px Inter';
+            context.strokeText(timestamp, 15, canvas.height - 20);
+            context.fillText(timestamp, 15, canvas.height - 20);
             
             const selfieData = canvas.toDataURL('image/jpeg', 0.8);
 
             stopCamera();
-            submitData(type, formData, location, selfieData);
+            submitData(type, formData, location, selfieData, address);
         }
 
         function stopCamera() {
@@ -359,8 +506,7 @@
             document.getElementById('selfie-section').classList.add('hidden');
         }
 
-        async function submitData(type, formData, location, selfie) {
-            // Yahaan bhi timer clear kar do, safety ke liye
+        async function submitData(type, formData, location, selfie, address) {
             if (formTimer) clearTimeout(formTimer);
             
             if (!currentUser) {
@@ -371,7 +517,8 @@
             const payload = {
                 action: 'submit', type: type,
                 riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
-                ...formData, ...location, selfie: selfie
+                ...formData, ...location, selfie: selfie,
+                address: address 
             };
 
             showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
