@@ -14,9 +14,9 @@
             border-radius: 0.75rem;
         }
         .loader {
-            border: 4px solid #f3f3f3;
+            border: 4px solid rgba(255, 255, 255, 0.2);
             border-radius: 50%;
-            border-top: 4px solid #4f46e5;
+            border-top: 4px solid #60a5fa; /* Light Blue color */
             width: 24px;
             height: 24px;
             animation: spin 1s linear infinite;
@@ -25,26 +25,38 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .glass-card {
+            background: rgba(23, 27, 46, 0.6); /* Semi-transparent dark blue */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="flex flex-col items-center bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-2xl w-full">
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-8 text-center leading-tight">
+<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen flex flex-col items-center justify-center p-4 text-gray-200">
+    <div class="glass-card flex flex-col items-center p-6 sm:p-8 rounded-2xl shadow-2xl max-w-2xl w-full">
+        <h1 class="text-3xl sm:text-4xl font-extrabold mb-8 text-center leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
             RCIS (Rider Check-In System)
         </h1>
 
         <!-- Login Section -->
         <div id="login-section" class="w-full max-w-md mb-8 text-center">
-            <label for="rider-id" class="text-2xl font-semibold text-gray-700">Enter Your Rider ID</label>
+            <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
             <input type="text" id="rider-id" placeholder="e.g., FAR001"
-                   class="mt-2 p-4 w-full text-xl text-center rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 shadow-sm uppercase">
+                   class="mt-2 p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm uppercase">
             
-            <label for="rider-pin" class="text-2xl font-semibold text-gray-700 mt-4 block">Enter Your Secret PIN</label>
-            <input type="password" id="rider-pin" placeholder="••••••"
-                   class="mt-2 p-4 w-full text-xl text-center rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 shadow-sm">
+            <label for="rider-pin" class="text-xl font-semibold text-gray-300 mt-4 block">Enter Your Secret PIN</label>
+            <div class="relative w-full mt-2">
+                <input type="password" id="rider-pin" placeholder="••••••"
+                       class="p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm pr-10">
+                <button onclick="togglePinVisibility()" type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
+                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+            </div>
 
             <button id="login-btn" onclick="loginRider()"
-                    class="mt-6 w-full px-8 py-4 text-2xl font-bold text-white bg-indigo-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-indigo-700">
+                    class="mt-6 w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105">
                 Login
             </button>
         </div>
@@ -52,22 +64,22 @@
         <!-- Main App Section (Hidden Initially) -->
         <div id="app-section" class="hidden w-full text-center">
             <div id="user-info" class="mb-8 text-2xl">
-                <p>Welcome, <span id="user-name" class="font-bold"></span>!</p>
+                <p>Welcome, <span id="user-name" class="font-bold text-blue-400"></span>!</p>
             </div>
             
             <!-- ✨ Gemini Motivational Message Box -->
-            <div id="gemini-message-box" class="hidden my-4 p-4 bg-purple-100 border-l-4 border-purple-500 text-purple-700 rounded-lg text-left">
-                <p class="font-bold">✨ Aaj Ka Tip</p>
+            <div id="gemini-message-box" class="hidden my-4 p-4 bg-slate-800/50 border-l-4 border-blue-500 text-slate-200 rounded-lg text-left shadow-md">
+                <p class="font-bold text-blue-300">✨ Aaj Ka Tip</p>
                 <p id="gemini-message-text"></p>
             </div>
 
 
             <!-- Main Action Buttons -->
             <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
-                <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105 w-full sm:w-auto">
+                <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105 w-full sm:w-auto">
                     Check-In
                 </button>
-                <button id="check-out-button" onclick="showForm('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105 w-full sm:w-auto">
+                <button id="check-out-button" onclick="showForm('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105 w-full sm:w-auto">
                     Check-Out
                 </button>
             </div>
@@ -76,8 +88,8 @@
             <div id="forms-container" class="hidden w-full">
                 <!-- Check-In Form -->
                 <div id="checkin-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full">
-                    <label for="shift-time-select" class="text-xl font-semibold text-gray-700">Select Shift Time:</label>
-                    <select id="shift-time-select" class="p-4 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 shadow-sm w-full max-w-md">
+                    <label for="shift-time-select" class="text-xl font-semibold text-gray-300">Select Shift Time:</label>
+                    <select id="shift-time-select" class="p-4 text-xl rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white w-full max-w-md">
                         <option value="">Select Shift Time</option>
                         <option value="7 AM to 5 PM">7 AM to 5 PM</option>
                         <option value="8 AM to 6 PM">8 AM to 6 PM</option>
@@ -86,32 +98,32 @@
                         <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                         <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
                     </select>
-                    <button onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-blue-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-105">
+                    <button onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">
                         Next: Verify Location & Selfie
                     </button>
                 </div>
 
                 <!-- Check-Out Form -->
                 <div id="checkout-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
-                    <h2 class="text-2xl font-bold text-gray-800">Check-Out Details</h2>
-                    <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
-                    <input type="number" id="total-kms" placeholder="Total Travelled Kms *" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
-                    <select id="last-order" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <h2 class="text-2xl font-bold text-gray-200">Check-Out Details</h2>
+                    <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <input type="number" id="total-kms" placeholder="Total Travelled Kms *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <select id="last-order" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white shadow-sm">
                         <option value="">Is this your Last Order? *</option>
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                     </select>
-                    <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
-                    <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
-                    <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg border border-gray-300 shadow-sm">
+                    <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                      
                     <!-- ✨ Gemini Shift Summary Button -->
-                    <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-purple-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-purple-700">
+                    <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">
                         ✨ Get Shift Summary
                     </button>
-                    <div id="summary-display" class="hidden mt-4 p-4 w-full bg-gray-100 rounded-lg text-left"></div>
+                    <div id="summary-display" class="hidden mt-4 p-4 w-full bg-slate-800 rounded-lg text-left shadow-inner text-gray-300"></div>
 
-                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-green-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-green-700 hover:scale-105">
+                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105">
                         Next: Verify Location & Selfie
                     </button>
                 </div>
@@ -119,13 +131,13 @@
 
             <!-- Selfie Verification Section -->
             <div id="selfie-section" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
-                <h2 class="text-2xl font-bold text-gray-800">Live Selfie Verification</h2>
-                <p class="text-gray-600">Please take a clear selfie to confirm.</p>
-                <div class="w-full bg-gray-200 rounded-lg overflow-hidden shadow-inner">
+                <h2 class="text-2xl font-bold text-gray-200">Live Selfie Verification</h2>
+                <p class="text-gray-400">Please take a clear selfie to confirm.</p>
+                <div class="w-full bg-black rounded-lg overflow-hidden shadow-inner">
                     <video id="camera-feed" autoplay playsinline class="w-full h-auto"></video>
                 </div>
                 <canvas id="photo-canvas" class="hidden"></canvas>
-                <button id="capture-btn" class="w-full px-8 py-4 text-xl font-bold text-white bg-red-600 rounded-xl shadow-lg transition-all duration-300 hover:bg-red-700 hover:scale-105">
+                <button id="capture-btn" class="w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-300 hover:from-rose-600 hover:to-pink-600 transform hover:scale-105">
                     Take Selfie & Submit
                 </button>
             </div>
@@ -133,11 +145,11 @@
     </div>
 
     <!-- Modal -->
-    <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
-            <h3 id="modal-title" class="text-2xl font-bold text-gray-800 mb-4"></h3>
-            <p id="modal-message" class="text-lg text-gray-700 mb-6"></p>
-            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md">
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="glass-card p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
+            <h3 id="modal-title" class="text-2xl font-bold text-gray-100 mb-4"></h3>
+            <p id="modal-message" class="text-lg text-gray-300 mb-6"></p>
+            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg shadow-md shadow-blue-500/30 hover:scale-105 transform transition-transform duration-200">
                 OK
             </button>
         </div>
@@ -155,6 +167,23 @@
         let currentUser = null;
         let cameraStream = null;
         let formTimer = null; 
+
+        // --- NEW FUNCTION ---
+        function togglePinVisibility() {
+            const pinInput = document.getElementById('rider-pin');
+            const eyeIcon = document.getElementById('eye-icon');
+            const eyeSlashIcon = document.getElementById('eye-slash-icon');
+
+            if (pinInput.type === 'password') {
+                pinInput.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeSlashIcon.classList.remove('hidden');
+            } else {
+                pinInput.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeSlashIcon.classList.add('hidden');
+            }
+        }
 
         // --- GEMINI API FUNCTIONS ---
 
@@ -475,8 +504,8 @@
             context.scale(-1, 1);
             context.translate(-canvas.width, 0);
 
-            context.fillStyle = 'white';
-            context.strokeStyle = 'black';
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             context.lineWidth = 4;
             
             context.font = 'bold 18px Inter';
@@ -533,7 +562,7 @@
 
                 if (result.status === 'success') {
                     showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
-                    document.getElementById('app-section').innerHTML = `<p class="text-2xl font-bold text-green-600">Thank You!</p>`;
+                    document.getElementById('app-section').innerHTML = `<p class="text-2xl font-bold text-green-400">Thank You!</p>`;
                 } else {
                     showModal('Submission Failed', result.message || 'Data submit nahi ho paaya.');
                 }
@@ -544,3 +573,4 @@
     </script>
 </body>
 </html>
+
