@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RCIS (Rider Check-In System)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -14,10 +14,9 @@
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
+            background: rgba(28, 28, 40, 0.6);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
         }
 
         .btn-grad {
@@ -30,7 +29,6 @@
         .btn-grad:hover {
             background-position: right center;
         }
-
         .loader {
             border: 4px solid rgba(255, 255, 255, 0.2);
             border-left-color: #00c6ff;
@@ -39,15 +37,14 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        
-        .modal-bg {
-            background-color: rgba(0,0,0,0.7);
-        }
-
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
+        }
+        video {
+             transform: scaleX(-1); /* Mirror effect */
+        }
+        canvas {
+            display: none;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,183 +52,179 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <div id="app" class="w-full max-w-md mx-auto">
-        <!-- Login Screen -->
-        <div id="login-screen" class="glass-card p-8 rounded-2xl shadow-lg space-y-6">
-            <h1 class="text-2xl md:text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300 whitespace-nowrap">RCIS (Rider Check-In System)</h1>
-            <div>
-                <label for="riderId" class="block text-sm font-medium text-gray-300 mb-2">Enter Your Rider ID</label>
-                <input type="text" id="riderId" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="E.g., FAR001">
+    <main class="w-full max-w-md">
+        <div class="glass-card p-8 rounded-2xl shadow-2xl">
+
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300 whitespace-nowrap">RCIS (Rider Check-In System)</h1>
             </div>
-            <div>
-                <label for="secretPin" class="block text-sm font-medium text-gray-300 mb-2">Enter Your Secret PIN</label>
-                <div class="relative">
-                    <input type="password" id="secretPin" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••">
-                    <button id="togglePin" type="button" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
-                        <i class="fas fa-eye"></i>
-                    </button>
+
+            <!-- Login Page -->
+            <div id="loginPage">
+                <div class="space-y-6">
+                    <div>
+                        <label for="riderId" class="block text-sm font-medium text-gray-300 mb-2">Enter Your Rider ID</label>
+                        <input type="text" id="riderId" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="E.g., FAR001">
+                    </div>
+                    <div class="relative">
+                        <label for="secretPin" class="block text-sm font-medium text-gray-300 mb-2">Enter Your Secret PIN</label>
+                        <input type="password" id="secretPin" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••">
+                         <button id="togglePin" type="button" class="absolute inset-y-0 right-0 top-7 pr-3 flex items-center text-gray-400">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <button id="loginBtn" class="w-full btn-grad text-white font-bold py-3 rounded-lg">Login</button>
                 </div>
             </div>
-            <button id="login-btn" class="w-full btn-grad text-white font-bold py-3 px-4 rounded-lg">Login</button>
-        </div>
 
-        <!-- Main Screen -->
-        <div id="main-screen" class="hidden glass-card p-8 rounded-2xl shadow-lg space-y-6">
-            <h2 class="text-2xl font-bold text-center">Welcome, <span id="rider-name" class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300"></span>!</h2>
-            <div id="gemini-tip" class="text-center p-4 bg-gray-800 rounded-lg border border-gray-700 italic">Loading today's tip...</div>
-            
-            <!-- Shift Selection -->
-            <div id="shift-selection" class="hidden space-y-4">
-                 <p class="text-center">Select your shift to Check-In:</p>
-                 <select id="shift-time" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="8 AM to 5 PM">8 AM to 5 PM</option>
-                    <option value="6 PM to 2 AM">6 PM to 2 AM</option>
-                 </select>
-                 <button id="checkin-btn" class="w-full btn-grad text-white font-bold py-3 px-4 rounded-lg">Proceed to Check-In</button>
-            </div>
+            <!-- Main App Page -->
+            <div id="appPage" class="hidden">
+                 <div class="text-center">
+                    <h2 class="text-xl font-bold">Welcome, <span id="riderNameDisplay"></span>!</h2>
+                    <p class="text-gray-400 text-sm mb-4" id="riderIdDisplay"></p>
+                    
+                    <!-- Gemini Tip -->
+                    <div id="geminiTip" class="my-4 p-4 bg-gray-800 rounded-lg text-sm text-cyan-300 border border-cyan-500/30">
+                        Loading today's tip...
+                    </div>
 
-             <!-- Check-out form -->
-            <div id="checkout-form" class="hidden space-y-4">
-                 <p class="text-center font-semibold text-lg">Enter Your Check-Out Details</p>
-                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="totalRides" placeholder="Total Rides" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2">
-                    <input type="number" id="totalKms" placeholder="System KMs" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2">
-                    <input type="number" id="manualOrders" placeholder="Manual Orders" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2">
-                    <input type="number" id="manualKms" placeholder="Manual KMs" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2">
+                    <div class="space-y-4">
+                        <button id="checkInBtn" class="w-full bg-green-500 hover:bg-green-600 font-semibold py-3 rounded-lg">Check-In</button>
+                        <button id="checkOutBtn" class="w-full bg-red-500 hover:bg-red-600 font-semibold py-3 rounded-lg">Check-Out</button>
+                    </div>
                  </div>
-                 <select id="lastOrder" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
-                    <option value="Yes">Last Order Picked Up?</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                </select>
-                 <input type="time" id="lastOrderTime" placeholder="Last Order Pick-up Time" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2">
-                 
-                 <button id="get-summary-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg">✨ Get Shift Summary</button>
-                 <div id="gemini-summary" class="hidden text-center p-3 bg-gray-800 rounded-lg border border-gray-700"></div>
-
-                 <button id="checkout-btn" class="w-full btn-grad text-white font-bold py-3 px-4 rounded-lg">Proceed to Check-Out</button>
             </div>
-             <p id="all-shifts-done" class="hidden text-center text-green-400 font-semibold p-4 bg-green-900/50 rounded-lg">You have completed all shifts for today. Thank you!</p>
-
-            <button id="logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg mt-4">Logout</button>
-        </div>
-
-        <!-- Verification Screen -->
-        <div id="verification-screen" class="hidden glass-card p-8 rounded-2xl shadow-lg space-y-4 text-center">
-            <h2 id="verification-title" class="text-2xl font-bold">Verification</h2>
-            <p id="verification-step" class="text-gray-300">Step 1 of 2: Verifying your location...</p>
-            <div id="location-loader" class="mx-auto loader"></div>
-            <p id="location-status" class="hidden"></p>
-
-            <div id="camera-container" class="hidden relative w-full aspect-square bg-gray-800 rounded-lg overflow-hidden">
-                <video id="video" class="w-full h-full object-cover" autoplay playsinline></video>
-                <canvas id="canvas" class="hidden"></canvas>
+            
+            <!-- Shift Selection Modal -->
+            <div id="shiftModal" class="hidden">
+                 <h3 class="text-lg font-bold text-center mb-4">Select Your Shift</h3>
+                 <div class="space-y-3" id="shiftOptions">
+                     <!-- Shift options will be populated here -->
+                 </div>
+                 <button id="cancelShift" class="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
             </div>
-            <button id="capture-btn" class="hidden w-full btn-grad text-white font-bold py-3 px-4 rounded-lg">Capture Selfie</button>
-             <button id="cancel-verification" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mt-2">Cancel</button>
-        </div>
 
-        <!-- Modal -->
-        <div id="modal" class="hidden fixed inset-0 modal-bg flex items-center justify-center p-4">
-            <div class="glass-card p-6 rounded-2xl shadow-xl w-full max-w-sm text-center">
-                <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
-                <p id="modal-message" class="text-gray-300 mb-6"></p>
-                <button id="modal-ok-btn" class="btn-grad text-white font-bold py-2 px-6 rounded-lg">OK</button>
+
+            <!-- Geolocation and Camera Page -->
+            <div id="capturePage" class="hidden">
+                <div class="text-center">
+                    <p id="captureStatus" class="mb-4">Getting your location...</p>
+                    <video id="video" autoplay playsinline class="w-full rounded-lg mb-4"></video>
+                    <canvas id="canvas"></canvas>
+                    <button id="captureBtn" class="w-full btn-grad text-white font-bold py-3 rounded-lg hidden">Take Selfie</button>
+                    <button id="cancelCapture" class="w-full mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                </div>
             </div>
-        </div>
 
-         <!-- Fullscreen Loader -->
-        <div id="fullscreen-loader" class="hidden fixed inset-0 modal-bg flex flex-col items-center justify-center">
-            <div class="loader"></div>
-            <p id="loader-message" class="mt-4 text-lg">Please wait...</p>
+            <!-- Checkout Form Page -->
+            <div id="checkoutFormPage" class="hidden">
+                <h3 class="text-lg font-bold text-center mb-4">Enter Your Trip Details</h3>
+                <div class="space-y-4">
+                     <input type="number" id="totalRides" placeholder="Total Rides (System)" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
+                     <input type="number" id="totalKms" placeholder="Total KMs (System)" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
+                     <input type="number" id="manualOrders" placeholder="Manual Orders" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
+                     <input type="number" id="manualKms" placeholder="Manual KMs" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
+                     <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Was this your last order?</label>
+                        <select id="lastOrder" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                     </div>
+                     <input type="time" id="lastOrderTime" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
+                     
+                     <div class="flex space-x-2">
+                        <button id="getSummaryBtn" class="w-1/2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-lg">✨ Get Summary</button>
+                        <button id="submitCheckoutBtn" class="w-1/2 btn-grad text-white font-bold py-3 rounded-lg">Submit</button>
+                     </div>
+                     <p id="geminiSummary" class="text-sm text-gray-400 mt-2 text-center"></p>
+                </div>
+            </div>
+
+            <!-- Message Modal -->
+            <div id="messageModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+                 <div class="glass-card p-8 rounded-2xl shadow-2xl text-center w-80">
+                     <h3 id="messageTitle" class="text-xl font-bold mb-4"></h3>
+                     <p id="messageText" class="mb-6"></p>
+                     <button id="messageOkBtn" class="btn-grad text-white font-bold py-2 px-8 rounded-lg">OK</button>
+                 </div>
+            </div>
+            
+             <!-- Loader -->
+            <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+                <div class="text-center">
+                    <div class="mx-auto loader"></div>
+                    <p id="loaderText" class="mt-4 text-lg"></p>
+                </div>
+            </div>
+
         </div>
-    </div>
+    </main>
 
     <script>
+        // --- CONFIGURATION ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
-
-        // Office Coordinates
-        const OFFICE_LAT = 28.460845;
-        const OFFICE_LON = 77.079439;
+        const OFFICE_COORDINATES = { lat: 28.460845, lon: 77.079439 };
         const ALLOWED_RADIUS_METERS = 200;
-        const REFRESH_TIMEOUT = 120000; // 2 minutes
+        const REFRESH_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 
-        // DOM Elements
-        const loginScreen = document.getElementById('login-screen');
-        const mainScreen = document.getElementById('main-screen');
-        const verificationScreen = document.getElementById('verification-screen');
-        const riderNameSpan = document.getElementById('rider-name');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
+        // --- DOM ELEMENTS ---
+        const loginPage = document.getElementById('loginPage');
+        const appPage = document.getElementById('appPage');
+        const capturePage = document.getElementById('capturePage');
+        const checkoutFormPage = document.getElementById('checkoutFormPage');
+        const shiftModal = document.getElementById('shiftModal');
+
+        const loginBtn = document.getElementById('loginBtn');
+        const checkInBtn = document.getElementById('checkInBtn');
+        const checkOutBtn = document.getElementById('checkOutBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const submitCheckoutBtn = document.getElementById('submitCheckoutBtn');
+        const cancelCapture = document.getElementById('cancelCapture');
+        const cancelShift = document.getElementById('cancelShift');
+        const getSummaryBtn = document.getElementById('getSummaryBtn');
+
+        const messageModal = document.getElementById('messageModal');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const messageOkBtn = document.getElementById('messageOkBtn');
+        
+        const loader = document.getElementById('loader');
+        const loaderText = document.getElementById('loaderText');
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureStatus = document.getElementById('captureStatus');
+
         const riderIdInput = document.getElementById('riderId');
         const secretPinInput = document.getElementById('secretPin');
         const togglePinBtn = document.getElementById('togglePin');
         
-        const checkinBtn = document.getElementById('checkin-btn');
-        const checkoutBtn = document.getElementById('checkout-btn');
-        const shiftSelectionDiv = document.getElementById('shift-selection');
-        const checkoutFormDiv = document.getElementById('checkout-form');
-        const allShiftsDoneP = document.getElementById('all-shifts-done');
-        const shiftTimeSelect = document.getElementById('shift-time');
+        let stream;
+        let refreshTimer;
+        let currentAction = '';
+        let selectedShift = '';
+        let userLocation = {};
+        let riderData = {};
 
-        const verificationTitle = document.getElementById('verification-title');
-        const verificationStep = document.getElementById('verification-step');
-        const locationLoader = document.getElementById('location-loader');
-        const locationStatus = document.getElementById('location-status');
-        const cameraContainer = document.getElementById('camera-container');
-        const captureBtn = document.getElementById('capture-btn');
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const cancelVerificationBtn = document.getElementById('cancel-verification');
-
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalOkBtn = document.getElementById('modal-ok-btn');
-        
-        const fullscreenLoader = document.getElementById('fullscreen-loader');
-        const loaderMessage = document.getElementById('loader-message');
-
-        const geminiTipDiv = document.getElementById('gemini-tip');
-        const getSummaryBtn = document.getElementById('get-summary-btn');
-        const geminiSummaryDiv = document.getElementById('gemini-summary');
-        
-        let currentRider = null;
-        let verificationType = ''; // 'checkin' or 'checkout'
-        let verificationTimer = null;
-
-        // --- Event Listeners ---
+        // --- EVENT LISTENERS ---
         loginBtn.addEventListener('click', handleLogin);
-        logoutBtn.addEventListener('click', handleLogout);
-        checkinBtn.addEventListener('click', () => startVerification('checkin'));
-        checkoutBtn.addEventListener('click', () => startVerification('checkout'));
+        checkInBtn.addEventListener('click', () => startCapture('checkin'));
+        checkOutBtn.addEventListener('click', () => startCapture('checkout'));
         captureBtn.addEventListener('click', handleCapture);
-        modalOkBtn.addEventListener('click', () => modal.classList.add('hidden'));
-        cancelVerificationBtn.addEventListener('click', cancelVerification);
-        togglePinBtn.addEventListener('click', togglePinVisibility);
-        getSummaryBtn.addEventListener('click', getShiftSummary);
+        submitCheckoutBtn.addEventListener('click', handleSubmitCheckout);
+        getSummaryBtn.addEventListener('click', getGeminiSummary);
+        cancelCapture.addEventListener('click', goBackToApp);
+        cancelShift.addEventListener('click', () => {
+             shiftModal.classList.add('hidden');
+             appPage.classList.remove('hidden');
+        });
+        messageOkBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
 
-
-        // --- Functions ---
-        
-        function showLoader(message = 'Please wait...') {
-            loaderMessage.textContent = message;
-            fullscreenLoader.classList.remove('hidden');
-        }
-
-        function hideLoader() {
-            fullscreenLoader.classList.add('hidden');
-        }
-        
-        function showModal(title, message) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modal.classList.remove('hidden');
-        }
-
-        function togglePinVisibility() {
+        togglePinBtn.addEventListener('click', () => {
             const icon = togglePinBtn.querySelector('i');
             if (secretPinInput.type === 'password') {
                 secretPinInput.type = 'text';
@@ -242,372 +235,360 @@
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
-        }
+        });
+
+
+        // --- CORE FUNCTIONS ---
 
         async function handleLogin() {
             const riderId = riderIdInput.value.trim();
             const secretPin = secretPinInput.value.trim();
 
             if (!riderId || !secretPin) {
-                showModal('Error', 'Please enter both Rider ID and Secret PIN.');
+                showMessage('Login Failed', 'Please enter both Rider ID and PIN.');
                 return;
             }
-
             showLoader('Logging in...');
+            
             try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'login', riderId, secretPin }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    currentRider = result.data;
-                    localStorage.setItem('currentRider', JSON.stringify(currentRider));
-                    updateUIForLoggedInUser();
-                    loginScreen.classList.add('hidden');
-                    mainScreen.classList.remove('hidden');
-                    fetchGeminiTip();
+                const response = await apiCall({ action: 'login', riderId, secretPin });
+                if (response.status === 'success') {
+                    riderData = response.data;
+                    document.getElementById('riderNameDisplay').textContent = riderData.riderName;
+                    document.getElementById('riderIdDisplay').textContent = riderData.riderId;
+                    
+                    updateUIForRider();
+                    
+                    loginPage.classList.add('hidden');
+                    appPage.classList.remove('hidden');
+                    getGeminiTip();
                 } else {
-                    showModal('Login Failed', result.message);
+                    showMessage('Login Failed', response.message);
                 }
             } catch (error) {
-                showModal('Error', 'An error occurred. Please check your connection.');
+                 showMessage('Error', 'An error occurred. Please check your connection.');
             } finally {
                 hideLoader();
             }
         }
 
-        function updateUIForLoggedInUser() {
-            if (!currentRider) return;
+        function updateUIForRider() {
+            const { checkInCountToday, checkedInShifts, hasCheckedIn } = riderData;
             
-            riderNameSpan.textContent = currentRider.riderName;
-
-            // Hide all action sections initially
-            shiftSelectionDiv.classList.add('hidden');
-            checkoutFormDiv.classList.add('hidden');
-            allShiftsDoneP.classList.add('hidden');
-
-            if (currentRider.checkInCountToday >= 2) {
-                allShiftsDoneP.classList.remove('hidden');
-            } else if (currentRider.hasCheckedIn && currentRider.checkInCountToday === 1) {
-                // If one shift is done, show checkout form
-                checkoutFormDiv.classList.remove('hidden');
-                 // Check if the other shift is available.
-                const allShifts = ["8 AM to 5 PM", "6 PM to 2 AM"];
-                const availableShifts = allShifts.filter(s => !currentRider.checkedInShifts.includes(s));
-                if (availableShifts.length > 0) {
-                     shiftSelectionDiv.classList.remove('hidden');
-                     shiftTimeSelect.innerHTML = availableShifts.map(s => `<option value="${s}">${s}</option>`).join('');
-                } else {
-                     shiftSelectionDiv.classList.add('hidden');
-                }
-
-            } else if (!currentRider.hasCheckedIn) {
-                 shiftSelectionDiv.classList.remove('hidden');
-                 shiftTimeSelect.innerHTML = `
-                    <option value="8 AM to 5 PM">8 AM to 5 PM</option>
-                    <option value="6 PM to 2 AM">6 PM to 2 AM</option>
-                 `;
+            // Logic for Check-in button
+            if (checkInCountToday >= 2) {
+                checkInBtn.disabled = true;
+                checkInBtn.textContent = 'Both shifts completed for today';
+                checkInBtn.classList.replace('bg-green-500', 'bg-gray-500');
+            } else {
+                 checkInBtn.disabled = false;
+                 checkInBtn.textContent = 'Check-In';
+                 checkInBtn.classList.replace('bg-gray-500', 'bg-green-500');
+            }
+            
+            // Logic for Check-out button
+            if (hasCheckedIn) {
+                checkOutBtn.disabled = false;
+                checkOutBtn.classList.replace('bg-gray-500', 'bg-red-500');
+            } else {
+                checkOutBtn.disabled = true;
+                checkOutBtn.classList.replace('bg-red-500', 'bg-gray-500');
             }
         }
 
 
-        function handleLogout() {
-            currentRider = null;
-            localStorage.removeItem('currentRider');
-            mainScreen.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
-            riderIdInput.value = '';
-            secretPinInput.value = '';
+        function startCapture(action) {
+            currentAction = action;
+            if (action === 'checkin') {
+                // Show shift selection modal
+                showShiftModal();
+            } else { // checkout
+                proceedToGeolocation();
+            }
         }
 
-        function startVerification(type) {
-            verificationType = type;
-            mainScreen.classList.add('hidden');
-            verificationScreen.classList.remove('hidden');
-            verificationTitle.textContent = type === 'checkin' ? 'Check-In Verification' : 'Check-Out Verification';
-            resetVerificationUI();
-            checkLocation();
+        function showShiftModal() {
+            const allShifts = ["8 AM to 6 PM", "4 PM to 2 AM"];
+            const availableShifts = allShifts.filter(shift => !riderData.checkedInShifts.includes(shift));
+
+            const shiftOptionsContainer = document.getElementById('shiftOptions');
+            shiftOptionsContainer.innerHTML = ''; // Clear previous options
+
+            if(availableShifts.length === 0) {
+                 showMessage("No Shifts Available", "You have already checked-in for all available shifts today.");
+                 return;
+            }
+
+            availableShifts.forEach(shift => {
+                const button = document.createElement('button');
+                button.textContent = shift;
+                button.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg';
+                button.onclick = () => {
+                    selectedShift = shift;
+                    shiftModal.classList.add('hidden');
+                    proceedToGeolocation();
+                };
+                shiftOptionsContainer.appendChild(button);
+            });
+            
+            appPage.classList.add('hidden');
+            shiftModal.classList.remove('hidden');
         }
 
-        function resetVerificationUI() {
-            verificationStep.textContent = 'Step 1 of 2: Verifying your location...';
-            locationLoader.classList.remove('hidden');
-            locationStatus.classList.add('hidden');
-            cameraContainer.classList.add('hidden');
+
+        function proceedToGeolocation() {
+            appPage.classList.add('hidden');
+            shiftModal.classList.add('hidden');
+            capturePage.classList.remove('hidden');
+            captureStatus.textContent = 'Getting your location...';
             captureBtn.classList.add('hidden');
-            stopCamera();
-            if (verificationTimer) clearTimeout(verificationTimer);
-        }
 
-        function cancelVerification() {
-             verificationScreen.classList.add('hidden');
-             mainScreen.classList.remove('hidden');
-             resetVerificationUI();
-        }
-
-        function checkLocation() {
             if (!navigator.geolocation) {
-                locationError('Geolocation is not supported by your browser.');
+                showMessage('Error', 'Geolocation is not supported by your browser.');
+                goBackToApp();
                 return;
             }
-
-            navigator.geolocation.getCurrentPosition(locationSuccess, 
-                () => locationError('Unable to retrieve your location. Please enable location services.'),
-                { enableHighAccuracy: true }
-            );
+            
+            navigator.geolocation.getCurrentPosition(locationSuccess, locationError, { enableHighAccuracy: true });
         }
 
         function locationSuccess(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const distance = getDistanceFromLatLonInMeters(lat, lon, OFFICE_LAT, OFFICE_LON);
+            userLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+            const distance = calculateDistance(userLocation, OFFICE_COORDINATES);
 
             if (distance <= ALLOWED_RADIUS_METERS) {
-                locationStatus.textContent = 'Location verified successfully!';
-                locationStatus.classList.remove('hidden', 'text-red-400');
-                locationStatus.classList.add('text-green-400');
-                locationLoader.classList.add('hidden');
-                
-                currentRider.latitude = lat;
-                currentRider.longitude = lon;
-
-                proceedToCamera();
-                verificationTimer = setTimeout(() => {
-                    showModal('Session Expired', 'Your 2-minute verification window has expired. Please verify your location again.');
-                    cancelVerification();
-                }, REFRESH_TIMEOUT);
-
+                captureStatus.textContent = 'Location verified. Please take a selfie.';
+                startCamera();
             } else {
-                locationError(`You are ${Math.round(distance)} meters away. You must be within ${ALLOWED_RADIUS_METERS} meters of the office.`);
+                showMessage('Location Error', `You are ${distance.toFixed(0)} meters away. You must be within ${ALLOWED_RADIUS_METERS} meters of the office to proceed.`);
+                goBackToApp();
             }
         }
 
-        function locationError(message) {
-            locationStatus.textContent = message;
-            locationStatus.classList.remove('hidden', 'text-green-400');
-            locationStatus.classList.add('text-red-400');
-            locationLoader.classList.add('hidden');
+        function locationError(error) {
+            showMessage('Location Error', `Could not get your location. Error: ${error.message}`);
+            goBackToApp();
         }
 
-        async function proceedToCamera() {
-            verificationStep.textContent = 'Step 2 of 2: Take a Selfie';
-            cameraContainer.classList.remove('hidden');
-            captureBtn.classList.remove('hidden');
-
+        async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 video.srcObject = stream;
+                captureBtn.classList.remove('hidden');
+                // Start the 2-minute refresh timer ONLY after camera starts
+                clearTimeout(refreshTimer); // Clear any existing timer
+                refreshTimer = setTimeout(() => {
+                    showMessage("Session Expired", "You took too long. Please verify your location again.");
+                    goBackToApp(true); // Force full page reload
+                }, REFRESH_TIMEOUT_MS);
+
             } catch (err) {
-                showModal('Camera Error', 'Could not access the camera. Please grant camera permissions.');
-                cancelVerification();
-            }
-        }
-        
-        function stopCamera() {
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
+                showMessage('Camera Error', 'Could not access the camera. Please check permissions.');
+                goBackToApp();
             }
         }
 
         async function handleCapture() {
-            showLoader('Processing...');
+             // Stop the timer as soon as the selfie is taken
+            clearTimeout(refreshTimer);
             
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+            
+            // Flip the context horizontally to un-mirror the image
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Reset transform to draw text normally
+            context.setTransform(1, 0, 0, 1, 0, 0);
 
-            const address = await getAddressFromCoords(currentRider.latitude, currentRider.longitude);
-            currentRider.address = address;
+            // Get address from coordinates
+            showLoader('Getting address...');
+            const address = await getAddressFromCoordinates(userLocation.lat, userLocation.lon);
+            hideLoader();
 
-            drawTextOnCanvas(context, address, new Date().toLocaleString('en-IN'));
+            // Add overlay text
+            const timestamp = new Date().toLocaleString('en-IN', { timeZone: "Asia/Kolkata" });
+            context.fillStyle = 'white';
+            context.font = 'bold 24px Arial';
+            context.textAlign = 'left';
+            context.textBaseline = 'bottom';
+            context.fillText(timestamp, 20, canvas.height - 50);
+            context.fillText(address, 20, canvas.height - 20);
 
             const selfie = canvas.toDataURL('image/jpeg');
-            
-            let dataToSend = {
-                action: 'submit',
-                type: verificationType,
-                riderId: currentRider.riderId,
-                riderName: currentRider.riderName,
-                riderEmail: currentRider.riderEmail,
-                latitude: currentRider.latitude,
-                longitude: currentRider.longitude,
-                address: currentRider.address,
-                selfie: selfie
-            };
+            stopCamera();
 
-            if (verificationType === 'checkin') {
-                dataToSend.shiftTime = shiftTimeSelect.value;
-            } else {
-                 dataToSend.totalRides = document.getElementById('totalRides').value;
-                 dataToSend.totalKms = document.getElementById('totalKms').value;
-                 dataToSend.manualOrders = document.getElementById('manualOrders').value;
-                 dataToSend.manualKms = document.getElementById('manualKms').value;
-                 dataToSend.lastOrder = document.getElementById('lastOrder').value;
-                 dataToSend.lastOrderTime = document.getElementById('lastOrderTime').value;
-            }
-            
-            try {
-                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(dataToSend),
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const result = await response.json();
-                if(result.status === 'success') {
-                    showModal('Success', `You have successfully ${verificationType === 'checkin' ? 'checked-in' : 'checked-out'}!`);
-                    // Reset UI and log out to force re-login and get new status
-                    handleLogout();
-                    riderIdInput.value = dataToSend.riderId;
-                } else {
-                     showModal('Submission Failed', result.message);
-                }
-
-            } catch(error) {
-                showModal('Error', 'An error occurred during submission.');
-            } finally {
-                hideLoader();
-                cancelVerification();
+            if (currentAction === 'checkin') {
+                submitData({ selfie, address });
+            } else { // checkout
+                riderData.selfie = selfie;
+                riderData.address = address;
+                capturePage.classList.add('hidden');
+                checkoutFormPage.classList.remove('hidden');
             }
         }
         
-        function drawTextOnCanvas(context, address, timestamp) {
-            const canvasWidth = context.canvas.width;
-            const fontSize = canvasWidth / 25;
-            context.font = `bold ${fontSize}px sans-serif`;
-            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-            context.lineWidth = fontSize / 10;
-            
-            const textLines = [timestamp, ...wrapText(context, address, canvasWidth * 0.95)];
-            
-            textLines.forEach((line, index) => {
-                const y = context.canvas.height - (textLines.length - index) * (fontSize * 1.2) - 10;
-                context.strokeText(line, 10, y);
-                context.fillText(line, 10, y);
-            });
+        async function handleSubmitCheckout() {
+             const checkoutData = {
+                totalRides: document.getElementById('totalRides').value,
+                totalKms: document.getElementById('totalKms').value,
+                manualOrders: document.getElementById('manualOrders').value,
+                manualKms: document.getElementById('manualKms').value,
+                lastOrder: document.getElementById('lastOrder').value,
+                lastOrderTime: document.getElementById('lastOrderTime').value,
+                selfie: riderData.selfie,
+                address: riderData.address
+            };
+            submitData(checkoutData);
         }
 
-        function wrapText(context, text, maxWidth) {
-            const words = text.split(' ');
-            let lines = [];
-            let currentLine = words[0];
-            for (let i = 1; i < words.length; i++) {
-                const word = words[i];
-                const width = context.measureText(currentLine + " " + word).width;
-                if (width < maxWidth) {
-                    currentLine += " " + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
+        async function submitData(extraData = {}) {
+            showLoader(currentAction === 'checkin' ? 'Checking in...' : 'Checking out...');
+            
+            const payload = {
+                action: 'submit',
+                type: currentAction,
+                riderId: riderData.riderId,
+                riderName: riderData.riderName,
+                riderEmail: riderData.riderEmail,
+                latitude: userLocation.lat,
+                longitude: userLocation.lon,
+                ...extraData
+            };
+            if(currentAction === 'checkin') {
+                payload.shiftTime = selectedShift;
             }
-            lines.push(currentLine);
-            return lines;
+
+            try {
+                const response = await apiCall(payload);
+                if (response.status === 'success') {
+                    showMessage('Success', `You have successfully completed ${currentAction}.`);
+                    goBackToApp(true); // Force reload to update status
+                } else {
+                    showMessage('Submission Failed', response.message);
+                    goBackToApp();
+                }
+            } catch (error) {
+                showMessage('Error', 'An error occurred. Please check your connection.');
+                 goBackToApp();
+            } finally {
+                hideLoader();
+            }
+        }
+        
+        // --- GEMINI FUNCTIONS ---
+        async function getGeminiTip() {
+            try {
+                const response = await apiCall({ action: 'gemini', prompt: `Give a one-line motivational or safety tip for a delivery rider named ${riderData.riderName} who is starting their day.` });
+                if(response.status === 'success') {
+                    document.getElementById('geminiTip').textContent = response.text;
+                }
+            } catch(e) { /* Fail silently */ }
+        }
+        
+        async function getGeminiSummary() {
+             const rides = document.getElementById('totalRides').value;
+             const kms = document.getElementById('totalKms').value;
+             if(!rides || !kms) {
+                showMessage("Info", "Please enter Total Rides and KMs first.");
+                return;
+             }
+             const summaryP = document.getElementById('geminiSummary');
+             summaryP.textContent = 'Generating summary...';
+             
+             try {
+                const response = await apiCall({ action: 'gemini', rides, kms, prompt: `Create a very short, positive, one-sentence summary for a rider who finished their shift with ${rides} rides and ${kms} KMs.` });
+                if(response.status === 'success') {
+                    summaryP.textContent = response.text;
+                }
+             } catch(e) {
+                 summaryP.textContent = 'Could not generate summary.';
+             }
         }
 
-        async function getAddressFromCoords(lat, lon) {
-             try {
-                // Using a free, no-key reverse geocoding API
+
+        // --- UTILITY FUNCTIONS ---
+
+        function goBackToApp(forceReload = false) {
+            stopCamera();
+            clearTimeout(refreshTimer);
+            if (forceReload) {
+                window.location.reload();
+            } else {
+                capturePage.classList.add('hidden');
+                checkoutFormPage.classList.add('hidden');
+                shiftModal.classList.add('hidden');
+                appPage.classList.remove('hidden');
+                updateUIForRider();
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.srcObject = null;
+        }
+
+        function showMessage(title, text) {
+            messageTitle.textContent = title;
+            messageText.textContent = text;
+            messageModal.classList.remove('hidden');
+        }
+
+        function showLoader(text) {
+            loaderText.textContent = text;
+            loader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            loader.classList.add('hidden');
+        }
+
+        async function apiCall(body) {
+            const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify(body),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        }
+
+        function calculateDistance(coords1, coords2) {
+            const R = 6371e3; // metres
+            const φ1 = coords1.lat * Math.PI / 180;
+            const φ2 = coords2.lat * Math.PI / 180;
+            const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
+            const Δλ = (coords2.lon - coords1.lon) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // in metres
+        }
+        
+        async function getAddressFromCoordinates(lat, lon) {
+            try {
+                // Using a free, open-source reverse geocoding API
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
                 const data = await response.json();
-                return data.display_name || 'Address not found';
-            } catch (error) {
+                return data.display_name ? data.display_name.split(',').slice(0, 2).join(',') : 'Address not found';
+            } catch(e) {
                 return 'Could not fetch address';
             }
         }
 
-
-        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-            var R = 6371; // Radius of the earth in km
-            var dLat = deg2rad(lat2 - lat1);
-            var dLon = deg2rad(lon2 - lon1);
-            var a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            var d = R * c; // Distance in km
-            return d * 1000; // Distance in meters
-        }
-
-        function deg2rad(deg) {
-            return deg * (Math.PI / 180)
-        }
-        
-        // --- Gemini Functions ---
-        async function fetchGeminiTip() {
-            if (!currentRider) return;
-            try {
-                const prompt = `Create a short, one-sentence motivational or safety tip for a delivery rider named ${currentRider.riderName} who is starting their shift. Keep it concise and positive.`;
-                geminiTipDiv.innerHTML = "<em>Generating tip...</em>";
-                
-                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'gemini', prompt: prompt }),
-                     headers: { 'Content-Type': 'application/json' }
-                });
-                 const result = await response.json();
-
-                if (result.status === 'success' && result.text) {
-                    geminiTipDiv.textContent = `✨ Today's Tip: ${result.text}`;
-                } else {
-                    geminiTipDiv.textContent = "✨ Today's Tip: Ride safe and make today count!";
-                }
-
-            } catch (error) {
-                 geminiTipDiv.textContent = "✨ Today's Tip: Stay focused and have a great shift!";
-            }
-        }
-
-        async function getShiftSummary() {
-            const totalRides = document.getElementById('totalRides').value;
-            const totalKms = document.getElementById('totalKms').value;
-
-            if (!totalRides || !totalKms) {
-                showModal("Input Needed", "Please enter total rides and KMs to get a summary.");
-                return;
-            }
-            
-            const prompt = `A delivery rider, ${currentRider.riderName}, just finished their shift. They completed ${totalRides} rides and travelled ${totalKms} KMs. Write a very short, positive, one-sentence summary acknowledging their hard work.`;
-            geminiSummaryDiv.classList.remove('hidden');
-            geminiSummaryDiv.innerHTML = "<em>Generating summary...</em>";
-
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                     method: 'POST',
-                    body: JSON.stringify({ action: 'gemini', prompt: prompt }),
-                     headers: { 'Content-Type': 'application/json' }
-                });
-                const result = await response.json();
-                if(result.status === 'success' && result.text){
-                    geminiSummaryDiv.textContent = result.text;
-                } else {
-                    geminiSummaryDiv.textContent = "Great job on your shift today!";
-                }
-            } catch (error) {
-                geminiSummaryDiv.textContent = "Excellent work completing your shift!";
-            }
-        }
-
-
-        // --- Initial Load ---
-        function init() {
-            const storedRider = localStorage.getItem('currentRider');
-            if (storedRider) {
-                currentRider = JSON.parse(storedRider);
-                updateUIForLoggedInUser();
-                loginScreen.classList.add('hidden');
-                mainScreen.classList.remove('hidden');
-                fetchGeminiTip();
-            }
-        }
-
-        init();
     </script>
 </body>
 </html>
