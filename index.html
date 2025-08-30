@@ -145,7 +145,7 @@
             </div>
 
             <!-- Message Modal -->
-            <div id="messageModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+            <div id="messageModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
                  <div class="glass-card p-8 rounded-2xl shadow-2xl text-center w-80">
                      <h3 id="messageTitle" class="text-xl font-bold mb-4"></h3>
                      <p id="messageText" class="mb-6"></p>
@@ -154,7 +154,7 @@
             </div>
             
              <!-- Loader -->
-            <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+            <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
                 <div class="text-center">
                     <div class="mx-auto loader"></div>
                     <p id="loaderText" class="mt-4 text-lg"></p>
@@ -252,21 +252,17 @@
             
             try {
                 const response = await apiCall({ action: 'login', riderId, secretPin });
-                if (response.status === 'success') {
-                    riderData = response.data;
-                    document.getElementById('riderNameDisplay').textContent = riderData.riderName;
-                    document.getElementById('riderIdDisplay').textContent = riderData.riderId;
-                    
-                    updateUIForRider();
-                    
-                    loginPage.classList.add('hidden');
-                    appPage.classList.remove('hidden');
-                    getGeminiTip();
-                } else {
-                    showMessage('Login Failed', response.message);
-                }
+                riderData = response.data;
+                document.getElementById('riderNameDisplay').textContent = riderData.riderName;
+                document.getElementById('riderIdDisplay').textContent = riderData.riderId;
+                
+                updateUIForRider();
+                
+                loginPage.classList.add('hidden');
+                appPage.classList.remove('hidden');
+                getGeminiTip();
             } catch (error) {
-                 showMessage('Error', 'An error occurred. Please check your connection.');
+                 showMessage('Error', error.message || 'An error occurred. Please check your connection.');
             } finally {
                 hideLoader();
             }
@@ -467,15 +463,10 @@
 
             try {
                 const response = await apiCall(payload);
-                if (response.status === 'success') {
-                    showMessage('Success', `You have successfully completed ${currentAction}.`);
-                    goBackToApp(true); // Force reload to update status
-                } else {
-                    showMessage('Submission Failed', response.message);
-                    goBackToApp();
-                }
+                showMessage('Success', `You have successfully completed ${currentAction}.`);
+                goBackToApp(true); // Force reload to update status
             } catch (error) {
-                showMessage('Error', 'An error occurred. Please check your connection.');
+                showMessage('Error', error.message || 'An error occurred. Please check your connection.');
                  goBackToApp();
             } finally {
                 hideLoader();
@@ -486,10 +477,11 @@
         async function getGeminiTip() {
             try {
                 const response = await apiCall({ action: 'gemini', prompt: `Give a one-line motivational or safety tip for a delivery rider named ${riderData.riderName} who is starting their day.` });
-                if(response.status === 'success') {
-                    document.getElementById('geminiTip').textContent = response.text;
-                }
-            } catch(e) { /* Fail silently */ }
+                document.getElementById('geminiTip').textContent = response.text;
+            } catch(e) {
+                console.error("Gemini Tip Error:", e);
+                document.getElementById('geminiTip').textContent = "Tip of the day: Ride safely!";
+            }
         }
         
         async function getGeminiSummary() {
@@ -504,10 +496,9 @@
              
              try {
                 const response = await apiCall({ action: 'gemini', rides, kms, prompt: `Create a very short, positive, one-sentence summary for a rider who finished their shift with ${rides} rides and ${kms} KMs.` });
-                if(response.status === 'success') {
-                    summaryP.textContent = response.text;
-                }
+                summaryP.textContent = response.text;
              } catch(e) {
+                 console.error("Gemini Summary Error:", e);
                  summaryP.textContent = 'Could not generate summary.';
              }
         }
@@ -551,16 +542,41 @@
             loader.classList.add('hidden');
         }
 
-        async function apiCall(body) {
-            const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify(body),
-                headers: { 'Content-Type': 'application/json' }
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+        async function apiCall(body, timeout = 20000) { // Timeout 20 seconds
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+
+            try {
+                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(body),
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal,
+                    mode: 'cors' // Added for clarity, though default for cross-origin
+                });
+
+                clearTimeout(id);
+
+                if (!response.ok) {
+                    throw new Error(`Server error (status: ${response.status}). Please try again.`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'error') {
+                    throw new Error(result.message || 'An unknown server error occurred.');
+                }
+
+                return result;
+
+            } catch (error) {
+                clearTimeout(id);
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out. Please check your internet connection and try again.');
+                }
+                // Re-throw other errors to be caught by the calling function
+                throw error;
             }
-            return response.json();
         }
 
         function calculateDistance(coords1, coords2) {
