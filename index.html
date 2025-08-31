@@ -98,7 +98,8 @@
                         <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                         <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
                     </select>
-                    <button onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">
+                    <p id="shift-error-message" class="text-red-400 text-sm hidden">Aap is shift mein pehle hi check-in kar chuke hain.</p>
+                    <button id="checkin-next-btn" onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">
                         Next: Verify Location & Selfie
                     </button>
                 </div>
@@ -116,7 +117,7 @@
                     <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                     
+                        
                     <!-- ✨ Gemini Shift Summary Button -->
                     <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">
                         ✨ Get Shift Summary
@@ -258,23 +259,29 @@
         }
 
         
-        function updateButtonStates(hasCheckedIn) {
+        // --- MODIFICATION ---
+        // Function ab check-in count aur checked-in shifts ki list leta hai.
+        function updateButtonStates(checkInCount, checkedInShifts) {
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
 
-            if (hasCheckedIn) {
+            // Check-in tabhi disable hoga jab rider aaj 2 ya zyada shifts mein check-in kar chuka ho.
+            if (checkInCount >= 2) {
                 checkInBtn.disabled = true;
                 checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "Aap aaj pehle hi check-in kar chuke hain.";
-
-                checkOutBtn.disabled = false;
-                checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "";
+                checkInBtn.title = "Aap aaj ki dono shifts ke liye check-in kar chuke hain.";
             } else {
                 checkInBtn.disabled = false;
                 checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 checkInBtn.title = "";
+            }
 
+            // Check-out tabhi enable hoga jab rider ne kam se kam ek baar check-in kiya ho.
+            if (checkInCount > 0) {
+                checkOutBtn.disabled = false;
+                checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                checkOutBtn.title = "";
+            } else {
                 checkOutBtn.disabled = true;
                 checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
@@ -313,9 +320,12 @@
                     document.getElementById('app-section').classList.remove('hidden');
                     hideModal();
                     
-                    updateButtonStates(currentUser.hasCheckedIn);
+                    // --- MODIFICATION ---
+                    // Update function ko count aur shifts ki array pass karein.
+                    updateButtonStates(currentUser.checkInCountToday, currentUser.checkedInShifts);
 
-                    if (!currentUser.hasCheckedIn) {
+                    // Motivational message tabhi dikhayein jab rider ne abhi tak koi check-in nahi kiya ho.
+                    if (currentUser.checkInCountToday === 0) {
                         getMotivationalMessage(); 
                     } else {
                          document.getElementById('gemini-message-box').classList.add('hidden');
@@ -335,6 +345,9 @@
             if (type === 'checkin') {
                 document.getElementById('checkin-form').classList.remove('hidden');
                 document.getElementById('checkout-form').classList.add('hidden');
+                // --- NEW FUNCTION CALL ---
+                // Form dikhate hi shift selection ko validate karein.
+                validateShiftSelection(); 
             } else {
                 document.getElementById('checkout-form').classList.remove('hidden');
                 document.getElementById('checkin-form').classList.add('hidden');
@@ -358,6 +371,28 @@
             }
             lines.push(currentLine);
             return lines;
+        }
+
+        // --- NEW FUNCTION ---
+        // Yeh function select ki gayi shift ko rider ki purani checked-in shifts se check karta hai.
+        function validateShiftSelection() {
+            if (!currentUser || !currentUser.checkedInShifts) return;
+
+            const shiftSelect = document.getElementById('shift-time-select');
+            const nextButton = document.getElementById('checkin-next-btn');
+            const errorMessage = document.getElementById('shift-error-message');
+            const selectedShift = shiftSelect.value;
+
+            // Agar rider ne yeh shift pehle se select kar rakhi hai toh button disable karein.
+            if (selectedShift && currentUser.checkedInShifts.includes(selectedShift)) {
+                nextButton.disabled = true;
+                nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+                errorMessage.classList.remove('hidden');
+            } else {
+                nextButton.disabled = false;
+                nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                errorMessage.classList.add('hidden');
+            }
         }
 
         function startVerification(type) {
@@ -399,6 +434,10 @@
             }
             return data;
         }
+
+        // --- NEW EVENT LISTENER ---
+        // Shift dropdown mein change hone par validation function call karein.
+        document.getElementById('shift-time-select').addEventListener('change', validateShiftSelection);
 
         function startFormTimer() {
             if (formTimer) clearTimeout(formTimer);
@@ -573,3 +612,4 @@
     </script>
 </body>
 </html>
+
