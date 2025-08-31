@@ -259,53 +259,65 @@
             }
         }
         
+        // --- ACTION SCREEN SETUP (ROBUST VERSION) ---
         function setupActionScreen() {
-            if (!riderData) {
-                showAlert('Error', 'Could not load rider data. Please try again.');
+            try {
+                if (!riderData || !riderData.riderName) {
+                    showAlert('Data Error', 'Rider data could not be loaded correctly. Please try logging in again.');
+                    logout();
+                    return;
+                }
+
+                document.getElementById('riderNameDisplay').textContent = riderData.riderName;
+                document.getElementById('riderIdDisplay').textContent = riderData.riderId || 'N/A';
+
+                const shiftSelection = document.getElementById('shiftSelection');
+                const checkOutSection = document.getElementById('checkOutSection');
+                const shiftButtonsContainer = document.getElementById('shiftButtons');
+                const shiftTitle = document.getElementById('shiftTitle');
+
+                // Defensive defaults to prevent errors from bad data
+                const checkedInShifts = Array.isArray(riderData.checkedInShifts) ? riderData.checkedInShifts : [];
+                const checkInCountToday = typeof riderData.checkInCountToday === 'number' ? riderData.checkInCountToday : 0;
+                const hasCheckedIn = typeof riderData.hasCheckedIn === 'boolean' ? riderData.hasCheckedIn : false;
+
+                const allShifts = ["8 AM to 6 PM", "4 PM to 2 AM", "10 PM to 8 AM"];
+                const availableShifts = allShifts.filter(s => !checkedInShifts.includes(s));
+                
+                shiftButtonsContainer.innerHTML = '';
+                showElement(shiftSelection);
+                
+                if (checkInCountToday < 2 && availableShifts.length > 0) {
+                     availableShifts.forEach(shift => {
+                        const button = document.createElement('button');
+                        button.textContent = `Check-In for ${shift}`;
+                        button.className = 'w-full btn-grad text-white font-bold py-3 rounded-lg';
+                        button.onclick = () => startCapture('checkin', shift);
+                        shiftButtonsContainer.appendChild(button);
+                    });
+                    showElement(shiftTitle);
+                } else {
+                     shiftButtonsContainer.innerHTML = '<p class="text-center text-yellow-400 py-4">You have already completed the maximum shifts for today.</p>';
+                     hideElement(shiftTitle);
+                }
+                
+                if (hasCheckedIn) {
+                    document.getElementById('confirmCheckOutBtn').onclick = () => startCapture('checkout');
+                    showElement(checkOutSection);
+                } else {
+                    hideElement(checkOutSection);
+                }
+
+                hideElement(loginScreen);
+                showElement(actionScreen);
+
+            } catch (error) {
+                console.error("Error setting up action screen:", error);
+                showAlert('Display Error', 'There was an issue displaying your options. Please try logging in again.');
                 logout();
-                return;
             }
-
-            document.getElementById('riderNameDisplay').textContent = riderData.riderName || 'N/A';
-            document.getElementById('riderIdDisplay').textContent = riderData.riderId || 'N/A';
-
-            const shiftSelection = document.getElementById('shiftSelection');
-            const checkOutSection = document.getElementById('checkOutSection');
-            const shiftButtonsContainer = document.getElementById('shiftButtons');
-            const shiftTitle = document.getElementById('shiftTitle');
-            
-            // Multiple shift logic implemented here
-            const allShifts = ["8 AM to 6 PM", "4 PM to 2 AM", "10 PM to 8 AM"];
-            const availableShifts = allShifts.filter(s => !(riderData.checkedInShifts || []).includes(s));
-            
-            shiftButtonsContainer.innerHTML = '';
-            showElement(shiftSelection);
-            
-            if (riderData.checkInCountToday < 2 && availableShifts.length > 0) {
-                 availableShifts.forEach(shift => {
-                    const button = document.createElement('button');
-                    button.textContent = `Check-In for ${shift}`;
-                    button.className = 'w-full btn-grad text-white font-bold py-3 rounded-lg';
-                    button.onclick = () => startCapture('checkin', shift);
-                    shiftButtonsContainer.appendChild(button);
-                });
-                showElement(shiftTitle);
-            } else {
-                 shiftButtonsContainer.innerHTML = '<p class="text-center text-yellow-400 py-4">You have already completed the maximum shifts for today.</p>';
-                 hideElement(shiftTitle);
-            }
-            
-            // Show checkout button only if at least one check-in exists for today
-            if (riderData.hasCheckedIn) {
-                document.getElementById('confirmCheckOutBtn').onclick = () => startCapture('checkout');
-                showElement(checkOutSection);
-            } else {
-                hideElement(checkOutSection);
-            }
-
-            hideElement(loginScreen);
-            showElement(actionScreen);
         }
+
         
         function startCapture(type, shift = '') {
             submissionType = type;
