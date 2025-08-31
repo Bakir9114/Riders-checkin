@@ -31,118 +31,26 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        .tab-btn {
+            padding: 8px 16px;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            color: #94a3b8; /* slate-400 */
+            transition: all 0.2s;
+        }
+        .tab-btn:hover {
+            color: #e2e8f0; /* slate-200 */
+        }
+        .tab-btn.is-active {
+            color: #67e8f9; /* cyan-300 */
+            border-bottom-color: #67e8f9;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen flex flex-col items-center justify-center p-4 text-gray-200">
-    <div class="glass-card flex flex-col items-center p-6 sm:p-8 rounded-2xl shadow-2xl max-w-2xl w-full">
-        <h1 class="text-3xl sm:text-4xl font-extrabold mb-8 text-center leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-            RCIS (Rider Check-In System)
-        </h1>
-
-        <!-- Login Section -->
-        <div id="login-section" class="w-full max-w-md mb-8 text-center">
-            <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
-            <input type="text" id="rider-id" placeholder="e.g., FAR001"
-                   class="mt-2 p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm uppercase">
-            
-            <label for="rider-pin" class="text-xl font-semibold text-gray-300 mt-4 block">Enter Your Secret PIN</label>
-            <div class="relative w-full mt-2">
-                <input type="password" id="rider-pin" placeholder="••••••"
-                       class="p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm pr-10">
-                <button onclick="togglePinVisibility()" type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
-                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                </button>
-            </div>
-
-            <button id="login-btn" onclick="loginRider()"
-                    class="mt-6 w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105">
-                Login
-            </button>
-        </div>
-
-        <!-- Main App Section (Hidden Initially) -->
-        <div id="app-section" class="hidden w-full text-center">
-            <div id="user-info" class="mb-8 text-2xl">
-                <p>Welcome, <span id="user-name" class="font-bold text-blue-400"></span>!</p>
-            </div>
-            
-            <!-- ✨ Gemini Motivational Message Box -->
-            <div id="gemini-message-box" class="hidden my-4 p-4 bg-slate-800/50 border-l-4 border-blue-500 text-slate-200 rounded-lg text-left shadow-md">
-                <p class="font-bold text-blue-300">✨ Aaj Ka Tip</p>
-                <p id="gemini-message-text"></p>
-            </div>
-
-
-            <!-- Main Action Buttons -->
-            <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
-                <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105 w-full sm:w-auto">
-                    Check-In
-                </button>
-                <button id="check-out-button" onclick="showForm('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105 w-full sm:w-auto">
-                    Check-Out
-                </button>
-            </div>
-
-            <!-- Forms Container -->
-            <div id="forms-container" class="hidden w-full">
-                <!-- Check-In Form -->
-                <div id="checkin-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full">
-                    <label for="shift-time-select" class="text-xl font-semibold text-gray-300">Select Shift Time:</label>
-                    <select id="shift-time-select" class="p-4 text-xl rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white w-full max-w-md">
-                        <option value="">Select Shift Time</option>
-                        <option value="7 AM to 5 PM">7 AM to 5 PM</option>
-                        <option value="8 AM to 6 PM">8 AM to 6 PM</option>
-                        <option value="4 PM to 2 AM">4 PM to 2 AM</option>
-                        <option value="8 PM to 6 AM">8 PM to 6 AM</option>
-                        <option value="10 PM to 8 AM">10 PM to 8 AM</option>
-                        <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
-                    </select>
-                    <p id="shift-error-message" class="text-red-400 text-sm hidden">Aap is shift mein pehle hi check-in kar chuke hain.</p>
-                    <button id="checkin-next-btn" onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">
-                        Next: Verify Location & Selfie
-                    </button>
-                </div>
-
-                <!-- Check-Out Form -->
-                <div id="checkout-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
-                    <h2 class="text-2xl font-bold text-gray-200">Check-Out Details</h2>
-                    <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                    <input type="number" id="total-kms" placeholder="Total Travelled Kms *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                    <select id="last-order" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white shadow-sm">
-                        <option value="">Is this your Last Order? *</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                    </select>
-                    <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                    <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                    <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                        
-                    <!-- ✨ Gemini Shift Summary Button -->
-                    <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">
-                        ✨ Get Shift Summary
-                    </button>
-                    <div id="summary-display" class="hidden mt-4 p-4 w-full bg-slate-800 rounded-lg text-left shadow-inner text-gray-300"></div>
-
-                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105">
-                        Next: Verify Location & Selfie
-                    </button>
-                </div>
-            </div>
-
-            <!-- Selfie Verification Section -->
-            <div id="selfie-section" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
-                <h2 class="text-2xl font-bold text-gray-200">Live Selfie Verification</h2>
-                <p class="text-gray-400">Please take a clear selfie to confirm.</p>
-                <div class="w-full bg-black rounded-lg overflow-hidden shadow-inner">
-                    <video id="camera-feed" autoplay playsinline class="w-full h-auto"></video>
-                </div>
-                <canvas id="photo-canvas" class="hidden"></canvas>
-                <button id="capture-btn" class="w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-300 hover:from-rose-600 hover:to-pink-600 transform hover:scale-105">
-                    Take Selfie & Submit
-                </button>
-            </div>
-        </div>
+    
+    <div id="main-container" class="w-full max-w-7xl">
+        <!-- This container will be populated by JavaScript -->
     </div>
 
     <!-- Modal -->
@@ -159,7 +67,7 @@
     <script>
         // --- CONFIGURATION ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
-        const GEMINI_API_KEY = ""; // API key yahaan daalein agar zaroorat ho.
+        const GEMINI_API_KEY = ""; 
         
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
@@ -167,129 +75,146 @@
 
         let currentUser = null;
         let cameraStream = null;
-        let formTimer = null; 
+        let formTimer = null;
 
-        // --- NEW FUNCTION ---
-        function togglePinVisibility() {
-            const pinInput = document.getElementById('rider-pin');
-            const eyeIcon = document.getElementById('eye-icon');
-            const eyeSlashIcon = document.getElementById('eye-slash-icon');
-
-            if (pinInput.type === 'password') {
-                pinInput.type = 'text';
-                eyeIcon.classList.add('hidden');
-                eyeSlashIcon.classList.remove('hidden');
-            } else {
-                pinInput.type = 'password';
-                eyeIcon.classList.remove('hidden');
-                eyeSlashIcon.classList.add('hidden');
-            }
-        }
-
-        // --- GEMINI API FUNCTIONS ---
-
-        async function callGeminiAPI(prompt) {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-            };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    console.error("Gemini API Error:", response);
-                    return "Sorry, abhi aapse baat nahi kar pa raha. Baad mein try karein.";
-                }
-
-                const result = await response.json();
-                return result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                console.error("Fetch Error:", error);
-                return "Network error. Kripya apna connection check karein.";
-            }
-        }
-
-        async function getMotivationalMessage() {
-            const messageText = document.getElementById('gemini-message-text');
-            messageText.innerHTML = '<div class="loader mx-auto"></div>';
-            document.getElementById('gemini-message-box').classList.remove('hidden');
-
-            const prompt = "Act as a friendly manager for delivery riders in Gurugram, India. Generate a short, motivational, and safety-focused message for a rider starting their shift. Keep it under 25 words. Include a safety tip relevant to Indian traffic or weather. Be encouraging and use a mix of Hindi and English (Hinglish).";
-            
-            const message = await callGeminiAPI(prompt);
-            messageText.innerText = message;
-        }
-
-        async function getShiftSummary() {
-            const totalRides = document.getElementById('total-rides').value;
-            const totalKms = document.getElementById('total-kms').value;
-
-            if (!totalRides || !totalKms) {
-                showModal('Error', 'Kripya "Total Rides" aur "Total Kms" bharein.');
-                return;
-            }
-
-            const summaryDisplay = document.getElementById('summary-display');
-            summaryDisplay.innerHTML = '<div class="loader mx-auto"></div>';
-            summaryDisplay.classList.remove('hidden');
-
-            const prompt = `A delivery rider in Gurugram, India, just finished their shift. They completed ${totalRides} rides and travelled ${totalKms} kilometers. Generate a short, positive, and appreciative summary of their hard work. Suggest a simple way they can relax after their shift. Keep it under 30 words and use Hinglish.`;
-            
-            const summary = await callGeminiAPI(prompt);
-            summaryDisplay.innerText = summary;
-        }
-
-
-        // --- CORE FUNCTIONS ---
-
-        function showModal(title, message, showOkButton = true) {
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-message').innerText = message;
-            document.getElementById('modal-ok-button').style.display = showOkButton ? 'inline-block' : 'none';
-            document.getElementById('custom-modal').classList.remove('hidden');
-        }
-
-        function hideModal() {
-            document.getElementById('custom-modal').classList.add('hidden');
-        }
-
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('main-container').innerHTML = getLoginHTML();
+        });
         
-        // --- MODIFICATION ---
-        // Function ab check-in count aur checked-in shifts ki list leta hai.
-        function updateButtonStates(checkInCount, checkedInShifts) {
-            const checkInBtn = document.getElementById('check-in-button');
-            const checkOutBtn = document.getElementById('check-out-button');
+        // --- HTML TEMPLATES ---
 
-            // Check-in tabhi disable hoga jab rider aaj 2 ya zyada shifts mein check-in kar chuka ho.
-            if (checkInCount >= 2) {
-                checkInBtn.disabled = true;
-                checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "Aap aaj ki dono shifts ke liye check-in kar chuke hain.";
-            } else {
-                checkInBtn.disabled = false;
-                checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "";
-            }
+        function getLoginHTML() {
+            return `
+            <div class="glass-card flex flex-col items-center p-6 sm:p-8 rounded-2xl shadow-2xl max-w-2xl w-full mx-auto">
+                <h1 class="text-3xl sm:text-4xl font-extrabold mb-8 text-center leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
+                    RCIS (Rider Check-In System)
+                </h1>
+                <div class="w-full max-w-md mb-8 text-center">
+                    <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
+                    <input type="text" id="rider-id" placeholder="e.g., FAR001 or MGR001"
+                           class="mt-2 p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm uppercase">
+                    
+                    <label for="rider-pin" class="text-xl font-semibold text-gray-300 mt-4 block">Enter Your Secret PIN</label>
+                    <div class="relative w-full mt-2">
+                        <input type="password" id="rider-pin" placeholder="••••••"
+                               class="p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm pr-10">
+                        <button onclick="togglePinVisibility()" type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
+                    </div>
+                    <button id="login-btn" onclick="loginRider()" class="mt-6 w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105">
+                        Login
+                    </button>
+                </div>
+            </div>
+            `;
+        }
+        
+        function getRiderAppHTML() {
+             return `
+            <div class="glass-card flex flex-col items-center p-6 sm:p-8 rounded-2xl shadow-2xl max-w-2xl w-full mx-auto">
+                <div id="app-section" class="w-full text-center">
+                    <div class="w-full flex justify-between items-center mb-8">
+                        <div id="user-info" class="text-2xl text-left">
+                            <p>Welcome, <span id="user-name" class="font-bold text-blue-400"></span>!</p>
+                        </div>
+                        <button onclick="location.reload()" class="px-5 py-2 text-lg font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-300 hover:from-rose-600 hover:to-pink-600 transform hover:scale-105">
+                            Logout
+                        </button>
+                    </div>
+                    
+                    <div id="gemini-message-box" class="hidden my-4 p-4 bg-slate-800/50 border-l-4 border-blue-500 text-slate-200 rounded-lg text-left shadow-md">
+                        <p class="font-bold text-blue-300">✨ Aaj Ka Tip</p>
+                        <p id="gemini-message-text"></p>
+                    </div>
 
-            // Check-out tabhi enable hoga jab rider ne kam se kam ek baar check-in kiya ho.
-            if (checkInCount > 0) {
-                checkOutBtn.disabled = false;
-                checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "";
-            } else {
-                checkOutBtn.disabled = true;
-                checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
-            }
+                    <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
+                        <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105 w-full sm:w-auto">
+                            Check-In
+                        </button>
+                        <button id="check-out-button" onclick="showForm('checkout')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105 w-full sm:w-auto">
+                            Check-Out
+                        </button>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <button id="view-report-btn" onclick="showReportForm()" class="text-blue-400 hover:text-blue-300 transition-colors duration-200">View My Report</button>
+                    </div>
+
+                    <div id="forms-container" class="hidden w-full">
+                        <!-- Check-In, Check-Out, Selfie, and Report forms will be injected here -->
+                    </div>
+                </div>
+            </div>
+            `;
         }
 
+        function getDashboardHTML() {
+            return `
+                <div class="w-full flex justify-between items-center mb-4">
+                    <h2 class="text-3xl font-bold text-cyan-300">Manager Dashboard</h2>
+                    <button onclick="location.reload()" class="px-5 py-2 text-lg font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-300 hover:from-rose-600 hover:to-pink-600 transform hover:scale-105">
+                        Logout
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2">
+                        <div class="glass-card p-6 rounded-2xl shadow-2xl mb-8 flex flex-wrap items-center justify-between gap-6">
+                            <div class="flex flex-wrap items-center gap-4">
+                                <div>
+                                    <label for="start-date" class="block text-sm font-medium text-gray-300">Start Date</label>
+                                    <input type="date" id="start-date" class="mt-1 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white">
+                                </div>
+                                <div>
+                                    <label for="end-date" class="block text-sm font-medium text-gray-300">End Date</label>
+                                    <input type="date" id="end-date" class="mt-1 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white">
+                                </div>
+                                <button onclick="generateReport()" class="self-end px-6 py-2 text-lg font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg shadow-md hover:scale-105 transform transition-transform duration-200">Generate Report</button>
+                            </div>
+                            <div class="self-end">
+                                <label for="csv-upload" class="px-6 py-2 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+                                    Compare with CSV
+                                </label>
+                                <input type="file" id="csv-upload" class="hidden" accept=".csv">
+                            </div>
+                        </div>
 
-        async function loginRider() {
+                        <!-- Tabs Navigation -->
+                        <div class="mb-4 border-b border-slate-700">
+                            <nav class="flex space-x-4" id="tabs">
+                                <button onclick="changeTab(this, 'performance')" class="tab-btn is-active">Performance Summary</button>
+                                <button onclick="changeTab(this, 'missed')" class="tab-btn">Missed Checkouts</button>
+                                <button onclick="changeTab(this, 'suspicious')" class="tab-btn">Suspicious Activities</button>
+                            </nav>
+                        </div>
+                        <div id="status-section" class="text-center my-10 hidden"><div class="loader mx-auto"></div><p id="status-message" class="mt-2"></p></div>
+                        <div id="tab-content">
+                            <div id="performance-content" class="tab-panel"><div class="glass-card p-4 rounded-2xl shadow-2xl overflow-x-auto"><table class="w-full text-white text-sm" id="report-table"></table></div></div>
+                            <div id="missed-content" class="tab-panel hidden"><div class="glass-card p-4 rounded-2xl shadow-2xl overflow-x-auto"><table class="w-full text-white text-sm"><thead><tr class="bg-slate-800/50"><th class="p-3">Date</th><th class="p-3">Rider Name</th><th class="p-3">Rider ID</th></tr></thead><tbody id="missed-checkouts-body"></tbody></table></div></div>
+                            <div id="suspicious-content" class="tab-panel hidden"><div class="glass-card p-4 rounded-2xl shadow-2xl overflow-x-auto"><table class="w-full text-white text-sm"><thead><tr class="bg-slate-800/50"><th class="p-3">Date</th><th class="p-3">Rider Name</th><th class="p-3">Shift</th><th class="p-3">Activity</th><th class="p-3">Details</th></tr></thead><tbody id="suspicious-activities-body"></tbody></table></div></div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1">
+                        <div class="glass-card p-6 rounded-2xl shadow-2xl">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold text-cyan-300">Online Riders <span id="online-riders-count">(0)</span></h2>
+                                <button onclick="fetchOnlineRiders()" title="Refresh List" class="text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+                            </div>
+                            <div id="online-riders-loader" class="text-center my-4 hidden"><div class="loader mx-auto"></div></div>
+                            <ul id="online-riders-list" class="space-y-2 h-96 overflow-y-auto"></ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- CORE LOGIC & EVENT HANDLERS ---
+        
+        function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
 
@@ -299,101 +224,129 @@
             }
             showModal('Logging In...', 'Aapki details verify ki ja rahi hai...', false);
             
-            const payload = { 
-                action: 'login', 
-                riderId: riderId,
-                secretPin: secretPin
-            };
-
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    currentUser = result.data;
-                    document.getElementById('user-name').textContent = currentUser.riderName;
-                    document.getElementById('login-section').classList.add('hidden');
-                    document.getElementById('app-section').classList.remove('hidden');
-                    hideModal();
-                    
-                    // --- MODIFICATION ---
-                    // Update function ko count aur shifts ki array pass karein.
-                    updateButtonStates(currentUser.checkInCountToday, currentUser.checkedInShifts);
-
-                    // Motivational message tabhi dikhayein jab rider ne abhi tak koi check-in nahi kiya ho.
-                    if (currentUser.checkInCountToday === 0) {
-                        getMotivationalMessage(); 
-                    } else {
-                         document.getElementById('gemini-message-box').classList.add('hidden');
-                    }
-
-                } else {
-                    showModal('Login Failed', result.message || 'Aapki Rider ID ya PIN galat hai.');
-                }
-            } catch (error) {
-                showModal('Error', 'Login karne mein error aa gaya.');
-            }
+            google.script.run
+                .withSuccessHandler(handleLoginSuccess)
+                .withFailureHandler(showErrorModal)
+                .handleLogin({ riderId: riderId, secretPin: secretPin });
         }
 
-        function showForm(type) {
-            document.getElementById('buttons').classList.add('hidden');
-            document.getElementById('forms-container').classList.remove('hidden');
-            if (type === 'checkin') {
-                document.getElementById('checkin-form').classList.remove('hidden');
-                document.getElementById('checkout-form').classList.add('hidden');
-                // --- NEW FUNCTION CALL ---
-                // Form dikhate hi shift selection ko validate karein.
-                validateShiftSelection(); 
+        function handleLoginSuccess(response) {
+            hideModal();
+            if (response.status === 'success') {
+                currentUser = response.data;
+                if (currentUser.riderId.toUpperCase().startsWith('MGR')) {
+                    document.getElementById('main-container').innerHTML = getDashboardHTML();
+                    initializeDashboard();
+                } else {
+                    document.getElementById('main-container').innerHTML = getRiderAppHTML();
+                    document.getElementById('user-name').textContent = currentUser.riderName;
+                    updateButtonStates(currentUser.checkInCountToday);
+                    if (currentUser.checkInCountToday === 0) {
+                        getMotivationalMessage();
+                    }
+                }
             } else {
-                document.getElementById('checkout-form').classList.remove('hidden');
-                document.getElementById('checkin-form').classList.add('hidden');
+                showModal('Login Failed', response.message || 'Aapki Rider ID ya PIN galat hai.');
             }
         }
         
-        function wrapText(context, text, maxWidth) {
-            const words = text.split(' ');
-            let lines = [];
-            let currentLine = words[0];
+        function updateButtonStates(checkInCount) {
+            const checkInBtn = document.getElementById('check-in-button');
+            const checkOutBtn = document.getElementById('check-out-button');
 
-            for (let i = 1; i < words.length; i++) {
-                let word = words[i];
-                let width = context.measureText(currentLine + " " + word).width;
-                if (width < maxWidth) {
-                    currentLine += " " + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            lines.push(currentLine);
-            return lines;
+            checkInBtn.disabled = checkInCount >= 2;
+            checkInBtn.classList.toggle('opacity-50', checkInCount >= 2);
+            checkInBtn.classList.toggle('cursor-not-allowed', checkInCount >= 2);
+            checkInBtn.title = checkInCount >= 2 ? "Aap aaj ki dono shifts ke liye check-in kar chuke hain." : "";
+
+            checkOutBtn.disabled = checkInCount === 0;
+            checkOutBtn.classList.toggle('opacity-50', checkInCount === 0);
+            checkOutBtn.classList.toggle('cursor-not-allowed', checkInCount === 0);
+            checkOutBtn.title = checkInCount === 0 ? "Check-out karne se pehle check-in karna zaroori hai." : "";
         }
+        
+        function showForm(type) {
+            document.getElementById('buttons').classList.add('hidden');
+            document.getElementById('view-report-btn').classList.add('hidden');
+            const formsContainer = document.getElementById('forms-container');
+            formsContainer.classList.remove('hidden');
+            
+            let formHTML = '';
+            if (type === 'checkin') {
+                formHTML = `
+                <div id="checkin-form" class="mt-8 flex flex-col items-center space-y-4 w-full">
+                    <label for="shift-time-select" class="text-xl font-semibold text-gray-300">Select Shift Time:</label>
+                    <select id="shift-time-select" class="p-4 text-xl rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white w-full max-w-md">
+                        <option value="">Select Shift Time</option>
+                        <option value="7 AM to 5 PM">7 AM to 5 PM</option>
+                        <option value="8 AM to 6 PM">8 AM to 6 PM</option>
+                        <option value="4 PM to 2 AM">4 PM to 2 AM</option>
+                        <option value="8 PM to 6 AM">8 PM to 6 AM</option>
+                        <option value="10 PM to 8 AM">10 PM to 8 AM</option>
+                        <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
+                    </select>
+                    <p id="shift-error-message" class="text-red-400 text-sm hidden">Aap is shift mein pehle hi check-in kar chuke hain.</p>
+                    <button id="checkin-next-btn" onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">Next: Verify Location & Selfie</button>
+                </div>`;
+            } else if (type === 'checkout') {
+                formHTML = `
+                <div id="checkout-form" class="mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
+                    <h2 class="text-2xl font-bold text-gray-200">Check-Out Details</h2>
+                    <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <input type="number" id="total-kms" placeholder="Total Travelled Kms *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <select id="last-order" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white shadow-sm"><option value="">Is this your Last Order? *</option><option value="Yes">Yes</option><option value="No">No</option></select>
+                    <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">✨ Get Shift Summary</button>
+                    <div id="summary-display" class="hidden mt-4 p-4 w-full bg-slate-800 rounded-lg text-left shadow-inner text-gray-300"></div>
+                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105">Next: Verify Location & Selfie</button>
+                </div>`;
+            }
+            formsContainer.innerHTML = formHTML;
 
-        // --- NEW FUNCTION ---
-        // Yeh function select ki gayi shift ko rider ki purani checked-in shifts se check karta hai.
+            if (type === 'checkin') {
+                document.getElementById('shift-time-select').addEventListener('change', validateShiftSelection);
+                validateShiftSelection();
+            }
+        }
+        
+        function showReportForm() {
+            document.getElementById('buttons').classList.add('hidden');
+            document.getElementById('view-report-btn').classList.add('hidden');
+            const formsContainer = document.getElementById('forms-container');
+            formsContainer.classList.remove('hidden');
+            formsContainer.innerHTML = `
+            <div class="mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
+                <h2 class="text-2xl font-bold text-gray-200">My Performance Report</h2>
+                <div class="flex items-center gap-4">
+                    <div><label for="my-start-date" class="text-sm">From:</label><input type="date" id="my-start-date" class="mt-1 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white"></div>
+                    <div><label for="my-end-date" class="text-sm">To:</label><input type="date" id="my-end-date" class="mt-1 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white"></div>
+                </div>
+                <button onclick="fetchMyReport()" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg shadow-md hover:scale-105 transform transition-transform duration-200">Get My Report</button>
+                <div id="my-report-loader" class="hidden my-4"><div class="loader mx-auto"></div></div>
+                <div id="my-report-display" class="hidden mt-4 p-4 w-full bg-slate-800 rounded-lg text-left shadow-inner text-gray-300 grid grid-cols-2 gap-4"></div>
+            </div>`;
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('my-start-date').value = today;
+            document.getElementById('my-end-date').value = today;
+        }
+        
         function validateShiftSelection() {
             if (!currentUser || !currentUser.checkedInShifts) return;
-
             const shiftSelect = document.getElementById('shift-time-select');
             const nextButton = document.getElementById('checkin-next-btn');
             const errorMessage = document.getElementById('shift-error-message');
             const selectedShift = shiftSelect.value;
 
-            // Agar rider ne yeh shift pehle se select kar rakhi hai toh button disable karein.
-            if (selectedShift && currentUser.checkedInShifts.includes(selectedShift)) {
-                nextButton.disabled = true;
-                nextButton.classList.add('opacity-50', 'cursor-not-allowed');
-                errorMessage.classList.remove('hidden');
-            } else {
-                nextButton.disabled = false;
-                nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                errorMessage.classList.add('hidden');
-            }
+            const isAlreadyCheckedIn = selectedShift && currentUser.checkedInShifts.includes(selectedShift);
+            nextButton.disabled = isAlreadyCheckedIn;
+            nextButton.classList.toggle('opacity-50', isAlreadyCheckedIn);
+            nextButton.classList.toggle('cursor-not-allowed', isAlreadyCheckedIn);
+            errorMessage.classList.toggle('hidden', !isAlreadyCheckedIn);
         }
+
+        // --- DATA & VERIFICATION FLOW ---
 
         function startVerification(type) {
             const formData = getFormData(type);
@@ -434,65 +387,60 @@
             }
             return data;
         }
-
-        // --- NEW EVENT LISTENER ---
-        // Shift dropdown mein change hone par validation function call karein.
-        document.getElementById('shift-time-select').addEventListener('change', validateShiftSelection);
-
-        function startFormTimer() {
-            if (formTimer) clearTimeout(formTimer);
-            formTimer = setTimeout(() => {
-                resetDueToTimeout();
-            }, 120000); 
-        }
-
-        function resetDueToTimeout() {
-            stopCamera(); 
-            document.getElementById('selfie-section').classList.add('hidden');
-            document.getElementById('forms-container').classList.add('hidden');
-            document.getElementById('checkin-form').classList.add('hidden');
-            document.getElementById('checkout-form').classList.add('hidden');
-            document.getElementById('buttons').classList.remove('hidden');
-            showModal('Time Up!', 'Aapne 2 minute mein form nahi bhara. Kripya location dobara verify karein.');
-        }
         
-        async function getAddressFromCoordinates(latitude, longitude) {
-            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+        async function submitData(type, formData, location, selfie, address) {
+            if (formTimer) clearTimeout(formTimer);
+            if (!currentUser) {
+                showModal('Error', 'Aap logged in nahi hain.'); return;
+            }
+
+            const payload = {
+                action: 'submit', type: type,
+                riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
+                ...formData, ...location, selfie: selfie,
+                address: address
+            };
+
+            showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
+            
             try {
-                const response = await fetch(url);
-                if (!response.ok) { return "Address not found."; }
-                const data = await response.json();
-                return data.display_name || "Address could not be determined.";
+                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                    method: 'POST', mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai. Redirecting...`);
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showModal('Submission Failed', result.message || 'Data submit nahi ho paaya.');
+                }
             } catch (error) {
-                console.error("Reverse geocoding error:", error);
-                return "Could not fetch address.";
+                showModal('Error', 'Data submit karne mein error aa gaya: ' + error.message);
             }
         }
-
+        
+        // --- LOCATION & CAMERA ---
 
         function getLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
-                    reject('Aapke browser mein Geolocation support nahi hai.');
-                    return;
+                    return reject('Aapke browser mein Geolocation support nahi hai.');
                 }
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        const userLat = position.coords.latitude;
-                        const userLon = position.coords.longitude;
-                        
-                        const distance = calculateDistance(userLat, userLon, OFFICE_LATITUDE, OFFICE_LONGITUDE);
-
+                        const { latitude, longitude } = position.coords;
+                        const distance = calculateDistance(latitude, longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE);
                         if (distance <= ALLOWED_RADIUS_METERS) {
-                            resolve({ latitude: userLat, longitude: userLon });
+                            resolve({ latitude, longitude });
                         } else {
                             reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain. Kripya office ke daayre mein aakar try karein.`);
                         }
                     },
-                    () => {
-                        reject('Location access nahi mila. Kripya permission dein.');
-                    },
-                    { enableHighAccuracy: true }
+                    () => reject('Location access nahi mila. Kripya permission dein.'),
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
         }
@@ -503,17 +451,33 @@
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
+        }
+        
+        async function getAddressFromCoordinates(latitude, longitude) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                if (!response.ok) return "Address not found.";
+                const data = await response.json();
+                return data.display_name || "Address could not be determined.";
+            } catch (error) {
+                return "Could not fetch address.";
+            }
         }
 
         async function startCamera(type, formData, location, address) {
             hideModal();
-            document.getElementById('forms-container').classList.add('hidden');
-            document.getElementById('selfie-section').classList.remove('hidden');
+            const selfieHTML = `
+            <div id="selfie-section" class="mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
+                <h2 class="text-2xl font-bold text-gray-200">Live Selfie Verification</h2>
+                <p class="text-gray-400">Please take a clear selfie to confirm.</p>
+                <div class="w-full bg-black rounded-lg overflow-hidden shadow-inner"><video id="camera-feed" autoplay playsinline class="w-full h-auto"></video></div>
+                <canvas id="photo-canvas" class="hidden"></canvas>
+                <button id="capture-btn" class="w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 ...">Take Selfie & Submit</button>
+            </div>`;
+            document.getElementById('forms-container').innerHTML = selfieHTML;
             
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -524,6 +488,14 @@
                 showModal('Camera Error', 'Camera access nahi mila. Kripya permission dein.');
                 stopCamera();
             }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            const selfieSection = document.getElementById('selfie-section');
+            if(selfieSection) selfieSection.innerHTML = '';
         }
 
         function captureAndSubmit(type, formData, location, address) {
@@ -539,17 +511,15 @@
             context.translate(canvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
 
-            context.scale(-1, 1);
-            context.translate(-canvas.width, 0);
-
+            // Watermark
             context.fillStyle = 'rgba(255, 255, 255, 0.9)';
             context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             context.lineWidth = 4;
-            
             context.font = 'bold 18px Inter';
             const addressLines = wrapText(context, address, canvas.width - 30);
-            let yPosition = 30; 
+            let yPosition = 30;
             addressLines.forEach(line => {
                 context.strokeText(line, 15, yPosition);
                 context.fillText(line, 15, yPosition);
@@ -562,53 +532,293 @@
             context.fillText(timestamp, 15, canvas.height - 20);
             
             const selfieData = canvas.toDataURL('image/jpeg', 0.8);
-
             stopCamera();
             submitData(type, formData, location, selfieData, address);
         }
 
-        function stopCamera() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
+        function wrapText(context, text, maxWidth) {
+            const words = text.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                let testLine = currentLine + ' ' + words[i];
+                if (context.measureText(testLine).width > maxWidth && i > 0) {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine = testLine;
+                }
             }
-            document.getElementById('selfie-section').classList.add('hidden');
+            lines.push(currentLine);
+            return lines;
         }
 
-        async function submitData(type, formData, location, selfie, address) {
+        // --- TIMERS ---
+        function startFormTimer() {
             if (formTimer) clearTimeout(formTimer);
-            
-            if (!currentUser) {
-                showModal('Error', 'Aap logged in nahi hain.');
+            formTimer = setTimeout(resetDueToTimeout, 120000); // 2 minutes
+        }
+
+        function resetDueToTimeout() {
+            stopCamera();
+            showModal('Time Up!', 'Aapne 2 minute mein form nahi bhara. Kripya dobara try karein.', true);
+            setTimeout(() => location.reload(), 2500);
+        }
+
+        // --- DASHBOARD FUNCTIONS ---
+        function initializeDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('start-date').value = today;
+            document.getElementById('end-date').value = today;
+            generateReport();
+            fetchOnlineRiders(); 
+            document.getElementById('csv-upload').addEventListener('change', handleCsvUpload);
+        }
+
+        function generateReport() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            if (!startDate || !endDate) {
+                showModal('Error', 'Kripya start aur end date dono chunein.');
                 return;
             }
+            showStatus('Generating reports, please wait...', true);
+            
+            google.script.run.withSuccessHandler(displayReport).withFailureHandler(showErrorModal).getReportData(startDate, endDate);
+            google.script.run.withSuccessHandler(displayAnalytics).withFailureHandler(showErrorModal).getDashboardAnalytics(startDate, endDate);
+        }
 
-            const payload = {
-                action: 'submit', type: type,
-                riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
-                ...formData, ...location, selfie: selfie,
-                address: address 
-            };
-
-            showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
-
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST', mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
-                    document.getElementById('app-section').innerHTML = `<p class="text-2xl font-bold text-green-400">Thank You!</p>`;
-                } else {
-                    showModal('Submission Failed', result.message || 'Data submit nahi ho paaya.');
+        function displayReport(reportData, isComparison = false) {
+            const table = document.getElementById('report-table');
+            let headers = ['Rider Name', 'Rider ID', 'Attendance', 'Extra KMs', 'Missing C/O'];
+            if (isComparison) {
+                headers = [...headers, 'Company Att.', 'Company KMs', 'Att. Diff', 'KMs Diff', 'Status'];
+            }
+            table.innerHTML = `<thead><tr class="bg-slate-800/50">${headers.map(h => `<th class="p-3 text-left">${h}</th>`).join('')}</tr></thead><tbody></tbody>`;
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = ''; // Clear previous data
+            reportData.forEach(rider => {
+                const row = tbody.insertRow();
+                let cells = `
+                    <td class="p-2">${rider.riderName}</td>
+                    <td class="p-2 font-mono">${rider.riderId}</td>
+                    <td class="p-2 text-center">${rider.attendance}</td>
+                    <td class="p-2 text-center">${(rider.extraKms || 0).toFixed(2)}</td>
+                    <td class="p-2 text-center">${rider.missingCheckouts}</td>`;
+                if(isComparison){
+                    cells += `
+                    <td class="p-2 text-center">${rider.companyAttendance}</td>
+                    <td class="p-2 text-center">${rider.companyExtraKms}</td>
+                    <td class="p-2 text-center">${rider.attendanceDiff}</td>
+                    <td class="p-2 text-center">${rider.extraKmsDiff}</td>
+                    <td class="p-2">${rider.status}</td>`;
                 }
-            } catch (error) {
-                showModal('Error', 'Data submit karne mein error aa gaya.');
+                row.innerHTML = cells;
+            });
+        }
+        
+        function displayAnalytics(analytics) {
+            const missedBody = document.getElementById('missed-checkouts-body');
+            missedBody.innerHTML = '';
+            if (analytics.missedCheckouts.length > 0) {
+                analytics.missedCheckouts.forEach(item => {
+                    const row = missedBody.insertRow();
+                    row.innerHTML = `<td class="p-2">${item.date}</td><td class="p-2">${item.riderName}</td><td class="p-2 font-mono">${item.riderId}</td>`;
+                });
+            } else {
+                missedBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">No missed checkouts found.</td></tr>';
+            }
+
+            const suspiciousBody = document.getElementById('suspicious-activities-body');
+            suspiciousBody.innerHTML = '';
+            if (analytics.suspiciousActivities.length > 0) {
+                analytics.suspiciousActivities.forEach(item => {
+                    const row = suspiciousBody.insertRow();
+                    const activityClass = item.activityType === 'Late Check-in' ? 'text-amber-400' : 'text-rose-400';
+                    row.innerHTML = `<td class="p-2">${item.date}</td><td class="p-2">${item.riderName}</td><td class="p-2">${item.shift}</td><td class="p-2 ${activityClass} font-semibold">${item.activityType}</td><td class="p-2">${item.details}</td>`;
+                });
+            } else {
+                 suspiciousBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">No suspicious activities found.</td></tr>';
+            }
+            showStatus('', false);
+        }
+
+        function handleCsvUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvContent = e.target.result;
+                showStatus('Comparing data...', true);
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                google.script.run
+                    .withSuccessHandler(rcisReport => {
+                         google.script.run
+                            .withSuccessHandler(comparisonResult => displayReport(comparisonResult, true))
+                            .withFailureHandler(showErrorModal)
+                            .compareData(rcisReport, csvContent);
+                    })
+                    .withFailureHandler(showErrorModal)
+                    .getReportData(startDate, endDate);
+            };
+            reader.readAsText(file);
+        }
+        
+        function changeTab(btn, tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('is-active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            btn.classList.add('is-active');
+            document.getElementById(`${tabName}-content`).classList.remove('hidden');
+        }
+
+        function fetchOnlineRiders() {
+            document.getElementById('online-riders-loader').classList.remove('hidden');
+            document.getElementById('online-riders-list').innerHTML = '';
+            google.script.run.withSuccessHandler(displayOnlineRiders).withFailureHandler(showOnlineRidersError).getOnlineRiders();
+        }
+
+        function displayOnlineRiders(riders){
+            document.getElementById('online-riders-loader').classList.add('hidden');
+            const list = document.getElementById('online-riders-list');
+            const count = document.getElementById('online-riders-count');
+            list.innerHTML = '';
+            count.innerText = `(${riders ? riders.length : 0})`;
+            if (riders && riders.length > 0) {
+                riders.forEach(rider => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center p-3 bg-slate-800/50 rounded-lg';
+                    li.innerHTML = `<span class="font-semibold text-white">${rider.riderName}</span><span class="text-xs text-gray-400 font-mono">${rider.riderId}</span>`;
+                    list.appendChild(li);
+                });
+            } else {
+                list.innerHTML = '<li class="p-3 text-center text-gray-400">Abhi koi rider online nahi hai.</li>';
             }
         }
+
+        function showOnlineRidersError(error) {
+            document.getElementById('online-riders-loader').classList.add('hidden');
+            document.getElementById('online-riders-list').innerHTML = `<li class="p-3 text-red-400 text-center">Error: ${error.message}</li>`;
+        }
+        
+        function fetchMyReport(){
+            const startDate = document.getElementById('my-start-date').value;
+            const endDate = document.getElementById('my-end-date').value;
+            if (!startDate || !endDate) {
+                showModal('Error', 'Please select both start and end dates.');
+                return;
+            }
+            document.getElementById('my-report-loader').classList.remove('hidden');
+            document.getElementById('my-report-display').classList.add('hidden');
+            google.script.run.withSuccessHandler(displayMyReport).withFailureHandler(showMyReportError).getRiderReportData(currentUser.riderId, startDate, endDate);
+        }
+        
+        function displayMyReport(data){
+            document.getElementById('my-report-loader').classList.add('hidden');
+            const display = document.getElementById('my-report-display');
+            display.classList.remove('hidden');
+            display.innerHTML = `
+                <div><p class="text-gray-400">Attendance</p><p class="text-2xl font-bold">${data.attendance} Days</p></div>
+                <div><p class="text-gray-400">Total Orders</p><p class="text-2xl font-bold">${data.totalOrders}</p></div>
+                <div><p class="text-gray-400">Total KMs</p><p class="text-2xl font-bold">${data.totalKms} km</p></div>
+                <div><p class="text-gray-400">Extra KMs</p><p class="text-2xl font-bold">${data.extraKms} km</p></div>
+            `;
+        }
+
+        function showMyReportError(error){
+            document.getElementById('my-report-loader').classList.add('hidden');
+            const display = document.getElementById('my-report-display');
+            display.classList.remove('hidden');
+            display.innerHTML = `<p class="text-red-400 col-span-2">${error.message}</p>`;
+        }
+        
+        // --- UTILITY & UI FUNCTIONS ---
+
+        function showStatus(message, isLoading) {
+            const statusSection = document.getElementById('status-section');
+            const statusMessage = document.getElementById('status-message');
+            if (isLoading) {
+                statusMessage.textContent = message;
+                statusSection.classList.remove('hidden');
+            } else {
+                statusSection.classList.add('hidden');
+            }
+        }
+        
+        function showErrorModal(error) {
+            hideModal(); // Hide any processing modal first
+            showModal('Error', error.message || 'An unknown error occurred.');
+            const statusSection = document.getElementById('status-section');
+            if(statusSection) statusSection.classList.add('hidden'); 
+        }
+
+        function togglePinVisibility() {
+            const pinInput = document.getElementById('rider-pin');
+            const eyeIcon = document.getElementById('eye-icon');
+            const eyeSlashIcon = document.getElementById('eye-slash-icon');
+            if (pinInput.type === 'password') {
+                pinInput.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeSlashIcon.classList.remove('hidden');
+            } else {
+                pinInput.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeSlashIcon.classList.add('hidden');
+            }
+        }
+
+        function showModal(title, message, showOkButton = true) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-ok-button').style.display = showOkButton ? 'inline-block' : 'none';
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function hideModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+        
+        // --- GEMINI API FUNCTIONS ---
+        async function callGeminiAPI(prompt) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                if (!response.ok) return "Sorry, abhi aapse baat nahi kar pa raha.";
+                const result = await response.json();
+                return result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                return "Network error. Kripya apna connection check karein.";
+            }
+        }
+        
+        async function getMotivationalMessage() {
+            const messageBox = document.getElementById('gemini-message-box');
+            if(!messageBox) return;
+            const messageText = document.getElementById('gemini-message-text');
+            messageText.innerHTML = '<div class="loader mx-auto"></div>';
+            messageBox.classList.remove('hidden');
+            const prompt = "Act as a friendly manager for delivery riders in Gurugram, India. Generate a short, motivational, and safety-focused message for a rider starting their shift. Keep it under 25 words. Include a safety tip relevant to Indian traffic or weather. Be encouraging and use a mix of Hindi and English (Hinglish).";
+            const message = await callGeminiAPI(prompt);
+            messageText.innerText = message;
+        }
+        
+        async function getShiftSummary() {
+            const totalRides = document.getElementById('total-rides').value;
+            const totalKms = document.getElementById('total-kms').value;
+            if (!totalRides || !totalKms) {
+                showModal('Error', 'Kripya "Total Rides" aur "Total Kms" bharein.'); return;
+            }
+            const summaryDisplay = document.getElementById('summary-display');
+            summaryDisplay.innerHTML = '<div class="loader mx-auto"></div>';
+            summaryDisplay.classList.remove('hidden');
+            const prompt = `A delivery rider in Gurugram, India, just finished their shift. They completed ${totalRides} rides and travelled ${totalKms} kilometers. Generate a short, positive, and appreciative summary of their hard work. Suggest a simple way they can relax after their shift. Keep it under 30 words and use Hinglish.`;
+            const summary = await callGeminiAPI(prompt);
+            summaryDisplay.innerText = summary;
+        }
+
     </script>
 </body>
 </html>
