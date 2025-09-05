@@ -39,7 +39,6 @@
             RCIS (Rider Check-In System)
         </h1>
 
-        <!-- Login Section -->
         <div id="login-section" class="w-full max-w-md mb-8 text-center">
             <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
             <input type="text" id="rider-id" placeholder="e.g., FAR001"
@@ -61,20 +60,17 @@
             </button>
         </div>
 
-        <!-- Main App Section (Hidden Initially) -->
         <div id="app-section" class="hidden w-full text-center">
             <div id="user-info" class="mb-8 text-2xl">
                 <p>Welcome, <span id="user-name" class="font-bold text-blue-400"></span>!</p>
             </div>
             
-            <!-- ✨ Gemini Motivational Message Box -->
             <div id="gemini-message-box" class="hidden my-4 p-4 bg-slate-800/50 border-l-4 border-blue-500 text-slate-200 rounded-lg text-left shadow-md">
                 <p class="font-bold text-blue-300">✨ Aaj Ka Tip</p>
                 <p id="gemini-message-text"></p>
             </div>
 
 
-            <!-- Main Action Buttons -->
             <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
                 <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105 w-full sm:w-auto">
                     Check-In
@@ -84,9 +80,7 @@
                 </button>
             </div>
 
-            <!-- Forms Container -->
             <div id="forms-container" class="hidden w-full">
-                <!-- Check-In Form -->
                 <div id="checkin-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full">
                     <label for="shift-time-select" class="text-xl font-semibold text-gray-300">Select Shift Time:</label>
                     <select id="shift-time-select" class="p-4 text-xl rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white w-full max-w-md">
@@ -104,7 +98,6 @@
                     </button>
                 </div>
 
-                <!-- Check-Out Form -->
                 <div id="checkout-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
                     <h2 class="text-2xl font-bold text-gray-200">Check-Out Details</h2>
                     <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
@@ -118,7 +111,6 @@
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                         
-                    <!-- ✨ Gemini Shift Summary Button -->
                     <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">
                         ✨ Get Shift Summary
                     </button>
@@ -130,7 +122,6 @@
                 </div>
             </div>
 
-            <!-- Selfie Verification Section -->
             <div id="selfie-section" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
                 <h2 class="text-2xl font-bold text-gray-200">Live Selfie Verification</h2>
                 <p class="text-gray-400">Please take a clear selfie to confirm.</p>
@@ -145,7 +136,6 @@
         </div>
     </div>
 
-    <!-- Modal -->
     <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div class="glass-card p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
             <h3 id="modal-title" class="text-2xl font-bold text-gray-100 mb-4"></h3>
@@ -158,7 +148,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwAWOP2W8jrisik6YUMgqrJqPRldhKa2Qu9Kz-HKZdV-6WprW1r2m9g9Mw7-4XuY4lk/exec';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
         const GEMINI_API_KEY = ""; // API key yahaan daalein agar zaroorat ho.
         
         const OFFICE_LATITUDE = 28.460845;
@@ -189,7 +179,7 @@
         // --- GEMINI API FUNCTIONS ---
 
         async function callGeminiAPI(prompt) {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
             };
@@ -259,14 +249,31 @@
         }
 
         
-        // --- MODIFICATION ---
-        // Function ab check-in count aur checked-in shifts ki list leta hai.
-        function updateButtonStates(checkInCount, checkedInShifts) {
+        // --- MODIFICATION for Overnight Shifts ---
+        // Function ab 'hasActiveCheckIn' flag bhi lega.
+        function updateButtonStates(checkInCount, checkedInShifts, hasActiveCheckIn) {
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
 
-            // Check-in tabhi disable hoga jab rider aaj 2 ya zyada shifts mein check-in kar chuka ho.
-            if (checkInCount >= 2) {
+            // 1. Check-Out Button Logic:
+            // Check-out tabhi enable hoga jab rider ka koi shift active ho.
+            if (hasActiveCheckIn) {
+                checkOutBtn.disabled = false;
+                checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                checkOutBtn.title = "Apna shift complete karne ke liye check-out karein.";
+            } else {
+                checkOutBtn.disabled = true;
+                checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
+            }
+
+            // 2. Check-In Button Logic:
+            // Check-in tabhi disable hoga jab ya to shift active ho, ya aaj ki 2 shifts poori ho chuki ho.
+            if (hasActiveCheckIn) {
+                checkInBtn.disabled = true;
+                checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                checkInBtn.title = "Aap pehle se hi ek shift me checked-in hain. Kripya pehle check-out karein.";
+            } else if (checkInCount >= 2) {
                 checkInBtn.disabled = true;
                 checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 checkInBtn.title = "Aap aaj ki dono shifts ke liye check-in kar chuke hain.";
@@ -274,17 +281,6 @@
                 checkInBtn.disabled = false;
                 checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 checkInBtn.title = "";
-            }
-
-            // Check-out tabhi enable hoga jab rider ne kam se kam ek baar check-in kiya ho.
-            if (checkInCount > 0) {
-                checkOutBtn.disabled = false;
-                checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "";
-            } else {
-                checkOutBtn.disabled = true;
-                checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
             }
         }
 
@@ -321,11 +317,11 @@
                     hideModal();
                     
                     // --- MODIFICATION ---
-                    // Update function ko count aur shifts ki array pass karein.
-                    updateButtonStates(currentUser.checkInCountToday, currentUser.checkedInShifts);
+                    // Naya flag 'hasActiveCheckIn' pass karein.
+                    updateButtonStates(currentUser.checkInCountToday, currentUser.checkedInShifts, currentUser.hasActiveCheckIn);
 
-                    // Motivational message tabhi dikhayein jab rider ne abhi tak koi check-in nahi kiya ho.
-                    if (currentUser.checkInCountToday === 0) {
+                    // Motivational message tabhi dikhayein jab rider ka koi active check-in na ho.
+                    if (!currentUser.hasActiveCheckIn) {
                         getMotivationalMessage(); 
                     } else {
                          document.getElementById('gemini-message-box').classList.add('hidden');
