@@ -158,7 +158,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxXuK4D7yY8f6wwMXrFJINhfj60npRGl4xtmO1Y5sq7R2L6N5kwvcFfHdY879ajfgxM/exec';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUhsEV7GxKRfUfQFKH2REGCXhMxY1QWVaEJd8eSxGBCw4YOglA5mjcPD_Qu4sE5g32Eg/exec';
         const GEMINI_API_KEY = ""; // API key yahaan daalein agar zaroorat ho.
         
         const OFFICE_LATITUDE = 28.460845;
@@ -169,7 +169,6 @@
         let cameraStream = null;
         let formTimer = null; 
 
-        // --- NEW FUNCTION ---
         function togglePinVisibility() {
             const pinInput = document.getElementById('rider-pin');
             const eyeIcon = document.getElementById('eye-icon');
@@ -187,7 +186,6 @@
         }
 
         // --- GEMINI API FUNCTIONS ---
-
         async function callGeminiAPI(prompt) {
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             const payload = {
@@ -246,7 +244,6 @@
 
 
         // --- CORE FUNCTIONS ---
-
         function showModal(title, message, showOkButton = true) {
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerText = message;
@@ -258,25 +255,18 @@
             document.getElementById('custom-modal').classList.add('hidden');
         }
 
-        
-        // --- MODIFICATION ---
-        // Function ab check-in count aur checked-in shifts ki list leta hai.
+        // --- MODIFIED FUNCTION ---
+        // Logic to disable check-in button has been removed.
         function updateButtonStates(checkInCount, checkedInShifts) {
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
 
-            // Check-in tabhi disable hoga jab rider aaj 2 ya zyada shifts mein check-in kar chuka ho.
-            if (checkInCount >= 2) {
-                checkInBtn.disabled = true;
-                checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "Aap aaj ki dono shifts ke liye check-in kar chuke hain.";
-            } else {
-                checkInBtn.disabled = false;
-                checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "";
-            }
+            // MODIFICATION: Check-in button is now always enabled.
+            checkInBtn.disabled = false;
+            checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            checkInBtn.title = "";
 
-            // Check-out tabhi enable hoga jab rider ne kam se kam ek baar check-in kiya ho.
+            // Check-out is enabled only if at least one check-in has occurred.
             if (checkInCount > 0) {
                 checkOutBtn.disabled = false;
                 checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -287,7 +277,6 @@
                 checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
             }
         }
-
 
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
@@ -320,11 +309,8 @@
                     document.getElementById('app-section').classList.remove('hidden');
                     hideModal();
                     
-                    // --- MODIFICATION ---
-                    // Update function ko count aur shifts ki array pass karein.
                     updateButtonStates(currentUser.checkInCountToday, currentUser.checkedInShifts);
 
-                    // Motivational message tabhi dikhayein jab rider ne abhi tak koi check-in nahi kiya ho.
                     if (currentUser.checkInCountToday === 0) {
                         getMotivationalMessage(); 
                     } else {
@@ -345,8 +331,6 @@
             if (type === 'checkin') {
                 document.getElementById('checkin-form').classList.remove('hidden');
                 document.getElementById('checkout-form').classList.add('hidden');
-                // --- NEW FUNCTION CALL ---
-                // Form dikhate hi shift selection ko validate karein.
                 validateShiftSelection(); 
             } else {
                 document.getElementById('checkout-form').classList.remove('hidden');
@@ -373,26 +357,16 @@
             return lines;
         }
 
-        // --- NEW FUNCTION ---
-        // Yeh function select ki gayi shift ko rider ki purani checked-in shifts se check karta hai.
+        // --- MODIFIED FUNCTION ---
+        // Logic to prevent re-checking into the same shift has been removed.
         function validateShiftSelection() {
-            if (!currentUser || !currentUser.checkedInShifts) return;
-
-            const shiftSelect = document.getElementById('shift-time-select');
             const nextButton = document.getElementById('checkin-next-btn');
             const errorMessage = document.getElementById('shift-error-message');
-            const selectedShift = shiftSelect.value;
 
-            // Agar rider ne yeh shift pehle se select kar rakhi hai toh button disable karein.
-            if (selectedShift && currentUser.checkedInShifts.includes(selectedShift)) {
-                nextButton.disabled = true;
-                nextButton.classList.add('opacity-50', 'cursor-not-allowed');
-                errorMessage.classList.remove('hidden');
-            } else {
-                nextButton.disabled = false;
-                nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                errorMessage.classList.add('hidden');
-            }
+            // MODIFICATION: Logic removed. Button is always enabled and error is hidden.
+            nextButton.disabled = false;
+            nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            errorMessage.classList.add('hidden');
         }
 
         function startVerification(type) {
@@ -435,8 +409,6 @@
             return data;
         }
 
-        // --- NEW EVENT LISTENER ---
-        // Shift dropdown mein change hone par validation function call karein.
         document.getElementById('shift-time-select').addEventListener('change', validateShiftSelection);
 
         function startFormTimer() {
@@ -468,7 +440,6 @@
                 return "Could not fetch address.";
             }
         }
-
 
         function getLocation() {
             return new Promise((resolve, reject) => {
