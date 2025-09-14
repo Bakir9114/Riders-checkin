@@ -36,13 +36,13 @@
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen flex flex-col items-center justify-center p-4 text-gray-200">
     <div class="glass-card flex flex-col items-center p-6 sm:p-8 rounded-2xl shadow-2xl max-w-2xl w-full">
         <h1 class="text-3xl sm:text-4xl font-extrabold mb-8 text-center leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-            RCIS (Rider Check-In System)
+            Rider Check-In System
         </h1>
 
         <!-- Login Section -->
         <div id="login-section" class="w-full max-w-md mb-8 text-center">
             <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
-            <input type="text" id="rider-id" placeholder="e.g., FAR001"
+            <input type="text" id="rider-id"
                    class="mt-2 p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm uppercase">
             
             <label for="rider-pin" class="text-xl font-semibold text-gray-300 mt-4 block">Enter Your Secret PIN</label>
@@ -177,6 +177,10 @@
         }
 
         async function callGeminiAPI(prompt) {
+            if (!GEMINI_API_KEY) {
+                console.log("Gemini API key is missing.");
+                return null;
+            }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             try {
@@ -187,23 +191,31 @@
                 });
                 if (!response.ok) {
                     console.error("Gemini API Error:", response);
-                    return "Sorry, abhi aapse baat nahi kar pa raha. Baad mein try karein.";
+                    return null;
                 }
                 const result = await response.json();
                 return result.candidates[0].content.parts[0].text;
             } catch (error) {
                 console.error("Fetch Error:", error);
-                return "Network error. Kripya apna connection check karein.";
+                return null;
             }
         }
 
         async function getMotivationalMessage() {
+            const messageBox = document.getElementById('gemini-message-box');
             const messageText = document.getElementById('gemini-message-text');
+            
             messageText.innerHTML = '<div class="loader mx-auto"></div>';
-            document.getElementById('gemini-message-box').classList.remove('hidden');
+            messageBox.classList.remove('hidden');
+
             const prompt = "Act as a friendly manager for delivery riders in Gurugram, India. Generate a short, motivational, and safety-focused message for a rider starting their shift. Keep it under 25 words. Include a safety tip relevant to Indian traffic or weather. Be encouraging and use a mix of Hindi and English (Hinglish).";
             const message = await callGeminiAPI(prompt);
-            messageText.innerText = message;
+
+            if (message) {
+                messageText.innerText = message;
+            } else {
+                messageBox.classList.add('hidden');
+            }
         }
 
         async function getShiftSummary() {
@@ -218,7 +230,12 @@
             summaryDisplay.classList.remove('hidden');
             const prompt = `A delivery rider in Gurugram, India, just finished their shift. They completed ${totalRides} rides and travelled ${totalKms} kilometers. Generate a short, positive, and appreciative summary of their hard work. Suggest a simple way they can relax after their shift. Keep it under 30 words and use Hinglish.`;
             const summary = await callGeminiAPI(prompt);
-            summaryDisplay.innerText = summary;
+            
+            if(summary){
+                summaryDisplay.innerText = summary;
+            } else {
+                summaryDisplay.innerText = "Sorry, summary generate nahi ho payi.";
+            }
         }
 
         function showModal(title, message, showOkButton = true) {
@@ -248,9 +265,7 @@
                 checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
             }
         }
-
-        // --- MODIFIED LOGIN LOGIC ---
-        // Login ke baad user ke role ko check karta hai aur redirect karta hai.
+        
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
@@ -273,19 +288,14 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    // Yadi user manager hai, to use dashboard par redirect karein.
                     if (result.data.role === 'manager') {
                         hideModal();
-                        // Get the base URL of the script.
                         const scriptUrl = new URL(APPS_SCRIPT_WEB_APP_URL);
-                        // Add the parameter to load the dashboard page.
                         scriptUrl.searchParams.set('page', 'dashboard');
-                        // Redirect the browser to the new URL.
                         window.location.href = scriptUrl.href;
-                        return; // Stop further execution for manager.
+                        return; 
                     } 
                     
-                    // Varna rider UI dikhayein.
                     currentUser = result.data;
                     document.getElementById('user-name').textContent = currentUser.riderName;
                     document.getElementById('login-section').classList.add('hidden');
@@ -302,7 +312,7 @@
                     showModal('Login Failed', result.message || 'Aapki Rider ID ya PIN galat hai.');
                 }
             } catch (error) {
-                console.error("Login Error:", error); // Log the actual error for debugging
+                console.error("Login Error:", error);
                 showModal('Error', 'Login karne mein error aa gaya.');
             }
         }
