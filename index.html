@@ -42,7 +42,7 @@
         <!-- Login Section -->
         <div id="login-section" class="w-full max-w-md mb-8 text-center">
             <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
-            <input type="text" id="rider-id"
+            <input type="text" id="rider-id" placeholder="Rider ID"
                    class="mt-2 p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm uppercase">
             
             <label for="rider-pin" class="text-xl font-semibold text-gray-300 mt-4 block">Enter Your Secret PIN</label>
@@ -56,7 +56,7 @@
             </div>
 
             <button id="login-btn" onclick="loginRider()"
-                    class="mt-6 w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105">
+                   class="mt-6 w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105">
                 Login
             </button>
         </div>
@@ -249,17 +249,26 @@
             document.getElementById('custom-modal').classList.add('hidden');
         }
 
-        function updateButtonStates(checkInCount, checkedInShifts) {
+        // --- NEW BUTTON STATE LOGIC ---
+        function updateButtonStates(isShiftActive) {
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
-            checkInBtn.disabled = false;
-            checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            checkInBtn.title = "";
-            if (checkInCount > 0) {
+
+            if (isShiftActive) {
+                // Shift is active, so allow Check-Out
+                checkInBtn.disabled = true;
+                checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                checkInBtn.title = "Aapki shift pehle se hi active hai.";
+
                 checkOutBtn.disabled = false;
                 checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 checkOutBtn.title = "";
             } else {
+                // No active shift, so allow Check-In
+                checkInBtn.disabled = false;
+                checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                checkInBtn.title = "";
+
                 checkOutBtn.disabled = true;
                 checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
@@ -287,7 +296,7 @@
                 });
                 const result = await response.json();
 
-                if (result.status === 'success') {
+                if (result.status === 'success' && result.data) {
                     if (result.data.role === 'manager') {
                         hideModal();
                         const scriptUrl = new URL(APPS_SCRIPT_WEB_APP_URL);
@@ -301,8 +310,12 @@
                     document.getElementById('login-section').classList.add('hidden');
                     document.getElementById('app-section').classList.remove('hidden');
                     hideModal();
-                    updateButtonStates(currentUser.checkInCountToday, currentUser.checkedInShifts);
-                    if (currentUser.checkInCountToday === 0) {
+                    
+                    // Use the new isShiftActive status
+                    updateButtonStates(currentUser.isShiftActive);
+
+                    // Show motivational message only if shift is NOT active
+                    if (!currentUser.isShiftActive) {
                         getMotivationalMessage(); 
                     } else {
                         document.getElementById('gemini-message-box').classList.add('hidden');
@@ -331,9 +344,10 @@
         }
         
         function wrapText(context, text, maxWidth) {
+            if(!text) return [];
             const words = text.split(' ');
             let lines = [];
-            let currentLine = words[0];
+            let currentLine = words[0] || '';
             for (let i = 1; i < words.length; i++) {
                 let word = words[i];
                 let width = context.measureText(currentLine + " " + word).width;
@@ -437,6 +451,8 @@
                         const userLat = position.coords.latitude;
                         const userLon = position.coords.longitude;
                         const distance = calculateDistance(userLat, userLon, OFFICE_LATITUDE, OFFICE_LONGITUDE);
+                        // For testing, we can bypass the distance check
+                        // if (true) {
                         if (distance <= ALLOWED_RADIUS_METERS) {
                             resolve({ latitude: userLat, longitude: userLon });
                         } else {
@@ -444,7 +460,7 @@
                         }
                     },
                     () => { reject('Location access nahi mila. Kripya permission dein.'); },
-                    { enableHighAccuracy: true }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
         }
@@ -548,5 +564,4 @@
     </script>
 </body>
 </html>
-
 
