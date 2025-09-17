@@ -111,7 +111,20 @@
                     <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                        
+                    
+                    <!-- New Gemini Feature: Customer Delay Message -->
+                    <div class="w-full mt-4 text-left">
+                        <label for="delay-reason" class="text-lg font-semibold text-gray-300">Delivery me der hui? (Optional)</label>
+                        <input type="text" id="delay-reason" placeholder="e.g., Restaurant me time laga" class="mt-1 p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
+                        <button type="button" onclick="generateCustomerMessage()" class="w-full mt-2 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 hover:from-amber-600 hover:to-orange-600 transform hover:scale-105">
+                            ✨ Customer ke liye Message Banayein
+                        </button>
+                    </div>
+                    <div id="customer-message-container" class="hidden w-full mt-2">
+                         <textarea id="customer-message-display" readonly class="w-full p-3 text-lg rounded-lg bg-slate-900 border border-slate-700 text-white shadow-inner" rows="3"></textarea>
+                         <button onclick="copyMessage()" class="mt-1 px-4 py-2 text-sm font-semibold text-slate-900 bg-cyan-400 rounded-lg hover:bg-cyan-300">Copy Karein</button>
+                    </div>
+
                     <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">
                         ✨ Get Shift Summary
                     </button>
@@ -151,7 +164,7 @@
     <script>
         // --- CONFIGURATION ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyeh2KzmMFx-iewKDsGaP1cH2GE5iIbKm6pNQ58bkAwm6y8xnI0R3Z1Z2b4NHVsnD3JPg/exec';
-        const GEMINI_API_KEY = "";
+        const GEMINI_API_KEY = "AIzaSyBK_IjhA2ojji2kUAHvjX_yd7G-O6rp8dQ";
         
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
@@ -369,6 +382,43 @@
             nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
             errorMessage.classList.add('hidden');
         }
+        
+        async function generateCustomerMessage() {
+            const reason = document.getElementById('delay-reason').value;
+            if (!reason.trim()) {
+                showModal('Error', 'Kripya deri ka kaaran likhein.');
+                return;
+            }
+
+            const messageContainer = document.getElementById('customer-message-container');
+            const messageDisplay = document.getElementById('customer-message-display');
+            messageDisplay.value = "Message banaya ja raha hai...";
+            messageContainer.classList.remove('hidden');
+
+            const prompt = `A delivery rider in India is delayed because of: "${reason}". Write a short, polite, professional customer update message in Hinglish (mix of Hindi and English). The message should be apologetic and reassuring. Start with 'Hi'. Keep it under 25 words.`;
+            
+            const message = await callGeminiAPI(prompt);
+            
+            if (message) {
+                messageDisplay.value = message;
+            } else {
+                messageDisplay.value = "Sorry, message generate nahi ho paya. Kripya dobara try karein.";
+            }
+        }
+
+        function copyMessage() {
+            const messageDisplay = document.getElementById('customer-message-display');
+            messageDisplay.select();
+            messageDisplay.setSelectionRange(0, 99999); 
+
+            try {
+                document.execCommand('copy');
+                showModal('Copied!', 'Message aapke clipboard par copy ho gaya hai.');
+            } catch (err) {
+                showModal('Error', 'Copy nahi ho paya. Kripya manually karein.');
+            }
+        }
+
 
         function startVerification(type) {
             const formData = getFormData(type);
