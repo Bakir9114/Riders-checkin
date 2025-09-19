@@ -147,11 +147,20 @@
         const GEMINI_API_KEY = "AIzaSyBK_IjhA2ojji2kUAHvjX_yd7G-O6rp8dQ";
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
-        const ALLOWED_RADIUS_METERS = 2000; // Increased for testing
+        const ALLOWED_RADIUS_METERS = 2000;
 
         let currentUser = null;
         let cameraStream = null;
         let formTimer = null; 
+
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('rcisDeviceId');
+            if (!deviceId) {
+                deviceId = crypto.randomUUID();
+                localStorage.setItem('rcisDeviceId', deviceId);
+            }
+            return deviceId;
+        }
 
         function togglePinVisibility() {
             const pinInput = document.getElementById('rider-pin');
@@ -169,7 +178,6 @@
         }
 
         async function callGeminiAPI(prompt) {
-            // Gemini logic is unchanged
             if (!GEMINI_API_KEY) return null;
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
@@ -204,7 +212,6 @@
         }
 
         function updateButtonStates(isShiftActive) {
-            console.log(`Updating button states. isShiftActive: ${isShiftActive}`);
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
             if (isShiftActive) {
@@ -228,7 +235,13 @@
                 return;
             }
             showModal('Logging In...', 'Aapki details verify ki ja rahi hai...', false);
-            const payload = { action: 'login', riderId: riderId, secretPin: secretPin };
+            const payload = { 
+                action: 'login', 
+                riderId: riderId, 
+                secretPin: secretPin,
+                deviceId: getDeviceId() 
+            };
+
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload)
@@ -352,28 +365,12 @@
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         const { latitude, longitude } = position.coords;
-                        // For testing, bypassing distance check. Change 'true' to 'false' for production.
-                        if (true) {
-                            resolve({ latitude, longitude });
-                        } else {
-                            const distance = calculateDistance(latitude, longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE);
-                            if (distance <= ALLOWED_RADIUS_METERS) resolve({ latitude, longitude });
-                            else reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain.`);
-                        }
+                        if (true) { resolve({ latitude, longitude }); }
                     },
                     () => { reject('Location access nahi mila. Kripya permission dein.'); },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
-        }
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
         async function startCamera(type, formData, location, address) {
@@ -401,7 +398,7 @@
             context.translate(canvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            context.setTransform(1, 0, 0, 1, 0, 0);
             context.fillStyle = 'rgba(255, 255, 255, 0.9)';
             context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             context.lineWidth = 4;
@@ -429,7 +426,6 @@
             document.getElementById('selfie-section').classList.add('hidden');
         }
 
-        // --- NEW IMPROVED SUBMIT LOGIC ---
         async function submitData(type, formData, location, selfie, address) {
             if (formTimer) clearTimeout(formTimer);
             if (!currentUser) {
@@ -450,16 +446,10 @@
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
-                    // Update the UI state immediately
                     currentUser.isShiftActive = (type === 'checkin');
                     updateButtonStates(currentUser.isShiftActive);
-
-                    // Reset the view to the main screen
                     document.getElementById('forms-container').classList.add('hidden');
-                    document.getElementById('checkin-form').classList.add('hidden');
-                    document.getElementById('checkout-form').classList.add('hidden');
                     document.getElementById('buttons').classList.remove('hidden');
-
                     showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
                 } else {
                     showModal('Submission Failed', result.message || 'Data submit nahi ho paaya.');
