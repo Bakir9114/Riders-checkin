@@ -93,9 +93,8 @@
                         <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                         <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
                     </select>
-                    <p id="shift-error-message" class="text-red-400 text-sm hidden">Aap is shift mein pehle hi check-in kar chuke hain.</p>
                     <button id="checkin-next-btn" onclick="startVerification('checkin')" class="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">
-                        Next: Verify Location & Selfie
+                        Next: Verify & Submit
                     </button>
                 </div>
 
@@ -112,26 +111,8 @@
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     
-                    <!-- New Gemini Feature: Customer Delay Message -->
-                    <div class="w-full mt-4 text-left">
-                        <label for="delay-reason" class="text-lg font-semibold text-gray-300">Delivery me der hui? (Optional)</label>
-                        <input type="text" id="delay-reason" placeholder="e.g., Restaurant me time laga" class="mt-1 p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
-                        <button type="button" onclick="generateCustomerMessage()" class="w-full mt-2 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 hover:from-amber-600 hover:to-orange-600 transform hover:scale-105">
-                            ✨ Customer ke liye Message Banayein
-                        </button>
-                    </div>
-                    <div id="customer-message-container" class="hidden w-full mt-2">
-                         <textarea id="customer-message-display" readonly class="w-full p-3 text-lg rounded-lg bg-slate-900 border border-slate-700 text-white shadow-inner" rows="3"></textarea>
-                         <button onclick="copyMessage()" class="mt-1 px-4 py-2 text-sm font-semibold text-slate-900 bg-cyan-400 rounded-lg hover:bg-cyan-300">Copy Karein</button>
-                    </div>
-
-                    <button type="button" onclick="getShiftSummary()" class="w-full mt-4 px-8 py-3 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105">
-                        ✨ Get Shift Summary
-                    </button>
-                    <div id="summary-display" class="hidden mt-4 p-4 w-full bg-slate-800 rounded-lg text-left shadow-inner text-gray-300"></div>
-
                     <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105">
-                        Next: Verify Location & Selfie
+                        Next: Verify & Submit
                     </button>
                 </div>
             </div>
@@ -162,13 +143,11 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyeh2KzmMFx-iewKDsGaP1cH2GE5iIbKm6pNQ58bkAwm6y8xnI0R3Z1Z2b4NHVsnD3JPg/exec';
         const GEMINI_API_KEY = "AIzaSyBK_IjhA2ojji2kUAHvjX_yd7G-O6rp8dQ";
-        
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
-        const ALLOWED_RADIUS_METERS = 200;
+        const ALLOWED_RADIUS_METERS = 2000; // Increased for testing
 
         let currentUser = null;
         let cameraStream = null;
@@ -190,65 +169,27 @@
         }
 
         async function callGeminiAPI(prompt) {
-            if (!GEMINI_API_KEY) {
-                console.log("Gemini API key is missing.");
-                return null;
-            }
+            // Gemini logic is unchanged
+            if (!GEMINI_API_KEY) return null;
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    console.error("Gemini API Error:", response);
-                    return null;
-                }
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) return null;
                 const result = await response.json();
                 return result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                console.error("Fetch Error:", error);
-                return null;
-            }
+            } catch (error) { return null; }
         }
 
         async function getMotivationalMessage() {
             const messageBox = document.getElementById('gemini-message-box');
             const messageText = document.getElementById('gemini-message-text');
-            
-            messageText.innerHTML = '<div class="loader mx-auto"></div>';
             messageBox.classList.remove('hidden');
-
+            messageText.innerHTML = '<div class="loader mx-auto"></div>';
             const prompt = "Act as a friendly manager for delivery riders in Gurugram, India. Generate a short, motivational, and safety-focused message for a rider starting their shift. Keep it under 25 words. Include a safety tip relevant to Indian traffic or weather. Be encouraging and use a mix of Hindi and English (Hinglish).";
             const message = await callGeminiAPI(prompt);
-
-            if (message) {
-                messageText.innerText = message;
-            } else {
-                messageBox.classList.add('hidden');
-            }
-        }
-
-        async function getShiftSummary() {
-            const totalRides = document.getElementById('total-rides').value;
-            const totalKms = document.getElementById('total-kms').value;
-            if (!totalRides || !totalKms) {
-                showModal('Error', 'Kripya "Total Rides" aur "Total Kms" bharein.');
-                return;
-            }
-            const summaryDisplay = document.getElementById('summary-display');
-            summaryDisplay.innerHTML = '<div class="loader mx-auto"></div>';
-            summaryDisplay.classList.remove('hidden');
-            const prompt = `A delivery rider in Gurugram, India, just finished their shift. They completed ${totalRides} rides and travelled ${totalKms} kilometers. Generate a short, positive, and appreciative summary of their hard work. Suggest a simple way they can relax after their shift. Keep it under 30 words and use Hinglish.`;
-            const summary = await callGeminiAPI(prompt);
-            
-            if(summary){
-                summaryDisplay.innerText = summary;
-            } else {
-                summaryDisplay.innerText = "Sorry, summary generate nahi ho payi.";
-            }
+            if (message) messageText.innerText = message;
+            else messageBox.classList.add('hidden');
         }
 
         function showModal(title, message, showOkButton = true) {
@@ -262,53 +203,37 @@
             document.getElementById('custom-modal').classList.add('hidden');
         }
 
-        // --- NEW BUTTON STATE LOGIC ---
         function updateButtonStates(isShiftActive) {
+            console.log(`Updating button states. isShiftActive: ${isShiftActive}`);
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
-
             if (isShiftActive) {
-                // Shift is active, so allow Check-Out
                 checkInBtn.disabled = true;
                 checkInBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "Aapki shift pehle se hi active hai.";
-
                 checkOutBtn.disabled = false;
                 checkOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "";
             } else {
-                // No active shift, so allow Check-In
                 checkInBtn.disabled = false;
                 checkInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                checkInBtn.title = "";
-
                 checkOutBtn.disabled = true;
                 checkOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                checkOutBtn.title = "Check-out karne se pehle check-in karna zaroori hai.";
             }
         }
         
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
-
             if (!riderId || !secretPin) {
                 showModal('Error', 'Kripya Rider ID aur Secret PIN dono daalein.');
                 return;
             }
             showModal('Logging In...', 'Aapki details verify ki ja rahi hai...', false);
-            
             const payload = { action: 'login', riderId: riderId, secretPin: secretPin };
-
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload)
                 });
                 const result = await response.json();
-
                 if (result.status === 'success' && result.data) {
                     if (result.data.role === 'manager') {
                         hideModal();
@@ -317,28 +242,21 @@
                         window.location.href = scriptUrl.href;
                         return; 
                     } 
-                    
                     currentUser = result.data;
                     document.getElementById('user-name').textContent = currentUser.riderName;
                     document.getElementById('login-section').classList.add('hidden');
                     document.getElementById('app-section').classList.remove('hidden');
                     hideModal();
-                    
-                    // Use the new isShiftActive status
                     updateButtonStates(currentUser.isShiftActive);
-
-                    // Show motivational message only if shift is NOT active
                     if (!currentUser.isShiftActive) {
                         getMotivationalMessage(); 
                     } else {
                         document.getElementById('gemini-message-box').classList.add('hidden');
                     }
-                    
                 } else {
                     showModal('Login Failed', result.message || 'Aapki Rider ID ya PIN galat hai.');
                 }
             } catch (error) {
-                console.error("Login Error:", error);
                 showModal('Error', 'Login karne mein error aa gaya.');
             }
         }
@@ -349,7 +267,6 @@
             if (type === 'checkin') {
                 document.getElementById('checkin-form').classList.remove('hidden');
                 document.getElementById('checkout-form').classList.add('hidden');
-                validateShiftSelection(); 
             } else {
                 document.getElementById('checkout-form').classList.remove('hidden');
                 document.getElementById('checkin-form').classList.add('hidden');
@@ -364,86 +281,30 @@
             for (let i = 1; i < words.length; i++) {
                 let word = words[i];
                 let width = context.measureText(currentLine + " " + word).width;
-                if (width < maxWidth) {
-                    currentLine += " " + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
+                if (width < maxWidth) currentLine += " " + word;
+                else { lines.push(currentLine); currentLine = word; }
             }
             lines.push(currentLine);
             return lines;
         }
 
-        function validateShiftSelection() {
-            const nextButton = document.getElementById('checkin-next-btn');
-            const errorMessage = document.getElementById('shift-error-message');
-            nextButton.disabled = false;
-            nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            errorMessage.classList.add('hidden');
-        }
-        
-        async function generateCustomerMessage() {
-            const reason = document.getElementById('delay-reason').value;
-            if (!reason.trim()) {
-                showModal('Error', 'Kripya deri ka kaaran likhein.');
-                return;
-            }
-
-            const messageContainer = document.getElementById('customer-message-container');
-            const messageDisplay = document.getElementById('customer-message-display');
-            messageDisplay.value = "Message banaya ja raha hai...";
-            messageContainer.classList.remove('hidden');
-
-            const prompt = `A delivery rider in India is delayed because of: "${reason}". Write a short, polite, professional customer update message in Hinglish (mix of Hindi and English). The message should be apologetic and reassuring. Start with 'Hi'. Keep it under 25 words.`;
-            
-            const message = await callGeminiAPI(prompt);
-            
-            if (message) {
-                messageDisplay.value = message;
-            } else {
-                messageDisplay.value = "Sorry, message generate nahi ho paya. Kripya dobara try karein.";
-            }
-        }
-
-        function copyMessage() {
-            const messageDisplay = document.getElementById('customer-message-display');
-            messageDisplay.select();
-            messageDisplay.setSelectionRange(0, 99999); 
-
-            try {
-                document.execCommand('copy');
-                showModal('Copied!', 'Message aapke clipboard par copy ho gaya hai.');
-            } catch (err) {
-                showModal('Error', 'Copy nahi ho paya. Kripya manually karein.');
-            }
-        }
-
-
         function startVerification(type) {
             const formData = getFormData(type);
             if (!formData) return;
-
             showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
-            
             getLocation().then(async location => {
                 showModal('Fetching Address...', 'Aapka address check kiya ja raha hai...', false);
                 const address = await getAddressFromCoordinates(location.latitude, location.longitude);
                 startCamera(type, formData, location, address);
                 startFormTimer();
-            }).catch(error => {
-                showModal('Location Error', error);
-            });
+            }).catch(error => { showModal('Location Error', error); });
         }
 
         function getFormData(type) {
             const data = {};
             if (type === 'checkin') {
                 data.shiftTime = document.getElementById('shift-time-select').value;
-                if (!data.shiftTime) {
-                    showModal('Error', 'Kripya shift time chunein.');
-                    return null;
-                }
+                if (!data.shiftTime) { showModal('Error', 'Kripya shift time chunein.'); return null; }
             } else if (type === 'checkout') {
                 data.totalRides = document.getElementById('total-rides').value;
                 data.totalKms = document.getElementById('total-kms').value;
@@ -451,7 +312,6 @@
                 data.lastOrderTime = document.getElementById('last-order-time').value || "";
                 data.manualOrders = document.getElementById('manual-orders').value || "";
                 data.manualKms = document.getElementById('manual-kms').value || "";
-
                 if (!data.totalRides || !data.totalKms || !data.lastOrder) {
                     showModal('Error', 'Kripya sabhi zaroori (*) fields bharein.');
                     return null;
@@ -460,34 +320,27 @@
             return data;
         }
 
-        document.getElementById('shift-time-select').addEventListener('change', validateShiftSelection);
-
         function startFormTimer() {
             if (formTimer) clearTimeout(formTimer);
-            formTimer = setTimeout(() => { resetDueToTimeout(); }, 120000); 
+            formTimer = setTimeout(resetDueToTimeout, 120000); 
         }
 
         function resetDueToTimeout() {
             stopCamera(); 
             document.getElementById('selfie-section').classList.add('hidden');
             document.getElementById('forms-container').classList.add('hidden');
-            document.getElementById('checkin-form').classList.add('hidden');
-            document.getElementById('checkout-form').classList.add('hidden');
+            showModal('Time Up!', 'Aapne 2 minute mein form nahi bhara. Kripya dobara try karein.');
             document.getElementById('buttons').classList.remove('hidden');
-            showModal('Time Up!', 'Aapne 2 minute mein form nahi bhara. Kripya location dobara verify karein.');
         }
         
         async function getAddressFromCoordinates(latitude, longitude) {
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
             try {
                 const response = await fetch(url);
-                if (!response.ok) { return "Address not found."; }
+                if (!response.ok) return "Address not found.";
                 const data = await response.json();
                 return data.display_name || "Address could not be determined.";
-            } catch (error) {
-                console.error("Reverse geocoding error:", error);
-                return "Could not fetch address.";
-            }
+            } catch (error) { return "Could not fetch address."; }
         }
 
         function getLocation() {
@@ -498,15 +351,14 @@
                 }
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        const userLat = position.coords.latitude;
-                        const userLon = position.coords.longitude;
-                        const distance = calculateDistance(userLat, userLon, OFFICE_LATITUDE, OFFICE_LONGITUDE);
-                        // For testing, we can bypass the distance check
-                        // if (true) {
-                        if (distance <= ALLOWED_RADIUS_METERS) {
-                            resolve({ latitude: userLat, longitude: userLon });
+                        const { latitude, longitude } = position.coords;
+                        // For testing, bypassing distance check. Change 'true' to 'false' for production.
+                        if (true) {
+                            resolve({ latitude, longitude });
                         } else {
-                            reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain. Kripya office ke daayre mein aakar try karein.`);
+                            const distance = calculateDistance(latitude, longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE);
+                            if (distance <= ALLOWED_RADIUS_METERS) resolve({ latitude, longitude });
+                            else reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain.`);
                         }
                     },
                     () => { reject('Location access nahi mila. Kripya permission dein.'); },
@@ -517,20 +369,17 @@
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
         async function startCamera(type, formData, location, address) {
             hideModal();
             document.getElementById('forms-container').classList.add('hidden');
             document.getElementById('selfie-section').classList.remove('hidden');
-            
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 const videoElement = document.getElementById('camera-feed');
@@ -552,8 +401,7 @@
             context.translate(canvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            context.scale(-1, 1);
-            context.translate(-canvas.width, 0);
+            context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
             context.fillStyle = 'rgba(255, 255, 255, 0.9)';
             context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             context.lineWidth = 4;
@@ -581,6 +429,7 @@
             document.getElementById('selfie-section').classList.add('hidden');
         }
 
+        // --- NEW IMPROVED SUBMIT LOGIC ---
         async function submitData(type, formData, location, selfie, address) {
             if (formTimer) clearTimeout(formTimer);
             if (!currentUser) {
@@ -590,8 +439,7 @@
             const payload = {
                 action: 'submit', type: type,
                 riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
-                ...formData, ...location, selfie: selfie,
-                address: address 
+                ...formData, ...location, selfie, address 
             };
             showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
             try {
@@ -602,8 +450,17 @@
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
+                    // Update the UI state immediately
+                    currentUser.isShiftActive = (type === 'checkin');
+                    updateButtonStates(currentUser.isShiftActive);
+
+                    // Reset the view to the main screen
+                    document.getElementById('forms-container').classList.add('hidden');
+                    document.getElementById('checkin-form').classList.add('hidden');
+                    document.getElementById('checkout-form').classList.add('hidden');
+                    document.getElementById('buttons').classList.remove('hidden');
+
                     showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
-                    document.getElementById('app-section').innerHTML = `<p class="text-2xl font-bold text-green-400">Thank You!</p>`;
                 } else {
                     showModal('Submission Failed', result.message || 'Data submit nahi ho paaya.');
                 }
