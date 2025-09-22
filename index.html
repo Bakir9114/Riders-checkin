@@ -67,11 +67,6 @@
                 <p>Welcome, <span id="user-name" class="font-bold text-blue-400"></span>!</p>
             </div>
             
-            <div id="gemini-message-box" class="hidden my-4 p-4 bg-slate-800/50 border-l-4 border-blue-500 text-slate-200 rounded-lg text-left shadow-md">
-                <p class="font-bold text-blue-300">✨ Aaj Ka Tip</p>
-                <p id="gemini-message-text"></p>
-            </div>
-
             <div id="buttons" class="flex flex-col sm:flex-row justify-center items-center space-y-6 sm:space-y-0 sm:space-x-8 w-full">
                 <button id="check-in-button" onclick="showForm('checkin')" class="px-10 py-6 text-2xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105 w-full sm:w-auto">
                     Check-In
@@ -144,19 +139,19 @@
 
     <script>
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyeh2KzmMFx-iewKDsGaP1cH2GE5iIbKm6pNQ58bkAwm6y8xnI0R3Z1Z2b4NHVsnD3JPg/exec';
-        const GEMINI_API_KEY = "AIzaSyBK_IjhA2ojji2kUAHvjX_yd7G-O6rp8dQ";
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
-        const ALLOWED_RADIUS_METERS = 2000;
+        const ALLOWED_RADIUS_METERS = 400; 
 
         let currentUser = null;
         let cameraStream = null;
         let formTimer = null; 
 
+        // --- DEVICE ID LOGIC ---
         function getDeviceId() {
             let deviceId = localStorage.getItem('rcisDeviceId');
             if (!deviceId) {
-                deviceId = crypto.randomUUID();
+                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('rcisDeviceId', deviceId);
             }
             return deviceId;
@@ -175,29 +170,6 @@
                 eyeIcon.classList.remove('hidden');
                 eyeSlashIcon.classList.add('hidden');
             }
-        }
-
-        async function callGeminiAPI(prompt) {
-            if (!GEMINI_API_KEY) return null;
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-            try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) return null;
-                const result = await response.json();
-                return result.candidates[0].content.parts[0].text;
-            } catch (error) { return null; }
-        }
-
-        async function getMotivationalMessage() {
-            const messageBox = document.getElementById('gemini-message-box');
-            const messageText = document.getElementById('gemini-message-text');
-            messageBox.classList.remove('hidden');
-            messageText.innerHTML = '<div class="loader mx-auto"></div>';
-            const prompt = "Act as a friendly manager for delivery riders in Gurugram, India. Generate a short, motivational, and safety-focused message for a rider starting their shift. Keep it under 25 words. Include a safety tip relevant to Indian traffic or weather. Be encouraging and use a mix of Hindi and English (Hinglish).";
-            const message = await callGeminiAPI(prompt);
-            if (message) messageText.innerText = message;
-            else messageBox.classList.add('hidden');
         }
 
         function showModal(title, message, showOkButton = true) {
@@ -235,12 +207,8 @@
                 return;
             }
             showModal('Logging In...', 'Aapki details verify ki ja rahi hai...', false);
-            const payload = { 
-                action: 'login', 
-                riderId: riderId, 
-                secretPin: secretPin,
-                deviceId: getDeviceId() 
-            };
+            const deviceId = getDeviceId(); // Get device ID for security
+            const payload = { action: 'login', riderId, secretPin, deviceId };
 
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
@@ -261,11 +229,6 @@
                     document.getElementById('app-section').classList.remove('hidden');
                     hideModal();
                     updateButtonStates(currentUser.isShiftActive);
-                    if (!currentUser.isShiftActive) {
-                        getMotivationalMessage(); 
-                    } else {
-                        document.getElementById('gemini-message-box').classList.add('hidden');
-                    }
                 } else {
                     showModal('Login Failed', result.message || 'Aapki Rider ID ya PIN galat hai.');
                 }
@@ -365,12 +328,26 @@
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         const { latitude, longitude } = position.coords;
-                        if (true) { resolve({ latitude, longitude }); }
+                        const distance = calculateDistance(latitude, longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE);
+                        if (distance <= ALLOWED_RADIUS_METERS) {
+                            resolve({ latitude, longitude });
+                        } else {
+                            reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain.`);
+                        }
                     },
                     () => { reject('Location access nahi mila. Kripya permission dein.'); },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
         async function startCamera(type, formData, location, address) {
@@ -398,7 +375,7 @@
             context.translate(canvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
             context.fillStyle = 'rgba(255, 255, 255, 0.9)';
             context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             context.lineWidth = 4;
@@ -426,6 +403,7 @@
             document.getElementById('selfie-section').classList.add('hidden');
         }
 
+        // --- IMPROVED SUBMIT LOGIC ---
         async function submitData(type, formData, location, selfie, address) {
             if (formTimer) clearTimeout(formTimer);
             if (!currentUser) {
@@ -433,7 +411,7 @@
                 return;
             }
             const payload = {
-                action: 'submit', type: type,
+                action: 'submit', type,
                 riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
                 ...formData, ...location, selfie, address 
             };
