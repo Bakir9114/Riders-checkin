@@ -403,7 +403,7 @@
             document.getElementById('selfie-section').classList.add('hidden');
         }
 
-        // --- IMPROVED SUBMIT LOGIC ---
+        // --- FINAL SUBMIT LOGIC ---
         async function submitData(type, formData, location, selfie, address) {
             if (formTimer) clearTimeout(formTimer);
             if (!currentUser) {
@@ -423,9 +423,13 @@
                     body: JSON.stringify(payload)
                 });
                 const result = await response.json();
-                if (result.status === 'success') {
-                    currentUser.isShiftActive = (type === 'checkin');
+
+                // Check if backend sent the confirmed status
+                if (result.status === 'success' && typeof result.isShiftActive !== 'undefined') {
+                    // Update UI based on the confirmed status from backend
+                    currentUser.isShiftActive = result.isShiftActive;
                     updateButtonStates(currentUser.isShiftActive);
+                    
                     document.getElementById('forms-container').classList.add('hidden');
                     document.getElementById('buttons').classList.remove('hidden');
                     showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
