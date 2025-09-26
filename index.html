@@ -6,7 +6,8 @@
     <title>RCIS (Rider Check-In System)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Firebase SDKs -->
+    
+    <!-- Firebase SDKs (Correctly added now) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -61,7 +62,6 @@
             </div>
 
             <div id="forms-container" class="hidden w-full">
-                <!-- Forms are unchanged -->
                  <div id="checkin-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full">
                     <label for="shift-time-select" class="text-xl font-semibold text-gray-300">Select Shift Time:</label>
                     <select id="shift-time-select" class="p-4 text-xl rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white w-full max-w-md">
@@ -146,18 +146,27 @@
         let currentUser = null;
         let cameraStream = null;
         let formTimer = null; 
-        let unsubscribeFromStatus; // To stop the listener later
+        let unsubscribeFromStatus;
 
+        // --- UI & Modal Functions ---
         function togglePinVisibility() {
-            // Unchanged
+            const pinInput = document.getElementById('rider-pin');
+            const eyeIcon = document.getElementById('eye-icon');
+            const eyeSlashIcon = document.getElementById('eye-slash-icon');
+            pinInput.type = pinInput.type === 'password' ? 'text' : 'password';
+            eyeIcon.classList.toggle('hidden');
+            eyeSlashIcon.classList.toggle('hidden');
         }
 
         function showModal(title, message, showOkButton = true) {
-            // Unchanged
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-ok-button').style.display = showOkButton ? 'inline-block' : 'none';
+            document.getElementById('custom-modal').classList.remove('hidden');
         }
 
         function hideModal() {
-            // Unchanged
+            document.getElementById('custom-modal').classList.add('hidden');
         }
 
         function updateButtonStates(isShiftActive) {
@@ -172,6 +181,7 @@
             }
         }
         
+        // --- Core App Logic ---
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
@@ -189,13 +199,13 @@
                 const result = await response.json();
                 if (result.status === 'success' && result.data) {
                     if (result.data.role === 'manager') {
-                        // Manager logic is unchanged
+                        hideModal();
+                        window.location.href = APPS_SCRIPT_WEB_APP_URL + '?page=dashboard';
                         return; 
                     } 
                     currentUser = result.data;
                     document.getElementById('user-name').textContent = currentUser.riderName;
                     
-                    // --- REAL-TIME LISTENER SETUP ---
                     listenToRiderStatus(currentUser.riderId);
                     
                     document.getElementById('login-section').classList.add('hidden');
@@ -209,71 +219,169 @@
             }
         }
 
-        // --- NEW: Real-time listener for rider status ---
         function listenToRiderStatus(riderId) {
-            if (unsubscribeFromStatus) {
-                unsubscribeFromStatus(); // Stop any previous listener
-            }
+            if (unsubscribeFromStatus) unsubscribeFromStatus();
             unsubscribeFromStatus = db.collection('rider_status').doc(riderId)
                 .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const data = doc.data();
-                        updateButtonStates(data.isShiftActive || false);
-                    } else {
-                        // No document yet, so shift is not active
-                        updateButtonStates(false);
-                    }
+                    const isActive = doc.exists && doc.data().isShiftActive === true;
+                    updateButtonStates(isActive);
                 }, (error) => {
                     console.error("Error listening to rider status:", error);
                     showModal("Connection Error", "Server se achanak connection toot gaya.");
                 });
         }
         
-        // --- FINAL SUBMIT LOGIC (with Firebase) ---
         async function submitData(type, formData, location, selfie, address) {
             if (formTimer) clearTimeout(formTimer);
-            if (!currentUser) {
-                showModal('Error', 'Aap logged in nahi hain.');
-                return;
-            }
+            if (!currentUser) return showModal('Error', 'Aap logged in nahi hain.');
             
             showModal('Processing...', 'Aapka data submit kiya ja raha hai...', false);
 
             try {
-                // Step 1: Update Firebase first for instant UI change
                 const newStatus = (type === 'checkin');
                 await db.collection('rider_status').doc(currentUser.riderId).set({
                     isShiftActive: newStatus,
                     lastUpdate: new Date()
                 }, { merge: true });
 
-                // Step 2: Log the full data to Google Sheets in the background
-                const payload = {
-                    action: 'submit', type,
-                    riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
-                    ...formData, ...location, selfie, address 
-                };
+                const payload = { action: 'submit', type, ...currentUser, ...formData, ...location, selfie, address };
                 
-                // We don't need to wait for this to finish
                 fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', mode: 'cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
-                }).catch(err => console.error("Sheet logging failed:", err)); // Log error if sheet update fails
+                }).catch(err => console.error("Sheet logging failed:", err));
 
-                // The real-time listener will automatically update the UI.
-                // We just need to go back to the main screen.
                 document.getElementById('forms-container').classList.add('hidden');
                 document.getElementById('buttons').classList.remove('hidden');
                 showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
-
             } catch (error) {
                 showModal('Error', 'Data submit karne mein error aa gaya: ' + error.message);
             }
         }
 
-        // Other functions (showForm, wrapText, startVerification, etc.) remain largely unchanged
-        // ... (rest of the JS functions)
+        // --- Form & Verification Flow (largely unchanged) ---
+        function showForm(type) {
+             document.getElementById('buttons').classList.add('hidden');
+            document.getElementById('forms-container').classList.remove('hidden');
+            if (type === 'checkin') {
+                document.getElementById('checkin-form').classList.remove('hidden');
+                document.getElementById('checkout-form').classList.add('hidden');
+            } else {
+                document.getElementById('checkout-form').classList.remove('hidden');
+                document.getElementById('checkin-form').classList.add('hidden');
+            }
+        }
+        
+        function startVerification(type) {
+            const formData = getFormData(type);
+            if (!formData) return;
+            showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
+            getLocation().then(async location => {
+                showModal('Fetching Address...', 'Aapka address check kiya ja raha hai...', false);
+                const address = await getAddressFromCoordinates(location.latitude, location.longitude);
+                startCamera(type, formData, location, address);
+            }).catch(error => { showModal('Location Error', error); });
+        }
+
+        function getFormData(type) {
+            const data = {};
+            if (type === 'checkin') {
+                data.shiftTime = document.getElementById('shift-time-select').value;
+                if (!data.shiftTime) { showModal('Error', 'Kripya shift time chunein.'); return null; }
+            } else if (type === 'checkout') {
+                data.totalRides = document.getElementById('total-rides').value;
+                data.totalKms = document.getElementById('total-kms').value;
+                data.lastOrder = document.getElementById('last-order').value;
+                data.lastOrderTime = document.getElementById('last-order-time').value || "";
+                data.manualOrders = document.getElementById('manual-orders').value || "";
+                data.manualKms = document.getElementById('manual-kms').value || "";
+                if (!data.totalRides || !data.totalKms || !data.lastOrder) {
+                    showModal('Error', 'Kripya sabhi zaroori (*) fields bharein.');
+                    return null;
+                }
+            }
+            return data;
+        }
+
+        async function getAddressFromCoordinates(latitude, longitude) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) return "Address not found.";
+                const data = await response.json();
+                return data.display_name || "Address could not be determined.";
+            } catch (error) { return "Could not fetch address."; }
+        }
+
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) return reject('Geolocation support nahi hai.');
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        const distance = calculateDistance(latitude, longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE);
+                        if (distance <= ALLOWED_RADIUS_METERS) resolve({ latitude, longitude });
+                        else reject(`Aap office se lagbhag ${distance.toFixed(0)} meter door hain.`);
+                    },
+                    () => reject('Location access nahi mila. Kripya permission dein.'),
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        async function startCamera(type, formData, location, address) {
+            hideModal();
+            document.getElementById('forms-container').classList.add('hidden');
+            document.getElementById('selfie-section').classList.remove('hidden');
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                const videoElement = document.getElementById('camera-feed');
+                videoElement.srcObject = cameraStream;
+                document.getElementById('capture-btn').onclick = () => captureAndSubmit(type, formData, location, address);
+            } catch (err) {
+                showModal('Camera Error', 'Camera access nahi mila. Kripya permission dein.');
+                stopCamera();
+            }
+        }
+
+        function captureAndSubmit(type, formData, location, address) {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('photo-canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            context.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+            context.lineWidth = 4;
+            context.font = 'bold 18px Inter';
+            const timestamp = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+            context.strokeText(timestamp, 15, canvas.height - 20);
+            context.fillText(timestamp, 15, canvas.height - 20);
+            const selfieData = canvas.toDataURL('image/jpeg', 0.8);
+            stopCamera();
+            submitData(type, formData, location, selfieData, address);
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('selfie-section').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
