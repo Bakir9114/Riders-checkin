@@ -147,16 +147,6 @@
         let cameraStream = null;
         let formTimer = null; 
 
-        // --- DEVICE ID LOGIC ---
-        function getDeviceId() {
-            let deviceId = localStorage.getItem('rcisDeviceId');
-            if (!deviceId) {
-                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('rcisDeviceId', deviceId);
-            }
-            return deviceId;
-        }
-
         function togglePinVisibility() {
             const pinInput = document.getElementById('rider-pin');
             const eyeIcon = document.getElementById('eye-icon');
@@ -207,8 +197,7 @@
                 return;
             }
             showModal('Logging In...', 'Aapki details verify ki ja rahi hai...', false);
-            const deviceId = getDeviceId(); // Get device ID for security
-            const payload = { action: 'login', riderId, secretPin, deviceId };
+            const payload = { action: 'login', riderId, secretPin };
 
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
