@@ -92,6 +92,7 @@
                         <option value="">Select Shift Time</option>
                         <option value="7 AM to 5 PM">7 AM to 5 PM</option>
                         <option value="8 AM to 6 PM">8 AM to 6 PM</option>
+                        <option value="9 AM to 7 PM">9 AM to 7 PM</option>
                         <option value="4 PM to 2 AM">4 PM to 2 AM</option>
                         <option value="8 PM to 6 AM">8 PM to 6 AM</option>
                         <option value="10 PM to 8 AM">10 PM to 8 AM</option>
@@ -175,6 +176,7 @@
         let currentUser = null;
         let cameraStream = null;
         let currentActiveShift = null;
+        let activeCheckInTime = null; // Naya variable check-in time save karne ke liye
         
         // Polling Timers
         let approvalPollingTimer = null;
@@ -291,6 +293,7 @@
                 if (state.isShiftActive) {
                     isActive = true;
                     currentActiveShift = state.currentShift;
+                    activeCheckInTime = state.checkInTime || null; // Saved time nikalna
                 }
             }
             
@@ -380,8 +383,18 @@
             document.getElementById('buttons').classList.remove('hidden');
         }
 
-        function getShiftTimeBounds(shiftStr) {
-            if (!shiftStr || shiftStr.includes("Other")) return null;
+        function getShiftTimeBounds(shiftStr, checkInTimestamp = null) {
+            if (!shiftStr) return null;
+            
+            // Emergency shift ke liye 10 hours ka logic
+            if (shiftStr.includes("Other")) {
+                if (!checkInTimestamp) return null;
+                let start = new Date(checkInTimestamp);
+                let end = new Date(checkInTimestamp);
+                end.setHours(end.getHours() + 10); // Check-in time se exactly 10 ghante aage
+                return { start, end };
+            }
+
             const match = shiftStr.match(/(\d{1,2})\s*(AM|PM)\s*to\s*(\d{1,2})\s*(AM|PM)/i);
             if (!match) return null;
             let startH = parseInt(match[1]), startM = match[2].toUpperCase();
@@ -430,7 +443,7 @@
             if (!formData) return;
 
             let shiftStr = type === 'checkin' ? formData.shiftTime : currentActiveShift;
-            let bounds = getShiftTimeBounds(shiftStr);
+            let bounds = getShiftTimeBounds(shiftStr, activeCheckInTime); // activeCheckInTime pass kiya
             let now = new Date(), needsApproval = false, reason = "";
 
             if (type === 'checkin' && bounds) {
@@ -438,10 +451,12 @@
                 if (diffMins > 20) { needsApproval = true; reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; }
             } else if (type === 'checkout' && bounds) {
                 let diffMinsEarly = (bounds.end - now) / 60000;
-                if (diffMinsEarly > 35 && formData.lastOrderRaw === 'No') {
+                // Threshold ko 35 se hata kar 30 minutes kar diya gaya hai sabke liye
+                if (diffMinsEarly > 30 && formData.lastOrderRaw === 'No') {
                     needsApproval = true; reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without last order.`;
                 }
             } else if (shiftStr && shiftStr.includes("Other")) {
+                // Ye sirf checkin ke waqt chalega (jab checkInTime null hoga)
                 needsApproval = true; reason = "Emergency/Other shift selected.";
             }
 
@@ -598,9 +613,15 @@
                 
                 if (res.status === 'success') {
                     if (type === 'checkin') {
-                        localStorage.setItem('rcisShiftState', JSON.stringify({ isShiftActive: true, currentShift: formData.shiftTime }));
+                        // Check-in ke waqt actual time phone/browser me save hoga
+                        localStorage.setItem('rcisShiftState', JSON.stringify({ 
+                            isShiftActive: true, 
+                            currentShift: formData.shiftTime,
+                            checkInTime: new Date().getTime() 
+                        }));
                     } else {
                         localStorage.removeItem('rcisShiftState');
+                        activeCheckInTime = null;
                     }
                     
                     showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
