@@ -17,6 +17,9 @@
         .loader { border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; border-top: 4px solid #60a5fa; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .glass-card { background: rgba(23, 27, 46, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen flex flex-col items-center justify-center p-4 text-gray-200">
@@ -25,9 +28,10 @@
             Rider Check-In System
         </h1>
 
+        <!-- Login Section -->
         <div id="login-section" class="w-full max-w-md mb-8 text-center">
-             <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your Rider ID</label>
-            <input type="text" id="rider-id" placeholder="Rider ID"
+             <label for="rider-id" class="text-xl font-semibold text-gray-300">Enter Your ID</label>
+            <input type="text" id="rider-id" placeholder="Rider / Manager ID"
                    class="mt-2 p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm uppercase">
             
             <label for="rider-pin" class="text-xl font-semibold text-gray-300 mt-4 block">Enter Your Secret PIN</label>
@@ -39,20 +43,26 @@
                     <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                 </button>
             </div>
-            <button id="login-btn" onclick="loginUser()"
+            <button id="login-btn" onclick="loginRider()"
                    class="mt-6 w-full px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105">
                 Login
             </button>
         </div>
 
+        <!-- Manager Dashboard Section (NO GEOFENCING) -->
         <div id="manager-section" class="hidden w-full max-w-md mx-auto text-center">
-            <h2 class="text-2xl font-bold text-gray-200 mb-6 border-b border-gray-700 pb-2">Manager Access</h2>
-            <div id="approvals-container" class="space-y-4 max-h-96 overflow-y-auto pr-2">
-                <!-- Approvals inject here -->
+            <div class="mb-4 flex justify-between items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                <p class="text-lg">Manager: <span id="mgr-name" class="font-bold text-emerald-400"></span></p>
+                <button onclick="logoutUser()" class="text-rose-400 hover:text-rose-300 font-semibold">Logout</button>
             </div>
-            <button onclick="logoutUser()" class="mt-6 px-6 py-2 text-sm text-gray-400 hover:text-white transition">Logout</button>
+            <h2 class="text-2xl font-bold text-gray-200 mb-6 border-b border-gray-700 pb-2">Pending Approvals</h2>
+            
+            <!-- Real-time dynamic cards will load here -->
+            <div id="approvals-container" class="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+            </div>
         </div>
 
+        <!-- Main Rider App Section -->
         <div id="app-section" class="hidden w-full text-center">
             <div id="user-info" class="mb-8 flex justify-between items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                 <p class="text-xl">Welcome, <span id="user-name" class="font-bold text-blue-400"></span>!</p>
@@ -72,6 +82,7 @@
                 </button>
             </div>
 
+            <!-- Forms Container -->
             <div id="forms-container" class="hidden w-full">
                  <div id="checkin-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full">
                     <label for="shift-time-select" class="text-xl font-semibold text-gray-300">Select Shift Time:</label>
@@ -84,10 +95,10 @@
                         <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                         <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
                     </select>
-                    <button id="checkin-next-btn" onclick="startVerification('checkin')" class="w-full max-w-md px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600">
+                    <button onclick="startVerification('checkin')" class="w-full max-w-md px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-sky-500 to-cyan-500 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:from-sky-600 hover:to-cyan-600 transform hover:scale-105">
                         Next: Verify & Submit
                     </button>
-                    <button onclick="hideForms()" class="text-gray-400 mt-2">Cancel</button>
+                    <button onclick="hideForms()" class="text-gray-400 mt-2 hover:text-white">Cancel</button>
                 </div>
 
                 <div id="checkout-form" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
@@ -95,22 +106,31 @@
                     <input type="number" id="total-rides" placeholder="Total Rides a Day *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="total-kms" placeholder="Total Travelled Kms *" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     
-                    <select id="last-order" onchange="toggleOrderId()" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white shadow-sm">
+                    <select id="last-order" onchange="toggleOrderIdField()" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white shadow-sm">
                         <option value="">Is this your Last Order? *</option>
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                     </select>
-                    <input type="text" id="order-id" placeholder="Enter Order ID *" class="hidden p-3 w-full text-lg rounded-lg bg-slate-800 border border-rose-500 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-white shadow-sm">
                     
-                    <input type="text" id="last-order-time" placeholder="Last Order Pick-up Time (Optional)" onfocus="(this.type='time')" onblur="(this.type='text')" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
+                    <!-- NEW ORDER ID FIELD (Replaced Time Field) -->
+                    <input type="text" id="order-id" placeholder="Enter Last Order # *" class="hidden p-3 w-full text-lg rounded-lg bg-slate-800 border border-rose-500 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-white shadow-sm">
+                    
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     <input type="number" id="manual-kms" placeholder="Manual KMs (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
                     
-                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600">
+                    <button onclick="startVerification('checkout')" class="w-full mt-4 px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-300 hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105">
                         Next: Verify & Submit
                     </button>
-                    <button onclick="hideForms()" class="text-gray-400 mt-2">Cancel</button>
+                    <button onclick="hideForms()" class="text-gray-400 mt-2 hover:text-white">Cancel</button>
                 </div>
+            </div>
+
+            <div id="approval-waiting-section" class="hidden mt-8 bg-slate-800/80 p-6 rounded-xl border border-yellow-500/50 shadow-xl max-w-md mx-auto text-center">
+                <div class="loader mx-auto mb-4 border-t-yellow-400"></div>
+                <h3 class="text-xl font-bold text-yellow-400 mb-2">Manager Approval Pending</h3>
+                <p class="text-sm text-gray-300 mb-4" id="approval-reason-text"></p>
+                <p class="text-xs text-gray-400">Aapki request manager ko bhej di gayi hai. Kripya app me wait karein.</p>
+                <button onclick="cancelApprovalRequest()" class="mt-4 px-4 py-2 bg-slate-700 rounded text-sm hover:bg-slate-600">Cancel Request</button>
             </div>
 
             <div id="selfie-section" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
@@ -120,41 +140,33 @@
                 </div>
                 <canvas id="photo-canvas" class="hidden"></canvas>
                 <div class="flex w-full space-x-2">
-                     <button onclick="stopCamera()" class="w-1/3 py-4 text-lg font-bold text-white bg-slate-700 rounded-xl hover:bg-slate-600">Cancel</button>
-                     <button id="capture-btn" class="w-2/3 py-4 text-lg font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 hover:from-rose-600 hover:to-pink-600">Take Selfie</button>
+                    <button onclick="stopCamera()" class="w-1/3 py-4 text-lg font-bold text-white bg-slate-700 rounded-xl hover:bg-slate-600">Cancel</button>
+                    <button id="capture-btn" class="w-2/3 py-4 text-lg font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-300 hover:from-rose-600 hover:to-pink-600">Take Selfie</button>
                 </div>
-            </div>
-
-            <div id="approval-waiting-section" class="hidden mt-8 bg-slate-800/80 p-6 rounded-xl border border-yellow-500/50 shadow-xl max-w-md mx-auto text-center">
-                <div class="loader mx-auto mb-4 border-t-yellow-400"></div>
-                <h3 class="text-xl font-bold text-yellow-400 mb-2">Manager Approval Pending</h3>
-                <p class="text-sm text-gray-300 mb-4" id="approval-reason-text"></p>
-                <p class="text-xs text-gray-400">Aapki request manager ko bhej di gayi hai. Kripya unke approve karne ka wait karein.</p>
-                <button onclick="cancelApprovalRequest()" class="mt-4 px-4 py-2 bg-slate-700 rounded text-sm hover:bg-slate-600">Cancel Request</button>
             </div>
         </div>
     </div>
 
+    <!-- Modal -->
     <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div class="glass-card p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
             <h3 id="modal-title" class="text-2xl font-bold text-gray-100 mb-4"></h3>
-            <p id="modal-message" class="text-lg text-gray-300 mb-6 break-words"></p>
-            <div id="modal-loader" class="hidden flex justify-center mb-6"><div class="loader"></div></div>
-            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg shadow-md shadow-blue-500/30 hover:scale-105">
+            <p id="modal-message" class="text-lg text-gray-300 mb-6"></p>
+            <button id="modal-ok-button" onclick="hideModal()" class="px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg shadow-md shadow-blue-500/30 hover:scale-105 transform transition-transform duration-200">
                 OK
             </button>
         </div>
     </div>
 
     <script>
-        // --- 1. REPLACE APP SCRIPT URL HERE ---
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyeh2KzmMFx-iewKDsGaP1cH2GE5iIbKm6pNQ58bkAwm6y8xnI0R3Z1Z2b4NHVsnD3JPg/exec'; // Ensure this is NEW URL
-
+        // --- PUT YOUR NEW APPS SCRIPT URL HERE ---
+        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+        
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
         const ALLOWED_RADIUS_METERS = 400; 
 
-        // --- 2. REPLACE FIREBASE CONFIG HERE ---
+        // --- PUT YOUR FIREBASE CONFIG HERE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBToBsWccnzG4xvZT7SqiKBaFGcR8bLPjg",
             authDomain: "riders-check-in-check-out.firebaseapp.com",
@@ -165,10 +177,7 @@
             measurementId: "G-0LF7PYCFFQ"
         };
 
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         let currentUser = null;
@@ -177,19 +186,12 @@
         let unsubscribeFromStatus;
         let unsubscribeFromApprovals;
 
-        // --- STREAMING_CHUNK:App Initialization... ---
+        // Auto-login if previously logged in
         window.onload = () => {
             const savedUser = localStorage.getItem('rcisCurrentUser');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
-                if (currentUser.role === 'manager') {
-                    showManagerView();
-                } else {
-                    document.getElementById('user-name').textContent = currentUser.riderName;
-                    document.getElementById('login-section').classList.add('hidden');
-                    document.getElementById('app-section').classList.remove('hidden');
-                    listenToRiderStatus(currentUser.riderId);
-                }
+                routeUser();
             }
         };
 
@@ -200,7 +202,8 @@
             document.getElementById('eye-slash-icon').classList.toggle('hidden');
         }
 
-        function toggleOrderId() {
+        // Toggle Order ID Field
+        function toggleOrderIdField() {
             const lastOrder = document.getElementById('last-order').value;
             const orderIdInput = document.getElementById('order-id');
             if (lastOrder === 'Yes') {
@@ -211,53 +214,45 @@
             }
         }
 
-        function showModal(title, message, showLoader = false) {
+        function showModal(title, message, showOkButton = true) {
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerText = message;
-            document.getElementById('modal-ok-button').style.display = showLoader ? 'none' : 'inline-block';
-            document.getElementById('modal-loader').style.display = showLoader ? 'flex' : 'none';
+            document.getElementById('modal-ok-button').style.display = showOkButton ? 'inline-block' : 'none';
             document.getElementById('custom-modal').classList.remove('hidden');
         }
         function hideModal() { document.getElementById('custom-modal').classList.add('hidden'); }
 
-        // --- STREAMING_CHUNK:Login logic... ---
-        async function loginUser() {
+        async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
-            if (!riderId || !secretPin) return showModal('Error', 'Kripya Rider ID aur Secret PIN daalein.');
             
-            showModal('Logging In...', 'Verifying...', true);
-            const payload = { action: 'login', riderId, secretPin };
-
+            if (!riderId || !secretPin) {
+                return showModal('Error', 'ID aur PIN dono daalein.');
+            }
+            
+            showModal('Logging In...', 'System checking details...', false);
+            
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ action: 'login', riderId, secretPin })
                 });
                 
                 const rawText = await response.text();
                 let result;
                 try { result = JSON.parse(rawText); } 
-                catch(e) { throw new Error("Server return invalid format. Contact admin."); }
+                catch(e) { throw new Error("Server error, contact admin."); }
 
                 if (result.status === 'success' && result.data) {
                     currentUser = result.data;
                     localStorage.setItem('rcisCurrentUser', JSON.stringify(currentUser));
-                    
                     hideModal();
-                    if (currentUser.role === 'manager') {
-                        showManagerView();
-                    } else {
-                        document.getElementById('user-name').textContent = currentUser.riderName;
-                        document.getElementById('login-section').classList.add('hidden');
-                        document.getElementById('app-section').classList.remove('hidden');
-                        listenToRiderStatus(currentUser.riderId);
-                    }
+                    routeUser();
                 } else {
                     showModal('Login Failed', result.message || 'ID ya PIN galat hai.');
                 }
             } catch (error) {
-                showModal('Error', 'Network or Server issue: ' + error.message);
+                showModal('Error', 'Network ya Server issue: ' + error.message);
             }
         }
 
@@ -268,32 +263,47 @@
             window.location.reload();
         }
 
-        // --- STREAMING_CHUNK:Manager logic... ---
-        function showManagerView() {
+        function routeUser() {
             document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('app-section').classList.add('hidden');
-            document.getElementById('manager-section').classList.remove('hidden');
             
-            // Listen to pending approvals
+            if (currentUser.role === 'manager') {
+                // Manager Flow - NO GEOFENCING
+                showManagerView();
+            } else {
+                // Rider Flow
+                document.getElementById('user-name').textContent = currentUser.riderName;
+                document.getElementById('app-section').classList.remove('hidden');
+                listenToRiderStatus(currentUser.riderId);
+            }
+        }
+
+        // --- MANAGER SPECIFIC LOGIC ---
+        function showManagerView() {
+            document.getElementById('manager-section').classList.remove('hidden');
+            document.getElementById('mgr-name').textContent = currentUser.riderName;
+            
+            // Listen to real-time approvals
             db.collection('approvals').where('status', '==', 'pending')
               .onSnapshot(snapshot => {
                   const container = document.getElementById('approvals-container');
                   container.innerHTML = '';
+                  
                   if(snapshot.empty) {
-                      container.innerHTML = '<p class="text-sm text-gray-400 p-4 border border-gray-700 rounded bg-slate-800/50">Koi pending approval nahi hai.</p>';
+                      container.innerHTML = '<p class="text-sm text-gray-400 p-4 border border-gray-700 rounded bg-slate-800/50">Koi pending approval request nahi hai.</p>';
                       return;
                   }
+                  
                   snapshot.forEach(doc => {
                       const data = doc.data();
                       container.innerHTML += `
                           <div class="bg-slate-800 p-4 rounded-xl border border-slate-600 shadow-md text-left">
                               <p class="font-bold text-white text-lg">${data.riderName} <span class="text-sm text-blue-400">(${data.riderId})</span></p>
                               <p class="text-sm font-semibold mt-1 ${data.type==='checkin' ? 'text-yellow-400' : 'text-emerald-400'}">${data.type.toUpperCase()} Request</p>
-                              <p class="text-xs text-gray-300 mt-2 bg-slate-900 p-2 rounded border border-red-500/30">Reason: ${data.reason}</p>
+                              <p class="text-xs text-gray-300 mt-2 bg-slate-900 p-2 rounded border border-rose-500/30">Reason: ${data.reason}</p>
                               <p class="text-xs text-gray-400 mt-1">Shift: ${data.shiftTime}</p>
                               <div class="flex space-x-2 mt-4">
-                                  <button onclick="respondApproval('${doc.id}', 'approved')" class="flex-1 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition">Approve</button>
-                                  <button onclick="respondApproval('${doc.id}', 'rejected')" class="flex-1 py-2 bg-rose-600/20 text-rose-400 border border-rose-600 rounded hover:bg-rose-600 hover:text-white transition">Reject</button>
+                                  <button onclick="respondApproval('${doc.id}', 'approved')" class="flex-1 py-3 font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition">Approve</button>
+                                  <button onclick="respondApproval('${doc.id}', 'rejected')" class="flex-1 py-3 font-bold bg-rose-600/20 text-rose-400 border border-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition">Reject</button>
                               </div>
                           </div>
                       `;
@@ -302,10 +312,11 @@
         }
 
         window.respondApproval = function(docId, statusResponse) {
-            db.collection('approvals').doc(docId).update({ status: statusResponse }).catch(err=>showModal("Error", err.message));
+            db.collection('approvals').doc(docId).update({ status: statusResponse })
+              .catch(err => showModal("Error", err.message));
         };
 
-        // --- STREAMING_CHUNK:Rider logic... ---
+        // --- RIDER SPECIFIC LOGIC ---
         function listenToRiderStatus(riderId) {
             if (unsubscribeFromStatus) unsubscribeFromStatus();
             unsubscribeFromStatus = db.collection('rider_status').doc(riderId)
@@ -320,7 +331,6 @@
                     } else {
                         shiftDisp.classList.add('hidden');
                     }
-
                     updateButtonStates(isActive);
                 });
         }
@@ -329,7 +339,6 @@
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
             hideForms();
-            
             if (isShiftActive) {
                 checkInBtn.style.display = 'none';
                 checkOutBtn.style.display = 'block';
@@ -350,31 +359,36 @@
                 document.getElementById('checkin-form').classList.add('hidden');
             }
         }
-
+        
         function hideForms() {
             document.getElementById('forms-container').classList.add('hidden');
             document.getElementById('buttons').classList.remove('hidden');
         }
 
-        // --- STREAMING_CHUNK:Approval rules... ---
         function getShiftTimeBounds(shiftStr) {
             if (!shiftStr || shiftStr.includes("Other")) return null;
             const match = shiftStr.match(/(\d{1,2})\s*(AM|PM)\s*to\s*(\d{1,2})\s*(AM|PM)/i);
             if (!match) return null;
+            
             let startH = parseInt(match[1]), startM = match[2].toUpperCase();
             let endH = parseInt(match[3]), endM = match[4].toUpperCase();
+            
             if (startM === 'PM' && startH !== 12) startH += 12;
             if (startM === 'AM' && startH === 12) startH = 0;
             if (endM === 'PM' && endH !== 12) endH += 12;
             if (endM === 'AM' && endH === 12) endH = 0;
 
             let now = new Date();
-            let start = new Date(now); start.setHours(startH, 0, 0, 0);
-            let end = new Date(now); end.setHours(endH, 0, 0, 0);
+            let start = new Date(now), end = new Date(now); 
+            start.setHours(startH, 0, 0, 0);
+            end.setHours(endH, 0, 0, 0);
 
-            if (end < start) {
-                if (now.getHours() < startH && now.getHours() < 12) start.setDate(start.getDate() - 1); 
-                else end.setDate(end.getDate() + 1);
+            if (end <= start) {
+                if (now.getHours() < startH && now.getHours() < 12) {
+                    start.setDate(start.getDate() - 1); 
+                } else {
+                    end.setDate(end.getDate() + 1);
+                }
             }
             return { start, end };
         }
@@ -387,22 +401,27 @@
             } else if (type === 'checkout') {
                 data.totalRides = document.getElementById('total-rides').value;
                 data.totalKms = document.getElementById('total-kms').value;
-                const lastOrder = document.getElementById('last-order').value;
+                const lastOrderRaw = document.getElementById('last-order').value;
                 const orderId = document.getElementById('order-id').value.trim();
                 
-                if (!data.totalRides || !data.totalKms || !lastOrder) {
+                if (!data.totalRides || !data.totalKms || !lastOrderRaw) {
                     showModal('Error', 'Kripya sabhi zaroori (*) fields bharein.'); return null;
                 }
                 
-                if (lastOrder === 'Yes') {
-                    if (!orderId) { showModal('Error', 'Aapne "Last Order: Yes" chuna hai. Kripya Order ID enter karein.'); return null;}
-                    data.lastOrder = `Yes (ID: ${orderId})`;
+                // ORDER ID LOGIC
+                if (lastOrderRaw === 'Yes') {
+                    if (!orderId) { 
+                        showModal('Error', 'Last Order "Yes" hai. Kripya Order ID enter karein.'); 
+                        return null;
+                    }
+                    data.lastOrder = "Yes";
+                    data.orderId = `Yes (ID: ${orderId})`; 
                 } else {
                     data.lastOrder = "No";
+                    data.orderId = "N/A"; 
                 }
 
-                data.lastOrderRaw = lastOrder; // to use in logic
-                data.lastOrderTime = document.getElementById('last-order-time').value || "";
+                data.lastOrderRaw = lastOrderRaw;
                 data.manualOrders = document.getElementById('manual-orders').value || "";
                 data.manualKms = document.getElementById('manual-kms').value || "";
             }
@@ -413,7 +432,6 @@
             const formData = getFormData(type);
             if (!formData) return;
 
-            // Shift Logic Verification
             let shiftStr = type === 'checkin' ? formData.shiftTime : currentActiveShift;
             let bounds = getShiftTimeBounds(shiftStr);
             let now = new Date();
@@ -421,15 +439,22 @@
             let reason = "";
 
             if (type === 'checkin' && bounds) {
+                // Late Check-in Rule (> 20 mins)
                 let diffMins = (now - bounds.start) / 60000;
-                if (diffMins > 20) { needsApproval = true; reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; }
+                if (diffMins > 20) { 
+                    needsApproval = true; 
+                    reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; 
+                }
             } else if (type === 'checkout' && bounds) {
+                // Early Check-out Rule (> 35 mins early AND No Last Order)
                 let diffMinsEarly = (bounds.end - now) / 60000;
                 if (diffMinsEarly > 35 && formData.lastOrderRaw === 'No') {
-                    needsApproval = true; reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without last order.`;
+                    needsApproval = true; 
+                    reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without last order.`;
                 }
             } else if (shiftStr && shiftStr.includes("Other")) {
-                needsApproval = true; reason = "Emergency/Other shift selected.";
+                needsApproval = true; 
+                reason = "Emergency/Other shift selected.";
             }
 
             if (needsApproval) {
@@ -439,7 +464,6 @@
             }
         }
 
-        // --- STREAMING_CHUNK:Approval processing... ---
         function requestManagerApproval(type, formData, reason, shiftStr) {
             hideForms();
             document.getElementById('approval-reason-text').innerText = reason;
@@ -456,16 +480,18 @@
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
 
+            // Listen for manager's response (Real-time reflection)
             if(unsubscribeFromApprovals) unsubscribeFromApprovals();
             unsubscribeFromApprovals = docRef.onSnapshot(doc => {
                 if (doc.exists) {
                     const status = doc.data().status;
                     if (status === 'approved') {
                         cancelApprovalSilently();
-                        proceedToLocation(type, formData);
+                        showModal('Approved!', 'Manager ne request approve kar di hai. Location verify ho rahi hai.', false);
+                        setTimeout(() => { hideModal(); proceedToLocation(type, formData); }, 2000);
                     } else if (status === 'rejected') {
                         cancelApprovalSilently();
-                        showModal('Rejected', 'Manager ne aapki request deny kar di hai.');
+                        showModal('Rejected', 'Manager ne aapki request deny kar di hai. Aap abhi submit nahi kar sakte.');
                         document.getElementById('forms-container').classList.remove('hidden');
                     }
                 }
@@ -483,11 +509,12 @@
             document.getElementById('forms-container').classList.remove('hidden');
         }
 
-        // --- STREAMING_CHUNK:Location & Camera... ---
+        // --- LOCATION & CAMERA (GEOFENCING HAPPENS HERE) ---
         function proceedToLocation(type, formData) {
-            showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', true);
+            // Manager never reaches here, so geofencing is strictly for Riders
+            showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
             getLocation().then(async location => {
-                showModal('Fetching Address...', 'Aapka address check kiya ja raha hai...', true);
+                showModal('Fetching Address...', 'Address check kiya ja raha hai...', false);
                 const address = await getAddressFromCoordinates(location.latitude, location.longitude);
                 startCamera(type, formData, location, address);
             }).catch(error => { showModal('Location Error', error); });
@@ -503,7 +530,7 @@
                         if (dist <= ALLOWED_RADIUS_METERS) resolve({ latitude, longitude });
                         else reject(`Aap office se lagbhag ${dist.toFixed(0)} meter door hain.`);
                     },
-                    () => reject('Location access nahi mila. Kripya permission dein.'),
+                    () => reject('Location permission nahi mili.'),
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
@@ -533,7 +560,7 @@
                 document.getElementById('camera-feed').srcObject = cameraStream;
                 document.getElementById('capture-btn').onclick = () => captureAndSubmit(type, formData, location, address);
             } catch (err) {
-                showModal('Camera Error', 'Camera access nahi mila.');
+                showModal('Camera Error', 'Camera permission dein.');
                 stopCamera();
                 document.getElementById('forms-container').classList.remove('hidden');
             }
@@ -547,7 +574,7 @@
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const selfieData = canvas.toDataURL('image/jpeg', 0.6);
             stopCamera();
-            submitData(type, formData, location, selfieData, address);
+            submitFinalData(type, formData, location, selfieData, address);
         }
 
         function stopCamera() {
@@ -555,9 +582,9 @@
             document.getElementById('selfie-section').classList.add('hidden');
         }
 
-        async function submitData(type, formData, location, selfie, address) {
-            if (!currentUser) return showModal('Error', 'Aap logged in nahi hain.');
-            showModal('Processing...', 'Aapka data submit kiya ja raha hai...', true);
+        async function submitFinalData(type, formData, location, selfie, address) {
+            if (!currentUser) return;
+            showModal('Saving...', 'Data Google Sheet me save ho raha hai...', false);
 
             try {
                 const newStatus = (type === 'checkin');
@@ -568,15 +595,14 @@
 
                 const payload = { action: 'submit', type, ...currentUser, ...formData, ...location, selfie, address };
                 fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST', mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
                 }).catch(err => console.error("Sheet log fail:", err));
 
                 showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
                 hideForms();
             } catch (error) {
-                showModal('Error', 'Submit karne mein error: ' + error.message);
+                showModal('Error', 'Submit error: ' + error.message);
             }
         }
     </script>
