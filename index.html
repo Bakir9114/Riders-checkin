@@ -7,9 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- FIREBASE REMOVED COMPLETELY -->
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -49,16 +47,22 @@
             </button>
         </div>
 
-        <!-- Manager Dashboard Section (NO GEOFENCING) -->
+        <!-- Manager Dashboard Section -->
         <div id="manager-section" class="hidden w-full max-w-md mx-auto text-center">
             <div class="mb-4 flex justify-between items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                 <p class="text-lg">Manager: <span id="mgr-name" class="font-bold text-emerald-400"></span></p>
-                <button onclick="logoutUser()" class="text-rose-400 hover:text-rose-300 font-semibold">Logout</button>
+                <div class="flex space-x-3">
+                    <button onclick="fetchPendingApprovals()" class="text-blue-400 hover:text-blue-300 font-semibold text-sm flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Refresh
+                    </button>
+                    <button onclick="logoutUser()" class="text-rose-400 hover:text-rose-300 font-semibold text-sm">Logout</button>
+                </div>
             </div>
             <h2 class="text-2xl font-bold text-gray-200 mb-6 border-b border-gray-700 pb-2">Pending Approvals</h2>
             
-            <!-- Real-time dynamic cards will load here -->
             <div id="approvals-container" class="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Requests will load here via polling -->
             </div>
         </div>
 
@@ -158,32 +162,20 @@
     </div>
 
     <script>
-        // --- PUT YOUR NEW APPS SCRIPT URL HERE ---
+        // --- YOUR WEB APP URL ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
         const ALLOWED_RADIUS_METERS = 400; 
 
-        // --- Firebase Config (As provided by you) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBToBsWccnzG4xvZT7SqiKBaFGcR8bLPjg",
-            authDomain: "riders-check-in-check-out.firebaseapp.com",
-            projectId: "riders-check-in-check-out",
-            storageBucket: "riders-check-in-check-out.appspot.com",
-            messagingSenderId: "563496526463",
-            appId: "1:563496526463:web:867574b572dbca6e8f554a",
-            measurementId: "G-0LF7PYCFFQ"
-        };
-
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         let currentUser = null;
         let cameraStream = null;
         let currentActiveShift = null;
-        let unsubscribeFromStatus;
-        let unsubscribeFromApprovals;
+        
+        // Polling Timers
+        let approvalPollingTimer = null;
+        let managerPollingTimer = null;
 
         window.onload = () => {
             const savedUser = localStorage.getItem('rcisCurrentUser');
@@ -203,12 +195,8 @@
         function toggleOrderIdField() {
             const lastOrder = document.getElementById('last-order').value;
             const orderIdInput = document.getElementById('order-id');
-            if (lastOrder === 'Yes') {
-                orderIdInput.classList.remove('hidden');
-            } else {
-                orderIdInput.classList.add('hidden');
-                orderIdInput.value = '';
-            }
+            if (lastOrder === 'Yes') orderIdInput.classList.remove('hidden');
+            else { orderIdInput.classList.add('hidden'); orderIdInput.value = ''; }
         }
 
         function showModal(title, message, showOkButton = true) {
@@ -219,32 +207,35 @@
         }
         function hideModal() { document.getElementById('custom-modal').classList.add('hidden'); }
 
+        async function safeFetch(payload) {
+            try {
+                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                    method: 'POST',
+                    redirect: 'follow',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const text = await response.text();
+                try {
+                    return JSON.parse(text);
+                } catch (parseError) {
+                    console.error("Non-JSON response:", text.substring(0,200));
+                    throw new Error("Server ne galat format bheja. URL check karein.");
+                }
+            } catch (err) {
+                throw err;
+            }
+        }
+
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
-            
-            if (!riderId || !secretPin) {
-                return showModal('Error', 'ID aur PIN dono daalein.');
-            }
+            if (!riderId || !secretPin) return showModal('Error', 'ID aur PIN dono daalein.');
             
             showModal('Logging In...', 'System checking details...', false);
             
             try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'login', riderId, secretPin })
-                });
-                
-                const rawText = await response.text();
-                let result;
-                try { 
-                    result = JSON.parse(rawText); 
-                } catch(e) { 
-                    console.error("Failed to parse JSON:", rawText);
-                    // NAYA DEBUG CODE: Ab exactly pata chalega ki server kya bhej raha hai
-                    throw new Error("Google ne HTML bheja hai: " + rawText.substring(0, 80)); 
-                }
-
+                const result = await safeFetch({ action: 'login', riderId, secretPin });
                 if (result.status === 'success' && result.data) {
                     currentUser = result.data;
                     localStorage.setItem('rcisCurrentUser', JSON.stringify(currentUser));
@@ -254,14 +245,15 @@
                     showModal('Login Failed', result.message || 'ID ya PIN galat hai.');
                 }
             } catch (error) {
-                showModal('Error', 'Network ya Server issue: ' + error.message);
+                showModal('Error', error.message);
             }
         }
 
         function logoutUser() {
-            if (unsubscribeFromStatus) unsubscribeFromStatus();
-            if (unsubscribeFromApprovals) unsubscribeFromApprovals();
+            if (approvalPollingTimer) clearInterval(approvalPollingTimer);
+            if (managerPollingTimer) clearInterval(managerPollingTimer);
             localStorage.removeItem('rcisCurrentUser');
+            localStorage.removeItem('rcisShiftState');
             window.location.reload();
         }
 
@@ -273,122 +265,114 @@
             } else {
                 document.getElementById('user-name').textContent = currentUser.riderName;
                 document.getElementById('app-section').classList.remove('hidden');
-                listenToRiderStatus(currentUser.riderId);
+                loadRiderState();
             }
         }
 
-        // --- MANAGER SPECIFIC LOGIC ---
-        function showManagerView() {
-            document.getElementById('manager-section').classList.remove('hidden');
-            document.getElementById('mgr-name').textContent = currentUser.riderName;
+        // --- RIDER STATE MANAGEMENT (LOCAL STORAGE INSTEAD OF FIREBASE) ---
+        function loadRiderState() {
+            const savedState = localStorage.getItem('rcisShiftState');
+            let isActive = false;
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                if (state.isShiftActive) {
+                    isActive = true;
+                    currentActiveShift = state.currentShift;
+                }
+            }
             
-            // Listen to real-time approvals
-            db.collection('approvals').where('status', '==', 'pending')
-              .onSnapshot(snapshot => {
-                  const container = document.getElementById('approvals-container');
-                  container.innerHTML = '';
-                  
-                  if(snapshot.empty) {
-                      container.innerHTML = '<p class="text-sm text-gray-400 p-4 border border-gray-700 rounded bg-slate-800/50">Koi pending approval request nahi hai.</p>';
-                      return;
-                  }
-                  
-                  snapshot.forEach(doc => {
-                      const data = doc.data();
-                      container.innerHTML += `
-                          <div class="bg-slate-800 p-4 rounded-xl border border-slate-600 shadow-md text-left">
-                              <p class="font-bold text-white text-lg">${data.riderName} <span class="text-sm text-blue-400">(${data.riderId})</span></p>
-                              <p class="text-sm font-semibold mt-1 ${data.type==='checkin' ? 'text-yellow-400' : 'text-emerald-400'}">${data.type.toUpperCase()} Request</p>
-                              <p class="text-xs text-gray-300 mt-2 bg-slate-900 p-2 rounded border border-rose-500/30">Reason: ${data.reason}</p>
-                              <p class="text-xs text-gray-400 mt-1">Shift: ${data.shiftTime}</p>
-                              <div class="flex space-x-2 mt-4">
-                                  <button onclick="respondApproval('${doc.id}', 'approved')" class="flex-1 py-3 font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition">Approve</button>
-                                  <button onclick="respondApproval('${doc.id}', 'rejected')" class="flex-1 py-3 font-bold bg-rose-600/20 text-rose-400 border border-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition">Reject</button>
-                              </div>
-                          </div>
-                      `;
-                  });
-              }, err => console.error("Manager view error:", err));
-        }
-
-        window.respondApproval = function(docId, statusResponse) {
-            db.collection('approvals').doc(docId).update({ status: statusResponse })
-              .catch(err => showModal("Error", err.message));
-        };
-
-        // --- RIDER SPECIFIC LOGIC ---
-        function listenToRiderStatus(riderId) {
-            if (unsubscribeFromStatus) unsubscribeFromStatus();
-            unsubscribeFromStatus = db.collection('rider_status').doc(riderId)
-                .onSnapshot((doc) => {
-                    const isActive = doc.exists && doc.data().isShiftActive === true;
-                    currentActiveShift = doc.exists ? doc.data().currentShift : null;
-                    
-                    const shiftDisp = document.getElementById('active-shift-display');
-                    if (isActive && currentActiveShift) {
-                        shiftDisp.textContent = `Active Shift: ${currentActiveShift}`;
-                        shiftDisp.classList.remove('hidden');
-                    } else {
-                        shiftDisp.classList.add('hidden');
-                    }
-                    updateButtonStates(isActive);
-                });
+            const shiftDisp = document.getElementById('active-shift-display');
+            if (isActive && currentActiveShift) {
+                shiftDisp.textContent = `Active Shift: ${currentActiveShift}`;
+                shiftDisp.classList.remove('hidden');
+            } else {
+                shiftDisp.classList.add('hidden');
+            }
+            updateButtonStates(isActive);
         }
 
         function updateButtonStates(isShiftActive) {
             const checkInBtn = document.getElementById('check-in-button');
             const checkOutBtn = document.getElementById('check-out-button');
             hideForms();
-            if (isShiftActive) {
-                checkInBtn.style.display = 'none';
-                checkOutBtn.style.display = 'block';
-            } else {
-                checkInBtn.style.display = 'block';
-                checkOutBtn.style.display = 'none';
-            }
+            if (isShiftActive) { checkInBtn.style.display = 'none'; checkOutBtn.style.display = 'block'; } 
+            else { checkInBtn.style.display = 'block'; checkOutBtn.style.display = 'none'; }
         }
 
+        // --- MANAGER SPECIFIC LOGIC (POLLING) ---
+        function showManagerView() {
+            document.getElementById('manager-section').classList.remove('hidden');
+            document.getElementById('mgr-name').textContent = currentUser.riderName;
+            fetchPendingApprovals(); // Initial fetch
+            managerPollingTimer = setInterval(fetchPendingApprovals, 10000); // Poll every 10 seconds
+        }
+
+        async function fetchPendingApprovals() {
+            try {
+                const result = await safeFetch({ action: 'getPendingApprovals' });
+                const container = document.getElementById('approvals-container');
+                container.innerHTML = '';
+                
+                if(result.status === 'success') {
+                    if (result.data.length === 0) {
+                        container.innerHTML = '<p class="text-sm text-gray-400 p-4 border border-gray-700 rounded bg-slate-800/50">Koi pending approval request nahi hai.</p>';
+                        return;
+                    }
+                    result.data.forEach(data => {
+                        container.innerHTML += `
+                            <div class="bg-slate-800 p-4 rounded-xl border border-slate-600 shadow-md text-left">
+                                <p class="font-bold text-white text-lg">${data.riderName} <span class="text-sm text-blue-400">(${data.riderId})</span></p>
+                                <p class="text-sm font-semibold mt-1 ${data.type==='checkin' ? 'text-yellow-400' : 'text-emerald-400'}">${data.type.toUpperCase()} Request</p>
+                                <p class="text-xs text-gray-300 mt-2 bg-slate-900 p-2 rounded border border-rose-500/30">Reason: ${data.reason}</p>
+                                <p class="text-xs text-gray-400 mt-1">Shift: ${data.shiftTime}</p>
+                                <div class="flex space-x-2 mt-4">
+                                    <button onclick="respondApproval(${data.rowNumber}, 'approved')" class="flex-1 py-3 font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition">Approve</button>
+                                    <button onclick="respondApproval(${data.rowNumber}, 'rejected')" class="flex-1 py-3 font-bold bg-rose-600/20 text-rose-400 border border-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition">Reject</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch(e) { console.error("Manager polling error", e); }
+        }
+
+        window.respondApproval = async function(rowNum, statusResponse) {
+            showModal('Updating...', 'Status update ho raha hai...', false);
+            try {
+                await safeFetch({ action: 'respondApproval', rowNumber: rowNum, statusResponse: statusResponse });
+                hideModal();
+                fetchPendingApprovals(); // refresh immediately
+            } catch(e) { showModal('Error', e.message); }
+        };
+
+        // --- RIDER FORMS & LOGIC ---
         function showForm(type) {
             document.getElementById('buttons').classList.add('hidden');
             document.getElementById('forms-container').classList.remove('hidden');
             if (type === 'checkin') {
-                document.getElementById('checkin-form').classList.remove('hidden');
-                document.getElementById('checkout-form').classList.add('hidden');
+                document.getElementById('checkin-form').classList.remove('hidden'); document.getElementById('checkout-form').classList.add('hidden');
             } else {
-                document.getElementById('checkout-form').classList.remove('hidden');
-                document.getElementById('checkin-form').classList.add('hidden');
+                document.getElementById('checkout-form').classList.remove('hidden'); document.getElementById('checkin-form').classList.add('hidden');
             }
         }
-        
         function hideForms() {
-            document.getElementById('forms-container').classList.add('hidden');
-            document.getElementById('buttons').classList.remove('hidden');
+            document.getElementById('forms-container').classList.add('hidden'); document.getElementById('buttons').classList.remove('hidden');
         }
 
         function getShiftTimeBounds(shiftStr) {
             if (!shiftStr || shiftStr.includes("Other")) return null;
             const match = shiftStr.match(/(\d{1,2})\s*(AM|PM)\s*to\s*(\d{1,2})\s*(AM|PM)/i);
             if (!match) return null;
-            
             let startH = parseInt(match[1]), startM = match[2].toUpperCase();
             let endH = parseInt(match[3]), endM = match[4].toUpperCase();
-            
-            if (startM === 'PM' && startH !== 12) startH += 12;
-            if (startM === 'AM' && startH === 12) startH = 0;
-            if (endM === 'PM' && endH !== 12) endH += 12;
-            if (endM === 'AM' && endH === 12) endH = 0;
+            if (startM === 'PM' && startH !== 12) startH += 12; if (startM === 'AM' && startH === 12) startH = 0;
+            if (endM === 'PM' && endH !== 12) endH += 12; if (endM === 'AM' && endH === 12) endH = 0;
 
-            let now = new Date();
-            let start = new Date(now), end = new Date(now); 
-            start.setHours(startH, 0, 0, 0);
-            end.setHours(endH, 0, 0, 0);
-
+            let now = new Date(), start = new Date(now), end = new Date(now); 
+            start.setHours(startH, 0, 0, 0); end.setHours(endH, 0, 0, 0);
             if (end <= start) {
-                if (now.getHours() < startH && now.getHours() < 12) {
-                    start.setDate(start.getDate() - 1); 
-                } else {
-                    end.setDate(end.getDate() + 1);
-                }
+                if (now.getHours() < startH && now.getHours() < 12) start.setDate(start.getDate() - 1); 
+                else end.setDate(end.getDate() + 1);
             }
             return { start, end };
         }
@@ -407,20 +391,12 @@
                 if (!data.totalRides || !data.totalKms || !lastOrderRaw) {
                     showModal('Error', 'Kripya sabhi zaroori (*) fields bharein.'); return null;
                 }
-                
-                // ORDER ID LOGIC
                 if (lastOrderRaw === 'Yes') {
-                    if (!orderId) { 
-                        showModal('Error', 'Last Order "Yes" hai. Kripya Order ID enter karein.'); 
-                        return null;
-                    }
-                    data.lastOrder = "Yes";
-                    data.orderId = `Yes (ID: ${orderId})`; 
+                    if (!orderId) { showModal('Error', 'Last Order "Yes" hai. Kripya Order ID enter karein.'); return null; }
+                    data.lastOrder = "Yes"; data.orderId = `Yes (ID: ${orderId})`; 
                 } else {
-                    data.lastOrder = "No";
-                    data.orderId = "N/A"; 
+                    data.lastOrder = "No"; data.orderId = "N/A"; 
                 }
-
                 data.lastOrderRaw = lastOrderRaw;
                 data.manualOrders = document.getElementById('manual-orders').value || "";
                 data.manualKms = document.getElementById('manual-kms').value || "";
@@ -434,75 +410,70 @@
 
             let shiftStr = type === 'checkin' ? formData.shiftTime : currentActiveShift;
             let bounds = getShiftTimeBounds(shiftStr);
-            let now = new Date();
-            let needsApproval = false;
-            let reason = "";
+            let now = new Date(), needsApproval = false, reason = "";
 
             if (type === 'checkin' && bounds) {
                 let diffMins = (now - bounds.start) / 60000;
-                if (diffMins > 20) { 
-                    needsApproval = true; 
-                    reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; 
-                }
+                if (diffMins > 20) { needsApproval = true; reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; }
             } else if (type === 'checkout' && bounds) {
                 let diffMinsEarly = (bounds.end - now) / 60000;
                 if (diffMinsEarly > 35 && formData.lastOrderRaw === 'No') {
-                    needsApproval = true; 
-                    reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without last order.`;
+                    needsApproval = true; reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without last order.`;
                 }
             } else if (shiftStr && shiftStr.includes("Other")) {
-                needsApproval = true; 
-                reason = "Emergency/Other shift selected.";
+                needsApproval = true; reason = "Emergency/Other shift selected.";
             }
 
-            if (needsApproval) {
-                requestManagerApproval(type, formData, reason, shiftStr);
-            } else {
-                proceedToLocation(type, formData);
-            }
+            if (needsApproval) requestManagerApproval(type, formData, reason, shiftStr);
+            else proceedToLocation(type, formData);
         }
 
-        function requestManagerApproval(type, formData, reason, shiftStr) {
+        // --- POLLING FOR RIDER APPROVAL ---
+        async function requestManagerApproval(type, formData, reason, shiftStr) {
             hideForms();
             document.getElementById('approval-reason-text').innerText = reason;
             document.getElementById('approval-waiting-section').classList.remove('hidden');
 
-            const docRef = db.collection('approvals').doc(currentUser.riderId);
-            docRef.set({
-                riderId: currentUser.riderId,
-                riderName: currentUser.riderName,
-                type: type,
-                reason: reason,
-                shiftTime: shiftStr,
-                status: 'pending',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            try {
+                await safeFetch({
+                    action: 'requestApproval',
+                    riderId: currentUser.riderId,
+                    riderName: currentUser.riderName,
+                    type: type,
+                    reason: reason,
+                    shiftTime: shiftStr
+                });
+                
+                // Start checking status every 5 seconds
+                approvalPollingTimer = setInterval(() => checkMyApprovalStatus(type, formData), 5000);
+            } catch(e) {
+                showModal('Error', 'Approval request failed: ' + e.message);
+                cancelApprovalRequest();
+            }
+        }
 
-            if(unsubscribeFromApprovals) unsubscribeFromApprovals();
-            unsubscribeFromApprovals = docRef.onSnapshot(doc => {
-                if (doc.exists) {
-                    const status = doc.data().status;
-                    if (status === 'approved') {
-                        cancelApprovalSilently();
+        async function checkMyApprovalStatus(type, formData) {
+            try {
+                const res = await safeFetch({ action: 'checkApprovalStatus', riderId: currentUser.riderId });
+                if (res.status === 'success') {
+                    if (res.approvalStatus === 'approved') {
+                        clearInterval(approvalPollingTimer);
+                        document.getElementById('approval-waiting-section').classList.add('hidden');
                         showModal('Approved!', 'Manager ne request approve kar di hai. Location verify ho rahi hai.', false);
                         setTimeout(() => { hideModal(); proceedToLocation(type, formData); }, 2000);
-                    } else if (status === 'rejected') {
-                        cancelApprovalSilently();
+                    } else if (res.approvalStatus === 'rejected') {
+                        clearInterval(approvalPollingTimer);
+                        document.getElementById('approval-waiting-section').classList.add('hidden');
                         showModal('Rejected', 'Manager ne aapki request deny kar di hai. Aap abhi submit nahi kar sakte.');
                         document.getElementById('forms-container').classList.remove('hidden');
                     }
                 }
-            });
-        }
-
-        function cancelApprovalSilently() {
-            if(unsubscribeFromApprovals) unsubscribeFromApprovals();
-            db.collection('approvals').doc(currentUser.riderId).delete().catch(()=>{});
-            document.getElementById('approval-waiting-section').classList.add('hidden');
+            } catch(e) { console.error("Polling error", e); }
         }
 
         function cancelApprovalRequest() {
-            cancelApprovalSilently();
+            if (approvalPollingTimer) clearInterval(approvalPollingTimer);
+            document.getElementById('approval-waiting-section').classList.add('hidden');
             document.getElementById('forms-container').classList.remove('hidden');
         }
 
@@ -557,8 +528,7 @@
                 document.getElementById('capture-btn').onclick = () => captureAndSubmit(type, formData, location, address);
             } catch (err) {
                 showModal('Camera Error', 'Camera permission dein.');
-                stopCamera();
-                document.getElementById('forms-container').classList.remove('hidden');
+                stopCamera(); document.getElementById('forms-container').classList.remove('hidden');
             }
         }
 
@@ -583,20 +553,23 @@
             showModal('Saving...', 'Data Google Sheet me save ho raha hai...', false);
 
             try {
-                const newStatus = (type === 'checkin');
-                const updateObj = { isShiftActive: newStatus, lastUpdate: firebase.firestore.FieldValue.serverTimestamp() };
-                if (type === 'checkin') updateObj.currentShift = formData.shiftTime;
-
-                await db.collection('rider_status').doc(currentUser.riderId).set(updateObj, { merge: true });
-
                 const payload = { action: 'submit', type, ...currentUser, ...formData, ...location, selfie, address };
-                fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                }).catch(err => console.error("Sheet log fail:", err));
-
-                showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
-                hideForms();
+                const res = await safeFetch(payload);
+                
+                if (res.status === 'success') {
+                    // LOCAL STORAGE SE STATE UPDATE KARO
+                    if (type === 'checkin') {
+                        localStorage.setItem('rcisShiftState', JSON.stringify({ isShiftActive: true, currentShift: formData.shiftTime }));
+                    } else {
+                        localStorage.removeItem('rcisShiftState');
+                    }
+                    
+                    showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
+                    hideForms();
+                    loadRiderState(); // Refresh UI
+                } else {
+                    showModal('Error', 'Sheet me save nahi hua: ' + res.message);
+                }
             } catch (error) {
                 showModal('Error', 'Submit error: ' + error.message);
             }
