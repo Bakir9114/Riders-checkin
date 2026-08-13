@@ -112,7 +112,6 @@
                         <option value="No">No</option>
                     </select>
                     
-                    <!-- NEW ORDER ID FIELD (Replaced Time Field) -->
                     <input type="text" id="order-id" placeholder="Enter Last Order # *" class="hidden p-3 w-full text-lg rounded-lg bg-slate-800 border border-rose-500 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-white shadow-sm">
                     
                     <input type="number" id="manual-orders" placeholder="Total Manual Orders (Optional)" class="p-3 w-full text-lg rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm">
@@ -166,7 +165,7 @@
         const OFFICE_LONGITUDE = 77.079439;
         const ALLOWED_RADIUS_METERS = 400; 
 
-        // --- PUT YOUR FIREBASE CONFIG HERE ---
+        // --- Firebase Config (As provided by you) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBToBsWccnzG4xvZT7SqiKBaFGcR8bLPjg",
             authDomain: "riders-check-in-check-out.firebaseapp.com",
@@ -186,7 +185,6 @@
         let unsubscribeFromStatus;
         let unsubscribeFromApprovals;
 
-        // Auto-login if previously logged in
         window.onload = () => {
             const savedUser = localStorage.getItem('rcisCurrentUser');
             if (savedUser) {
@@ -202,7 +200,6 @@
             document.getElementById('eye-slash-icon').classList.toggle('hidden');
         }
 
-        // Toggle Order ID Field
         function toggleOrderIdField() {
             const lastOrder = document.getElementById('last-order').value;
             const orderIdInput = document.getElementById('order-id');
@@ -240,8 +237,12 @@
                 
                 const rawText = await response.text();
                 let result;
-                try { result = JSON.parse(rawText); } 
-                catch(e) { throw new Error("Server error, contact admin."); }
+                try { 
+                    result = JSON.parse(rawText); 
+                } catch(e) { 
+                    console.error("Failed to parse JSON:", rawText);
+                    throw new Error("Server error, contact admin."); 
+                }
 
                 if (result.status === 'success' && result.data) {
                     currentUser = result.data;
@@ -267,10 +268,8 @@
             document.getElementById('login-section').classList.add('hidden');
             
             if (currentUser.role === 'manager') {
-                // Manager Flow - NO GEOFENCING
                 showManagerView();
             } else {
-                // Rider Flow
                 document.getElementById('user-name').textContent = currentUser.riderName;
                 document.getElementById('app-section').classList.remove('hidden');
                 listenToRiderStatus(currentUser.riderId);
@@ -439,14 +438,12 @@
             let reason = "";
 
             if (type === 'checkin' && bounds) {
-                // Late Check-in Rule (> 20 mins)
                 let diffMins = (now - bounds.start) / 60000;
                 if (diffMins > 20) { 
                     needsApproval = true; 
                     reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; 
                 }
             } else if (type === 'checkout' && bounds) {
-                // Early Check-out Rule (> 35 mins early AND No Last Order)
                 let diffMinsEarly = (bounds.end - now) / 60000;
                 if (diffMinsEarly > 35 && formData.lastOrderRaw === 'No') {
                     needsApproval = true; 
@@ -480,7 +477,6 @@
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // Listen for manager's response (Real-time reflection)
             if(unsubscribeFromApprovals) unsubscribeFromApprovals();
             unsubscribeFromApprovals = docRef.onSnapshot(doc => {
                 if (doc.exists) {
@@ -509,9 +505,8 @@
             document.getElementById('forms-container').classList.remove('hidden');
         }
 
-        // --- LOCATION & CAMERA (GEOFENCING HAPPENS HERE) ---
+        // --- LOCATION & CAMERA ---
         function proceedToLocation(type, formData) {
-            // Manager never reaches here, so geofencing is strictly for Riders
             showModal('Verifying Location...', 'Aapki location check ki ja rahi hai...', false);
             getLocation().then(async location => {
                 showModal('Fetching Address...', 'Address check kiya ja raha hai...', false);
