@@ -159,7 +159,7 @@
 
     <script>
         // --- PUT YOUR NEW APPS SCRIPT URL HERE ---
-        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         const OFFICE_LATITUDE = 28.460845;
         const OFFICE_LONGITUDE = 77.079439;
@@ -241,7 +241,8 @@
                     result = JSON.parse(rawText); 
                 } catch(e) { 
                     console.error("Failed to parse JSON:", rawText);
-                    throw new Error("Server error, contact admin."); 
+                    // NAYA DEBUG CODE: Ab exactly pata chalega ki server kya bhej raha hai
+                    throw new Error("Google ne HTML bheja hai: " + rawText.substring(0, 80)); 
                 }
 
                 if (result.status === 'success' && result.data) {
