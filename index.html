@@ -7,8 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- FIREBASE REMOVED COMPLETELY -->
-
     <style>
         body { font-family: 'Inter', sans-serif; }
         #camera-feed { transform: scaleX(-1); max-width: 100%; border-radius: 0.75rem; }
@@ -52,11 +50,11 @@
             <div class="mb-4 flex justify-between items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                 <p class="text-lg">Manager: <span id="mgr-name" class="font-bold text-emerald-400"></span></p>
                 <div class="flex space-x-3">
-                    <button onclick="fetchPendingApprovals()" class="text-blue-400 hover:text-blue-300 font-semibold text-sm flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <button type="button" onclick="fetchPendingApprovals()" class="px-3 py-2 bg-blue-900/40 border border-blue-500/30 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-800/50 font-semibold text-sm flex items-center transition-colors cursor-pointer">
+                        <svg id="refresh-icon" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         Refresh
                     </button>
-                    <button onclick="logoutUser()" class="text-rose-400 hover:text-rose-300 font-semibold text-sm">Logout</button>
+                    <button type="button" onclick="logoutUser()" class="px-3 py-2 bg-rose-900/40 border border-rose-500/30 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-800/50 font-semibold text-sm transition-colors cursor-pointer">Logout</button>
                 </div>
             </div>
             <h2 class="text-2xl font-bold text-gray-200 mb-6 border-b border-gray-700 pb-2">Pending Approvals</h2>
@@ -132,8 +130,13 @@
                 <div class="loader mx-auto mb-4 border-t-yellow-400"></div>
                 <h3 class="text-xl font-bold text-yellow-400 mb-2">Manager Approval Pending</h3>
                 <p class="text-sm text-gray-300 mb-4" id="approval-reason-text"></p>
-                <p class="text-xs text-gray-400">Aapki request manager ko bhej di gayi hai. Kripya app me wait karein.</p>
-                <button onclick="cancelApprovalRequest()" class="mt-4 px-4 py-2 bg-slate-700 rounded text-sm hover:bg-slate-600">Cancel Request</button>
+                <p class="text-xs text-gray-400 mb-4">Aapki request manager ko bhej di gayi hai. Kripya app me wait karein.</p>
+                
+                <button type="button" onclick="checkMyApprovalStatus(window.lastTypeSent, window.lastFormDataSent)" class="px-4 py-2 bg-blue-600/30 text-blue-300 border border-blue-500 rounded text-sm hover:bg-blue-600 mb-2 w-full flex justify-center items-center">
+                    <svg id="rider-refresh-icon" class="w-4 h-4 mr-1 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Refresh Status
+                </button>
+                <button type="button" onclick="cancelApprovalRequest()" class="px-4 py-2 bg-slate-700 text-gray-300 rounded text-sm hover:bg-slate-600 w-full">Cancel Request</button>
             </div>
 
             <div id="selfie-section" class="hidden mt-8 flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
@@ -208,6 +211,9 @@
         function hideModal() { document.getElementById('custom-modal').classList.add('hidden'); }
 
         async function safeFetch(payload) {
+            // Anti-cache string appended to body
+            payload.ts = new Date().getTime();
+            
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST',
@@ -215,12 +221,19 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
                 });
-                const text = await response.text();
+                
+                const rawText = await response.text();
+                
+                if (rawText.includes("<!DOCTYPE html>")) {
+                    console.error("Google HTML Redirect Received", rawText.substring(0, 100));
+                    throw new Error("Server ne HTML bheja. URL ya permissions check karein.");
+                }
+                
                 try {
-                    return JSON.parse(text);
+                    return JSON.parse(rawText);
                 } catch (parseError) {
-                    console.error("Non-JSON response:", text.substring(0,200));
-                    throw new Error("Server ne galat format bheja. URL check karein.");
+                    console.error("Non-JSON response:", rawText);
+                    throw new Error("Server ne galat format bheja.");
                 }
             } catch (err) {
                 throw err;
@@ -269,7 +282,7 @@
             }
         }
 
-        // --- RIDER STATE MANAGEMENT (LOCAL STORAGE INSTEAD OF FIREBASE) ---
+        // --- RIDER STATE MANAGEMENT ---
         function loadRiderState() {
             const savedState = localStorage.getItem('rcisShiftState');
             let isActive = false;
@@ -299,15 +312,18 @@
             else { checkInBtn.style.display = 'block'; checkOutBtn.style.display = 'none'; }
         }
 
-        // --- MANAGER SPECIFIC LOGIC (POLLING) ---
+        // --- MANAGER SPECIFIC LOGIC ---
         function showManagerView() {
             document.getElementById('manager-section').classList.remove('hidden');
             document.getElementById('mgr-name').textContent = currentUser.riderName;
-            fetchPendingApprovals(); // Initial fetch
-            managerPollingTimer = setInterval(fetchPendingApprovals, 10000); // Poll every 10 seconds
+            fetchPendingApprovals(); 
+            managerPollingTimer = setInterval(fetchPendingApprovals, 10000); // 10s auto-refresh
         }
 
         async function fetchPendingApprovals() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            if (refreshIcon) refreshIcon.classList.add('animate-spin'); // Add spinning animation
+            
             try {
                 const result = await safeFetch({ action: 'getPendingApprovals' });
                 const container = document.getElementById('approvals-container');
@@ -316,33 +332,36 @@
                 if(result.status === 'success') {
                     if (result.data.length === 0) {
                         container.innerHTML = '<p class="text-sm text-gray-400 p-4 border border-gray-700 rounded bg-slate-800/50">Koi pending approval request nahi hai.</p>';
-                        return;
-                    }
-                    result.data.forEach(data => {
-                        container.innerHTML += `
-                            <div class="bg-slate-800 p-4 rounded-xl border border-slate-600 shadow-md text-left">
-                                <p class="font-bold text-white text-lg">${data.riderName} <span class="text-sm text-blue-400">(${data.riderId})</span></p>
-                                <p class="text-sm font-semibold mt-1 ${data.type==='checkin' ? 'text-yellow-400' : 'text-emerald-400'}">${data.type.toUpperCase()} Request</p>
-                                <p class="text-xs text-gray-300 mt-2 bg-slate-900 p-2 rounded border border-rose-500/30">Reason: ${data.reason}</p>
-                                <p class="text-xs text-gray-400 mt-1">Shift: ${data.shiftTime}</p>
-                                <div class="flex space-x-2 mt-4">
-                                    <button onclick="respondApproval(${data.rowNumber}, 'approved')" class="flex-1 py-3 font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition">Approve</button>
-                                    <button onclick="respondApproval(${data.rowNumber}, 'rejected')" class="flex-1 py-3 font-bold bg-rose-600/20 text-rose-400 border border-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition">Reject</button>
+                    } else {
+                        result.data.forEach(data => {
+                            container.innerHTML += `
+                                <div class="bg-slate-800 p-4 rounded-xl border border-slate-600 shadow-md text-left transition-all">
+                                    <p class="font-bold text-white text-lg">${data.riderName} <span class="text-sm text-blue-400">(${data.riderId})</span></p>
+                                    <p class="text-sm font-semibold mt-1 ${data.type==='checkin' ? 'text-yellow-400' : 'text-emerald-400'}">${data.type.toUpperCase()} Request</p>
+                                    <p class="text-xs text-gray-300 mt-2 bg-slate-900 p-2 rounded border border-rose-500/30">Reason: ${data.reason}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Shift: ${data.shiftTime}</p>
+                                    <div class="flex space-x-2 mt-4">
+                                        <button onclick="respondApproval(this, ${data.rowNumber}, 'approved')" class="flex-1 py-3 font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition cursor-pointer">Approve</button>
+                                        <button onclick="respondApproval(this, ${data.rowNumber}, 'rejected')" class="flex-1 py-3 font-bold bg-rose-600/20 text-rose-400 border border-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition cursor-pointer">Reject</button>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
-                    });
+                            `;
+                        });
+                    }
                 }
-            } catch(e) { console.error("Manager polling error", e); }
+            } catch(e) { 
+                console.error("Manager polling error", e); 
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin'); // Stop animation
+            }
         }
 
-        window.respondApproval = async function(rowNum, statusResponse) {
-            showModal('Updating...', 'Status update ho raha hai...', false);
+        window.respondApproval = async function(btn, rowNum, statusResponse) {
+            btn.innerHTML = "Wait..."; btn.disabled = true;
             try {
                 await safeFetch({ action: 'respondApproval', rowNumber: rowNum, statusResponse: statusResponse });
-                hideModal();
-                fetchPendingApprovals(); // refresh immediately
-            } catch(e) { showModal('Error', e.message); }
+                fetchPendingApprovals(); // refresh list immediately
+            } catch(e) { showModal('Error', e.message); btn.disabled = false; }
         };
 
         // --- RIDER FORMS & LOGIC ---
@@ -355,8 +374,10 @@
                 document.getElementById('checkout-form').classList.remove('hidden'); document.getElementById('checkin-form').classList.add('hidden');
             }
         }
+        
         function hideForms() {
-            document.getElementById('forms-container').classList.add('hidden'); document.getElementById('buttons').classList.remove('hidden');
+            document.getElementById('forms-container').classList.add('hidden'); 
+            document.getElementById('buttons').classList.remove('hidden');
         }
 
         function getShiftTimeBounds(shiftStr) {
@@ -428,11 +449,14 @@
             else proceedToLocation(type, formData);
         }
 
-        // --- POLLING FOR RIDER APPROVAL ---
+        // --- RIDER APPROVAL POLLING ---
         async function requestManagerApproval(type, formData, reason, shiftStr) {
             hideForms();
             document.getElementById('approval-reason-text').innerText = reason;
             document.getElementById('approval-waiting-section').classList.remove('hidden');
+
+            window.lastTypeSent = type; // Save for manual refresh button
+            window.lastFormDataSent = formData;
 
             try {
                 await safeFetch({
@@ -444,7 +468,8 @@
                     shiftTime: shiftStr
                 });
                 
-                // Start checking status every 5 seconds
+                // Polling starts
+                if(approvalPollingTimer) clearInterval(approvalPollingTimer);
                 approvalPollingTimer = setInterval(() => checkMyApprovalStatus(type, formData), 5000);
             } catch(e) {
                 showModal('Error', 'Approval request failed: ' + e.message);
@@ -453,28 +478,40 @@
         }
 
         async function checkMyApprovalStatus(type, formData) {
+            const rIcon = document.getElementById('rider-refresh-icon');
+            if(rIcon) { rIcon.classList.remove('hidden'); rIcon.classList.add('animate-spin'); }
+
             try {
                 const res = await safeFetch({ action: 'checkApprovalStatus', riderId: currentUser.riderId });
                 if (res.status === 'success') {
                     if (res.approvalStatus === 'approved') {
-                        clearInterval(approvalPollingTimer);
+                        if(approvalPollingTimer) clearInterval(approvalPollingTimer);
                         document.getElementById('approval-waiting-section').classList.add('hidden');
                         showModal('Approved!', 'Manager ne request approve kar di hai. Location verify ho rahi hai.', false);
                         setTimeout(() => { hideModal(); proceedToLocation(type, formData); }, 2000);
                     } else if (res.approvalStatus === 'rejected') {
-                        clearInterval(approvalPollingTimer);
+                        if(approvalPollingTimer) clearInterval(approvalPollingTimer);
                         document.getElementById('approval-waiting-section').classList.add('hidden');
                         showModal('Rejected', 'Manager ne aapki request deny kar di hai. Aap abhi submit nahi kar sakte.');
                         document.getElementById('forms-container').classList.remove('hidden');
                     }
                 }
-            } catch(e) { console.error("Polling error", e); }
+            } catch(e) { 
+                console.error("Polling error", e); 
+            } finally {
+                if(rIcon) { rIcon.classList.add('hidden'); rIcon.classList.remove('animate-spin'); }
+            }
         }
 
-        function cancelApprovalRequest() {
+        async function cancelApprovalRequest() {
             if (approvalPollingTimer) clearInterval(approvalPollingTimer);
             document.getElementById('approval-waiting-section').classList.add('hidden');
             document.getElementById('forms-container').classList.remove('hidden');
+
+            // Tell backend to cancel the request so it disappears from Manager's screen
+            try {
+                await safeFetch({ action: 'cancelApproval', riderId: currentUser.riderId });
+            } catch(e) { console.error("Cancel notify failed", e); }
         }
 
         // --- LOCATION & CAMERA ---
@@ -484,7 +521,10 @@
                 showModal('Fetching Address...', 'Address check kiya ja raha hai...', false);
                 const address = await getAddressFromCoordinates(location.latitude, location.longitude);
                 startCamera(type, formData, location, address);
-            }).catch(error => { showModal('Location Error', error); });
+            }).catch(error => { 
+                showModal('Location Error', error); 
+                document.getElementById('forms-container').classList.remove('hidden');
+            });
         }
 
         function getLocation() {
@@ -497,7 +537,7 @@
                         if (dist <= ALLOWED_RADIUS_METERS) resolve({ latitude, longitude });
                         else reject(`Aap office se lagbhag ${dist.toFixed(0)} meter door hain.`);
                     },
-                    () => reject('Location permission nahi mili.'),
+                    () => reject('Location permission nahi mili. Please location chalu karein.'),
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
@@ -557,7 +597,6 @@
                 const res = await safeFetch(payload);
                 
                 if (res.status === 'success') {
-                    // LOCAL STORAGE SE STATE UPDATE KARO
                     if (type === 'checkin') {
                         localStorage.setItem('rcisShiftState', JSON.stringify({ isShiftActive: true, currentShift: formData.shiftTime }));
                     } else {
@@ -566,7 +605,7 @@
                     
                     showModal('Success!', `Aapka ${type} safaltapoorvak record ho gaya hai.`);
                     hideForms();
-                    loadRiderState(); // Refresh UI
+                    loadRiderState(); // Refresh UI to show Check-out button
                 } else {
                     showModal('Error', 'Sheet me save nahi hua: ' + res.message);
                 }
