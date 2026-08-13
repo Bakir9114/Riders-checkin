@@ -35,8 +35,8 @@
                 <input type="password" id="rider-pin" placeholder="••••••"
                        class="p-4 w-full text-lg text-center rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400 shadow-sm pr-10">
                 <button onclick="togglePinVisibility()" type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
-                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                 </button>
             </div>
             <button id="login-btn" onclick="loginRider()"
@@ -134,11 +134,11 @@
                 <p class="text-sm text-gray-300 mb-4" id="approval-reason-text"></p>
                 <p class="text-xs text-gray-400 mb-4">Aapki request manager ko bhej di gayi hai. Kripya app me wait karein.</p>
                 
-                <button type="button" onclick="checkMyApprovalStatus(window.lastTypeSent, window.lastFormDataSent)" class="px-4 py-2 bg-blue-600/30 text-blue-300 border border-blue-500 rounded text-sm hover:bg-blue-600 mb-2 w-full flex justify-center items-center">
+                <button type="button" id="refresh-status-btn" onclick="checkMyApprovalStatus(window.lastTypeSent, window.lastFormDataSent)" class="px-4 py-2 bg-blue-600/30 text-blue-300 border border-blue-500 rounded text-sm hover:bg-blue-600 mb-2 w-full flex justify-center items-center">
                     <svg id="rider-refresh-icon" class="w-4 h-4 mr-1 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     Refresh Status
                 </button>
-                <button type="button" onclick="cancelApprovalRequest()" class="px-4 py-2 bg-slate-700 text-gray-300 rounded text-sm hover:bg-slate-600 w-full">Cancel Request</button>
+                <button type="button" id="cancel-req-btn" onclick="cancelApprovalRequest()" class="px-4 py-2 bg-slate-700 text-gray-300 rounded text-sm hover:bg-slate-600 w-full">Cancel Request</button>
             </div>
 
             <!-- Camera -->
@@ -190,14 +190,14 @@
                 currentUser = JSON.parse(savedUser);
                 routeUser();
                 
-                // Silent state sync to handle checkin/checkout visibility on refresh
+                // Silent state sync (Auto fix check-in/out button state)
                 if(currentUser && currentUser.role === 'rider') {
                     silentStateSync();
                 }
             }
         };
 
-        // --- CORE API METHOD ---
+        // --- CORE API METHOD (Robust with auto-retry) ---
         async function safeFetch(payload, maxRetries = 2, silentError = false) {
             payload.ts = new Date().getTime(); // Anti-cache
             
@@ -205,24 +205,31 @@
                 try {
                     const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                         method: 'POST',
-                        redirect: 'follow', // Handles Google's 302 redirects automatically
+                        redirect: 'follow',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
                     });
                     
                     const rawText = await response.text();
                     
-                    if (rawText.trim().startsWith("<!DOCTYPE html>")) {
-                        throw new Error("Server returned HTML redirect.");
+                    try {
+                        const jsonData = JSON.parse(rawText);
+                        if(jsonData.status === 'error' && jsonData.message && jsonData.message.includes('Server thoda busy hai')) {
+                            throw new Error(jsonData.message); 
+                        }
+                        return jsonData;
+                    } catch(parseErr) {
+                        // Agar HTML page aaya hai toh throw karo
+                        throw new Error("Server thoda busy hai ya redirect hua hai. Retrying...");
                     }
                     
-                    return JSON.parse(rawText);
                 } catch (error) {
                     if (attempt === maxRetries) {
                         if(!silentError) console.error("Fetch failed after retries:", error);
-                        throw new Error("Network/Server is too busy. Please try again.");
+                        throw new Error(error.message);
                     }
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                 }
             }
         }
@@ -261,15 +268,17 @@
         async function loginRider() {
             const riderId = document.getElementById('rider-id').value.trim().toUpperCase();
             const secretPin = document.getElementById('rider-pin').value.trim();
+            const loginBtn = document.getElementById('login-btn');
             
             if (!riderId || !secretPin) {
                 return showModal('Error', 'ID aur PIN dono daalein.');
             }
             
+            loginBtn.disabled = true;
+            loginBtn.classList.add('opacity-50');
             showModal('Logging In...', 'System checking details...', false);
             
             try {
-                // Request specifically action: 'login'
                 const result = await safeFetch({ action: 'login', riderId, secretPin });
                 
                 if (result && result.status === 'success' && result.data) {
@@ -278,14 +287,15 @@
                     hideModal();
                     routeUser();
                     
-                    if(currentUser.role === 'rider') {
-                        silentStateSync();
-                    }
+                    if(currentUser.role === 'rider') silentStateSync();
                 } else {
                     showModal('Login Failed', result ? result.message : 'ID ya PIN galat hai.');
                 }
             } catch (error) {
-                showModal('Error', 'Network ya Server issue: ' + error.message);
+                showModal('Error', 'Login me dikkat aayi: ' + error.message);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.classList.remove('opacity-50');
             }
         }
 
@@ -302,7 +312,6 @@
             document.getElementById('login-section').classList.add('hidden');
             
             if (currentUser.role === 'manager') {
-                // Show Manager Dashboard
                 document.getElementById('app-section').classList.add('hidden');
                 document.getElementById('manager-section').classList.remove('hidden');
                 document.getElementById('mgr-name').textContent = currentUser.riderName;
@@ -311,7 +320,6 @@
                 if (managerPollingTimer) clearInterval(managerPollingTimer);
                 managerPollingTimer = setInterval(fetchPendingApprovals, 10000);
             } else {
-                // Show Rider App
                 document.getElementById('manager-section').classList.add('hidden');
                 document.getElementById('app-section').classList.remove('hidden');
                 document.getElementById('user-name').textContent = currentUser.riderName;
@@ -377,7 +385,7 @@
         function getShiftTimeBounds(shiftStr, checkInTimestamp = null) {
             if (!shiftStr) return null;
             
-            // Emergency Shift: 10 hrs strictly from actual checkin time
+            // Emergency Shift: 10 hrs from actual checkin time
             if (shiftStr.includes("Other")) {
                 if (!checkInTimestamp) return null;
                 let start = new Date(checkInTimestamp);
@@ -451,7 +459,7 @@
                 if (diffMins > 20) { needsApproval = true; reason = `Late check-in by ${Math.floor(diffMins)} minutes.`; }
             } else if (type === 'checkout' && bounds) {
                 let diffMinsEarly = (bounds.end - now) / 60000;
-                // Updated: 30 minutes threshold for all shifts
+                // 30 min early check out strict rule
                 if (diffMinsEarly > 30 && formData.lastOrderRaw === 'No') {
                     needsApproval = true; reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without last order.`;
                 }
@@ -464,6 +472,9 @@
             if (needsApproval) {
                 requestManagerApproval(type, formData, reason, shiftStr, btnElement, origText);
             } else {
+                btnElement.innerHTML = origText;
+                btnElement.disabled = false;
+                btnElement.classList.remove('opacity-50');
                 proceedToLocation(type, formData);
             }
         }
@@ -503,7 +514,9 @@
 
         async function checkMyApprovalStatus(type, formData) {
             const rIcon = document.getElementById('rider-refresh-icon');
+            const rBtn = document.getElementById('refresh-status-btn');
             if(rIcon) { rIcon.classList.remove('hidden'); rIcon.classList.add('animate-spin'); }
+            if(rBtn) rBtn.disabled = true;
 
             try {
                 const res = await safeFetch({ action: 'checkApprovalStatus', riderId: currentUser.riderId }, 0, true);
@@ -523,15 +536,20 @@
             } catch(e) { 
             } finally {
                 if(rIcon) { rIcon.classList.add('hidden'); rIcon.classList.remove('animate-spin'); }
+                if(rBtn) rBtn.disabled = false;
             }
         }
 
         async function cancelApprovalRequest() {
+            const cBtn = document.getElementById('cancel-req-btn');
+            cBtn.disabled = true; cBtn.innerHTML = "Cancelling...";
+
             if (approvalPollingTimer) clearInterval(approvalPollingTimer);
             document.getElementById('approval-waiting-section').classList.add('hidden');
             document.getElementById('forms-container').classList.remove('hidden');
 
             try { await safeFetch({ action: 'cancelApproval', riderId: currentUser.riderId }, 1, true); } catch(e) {}
+            cBtn.disabled = false; cBtn.innerHTML = "Cancel Request";
         }
 
         // --- MANAGER DASHBOARD FUNCTIONS ---
@@ -576,7 +594,7 @@
 
         window.respondApproval = async function(btn, rowNum, statusResponse) {
             const originalText = btn.innerHTML;
-            btn.innerHTML = "Processing..."; 
+            btn.innerHTML = "Wait..."; 
             btn.disabled = true; 
             btn.classList.add('opacity-50');
             try {
@@ -652,6 +670,9 @@
         }
 
         function captureAndSubmit(type, formData, location, address) {
+            const btn = document.getElementById('capture-btn');
+            btn.disabled = true; btn.innerHTML = "Processing...";
+            
             const video = document.getElementById('camera-feed');
             const canvas = document.getElementById('photo-canvas');
             const context = canvas.getContext('2d');
@@ -660,6 +681,8 @@
             const selfieData = canvas.toDataURL('image/jpeg', 0.6);
             stopCamera();
             submitFinalData(type, formData, location, selfieData, address);
+            
+            setTimeout(() => { btn.disabled = false; btn.innerHTML = "Take Selfie"; }, 2000);
         }
 
         function stopCamera() {
@@ -692,9 +715,11 @@
                     loadRiderState(); 
                 } else {
                     showModal('Error', 'Sheet me save nahi hua: ' + res.message);
+                    document.getElementById('forms-container').classList.remove('hidden');
                 }
             } catch (error) {
                 showModal('Error', 'Submit error: ' + error.message);
+                document.getElementById('forms-container').classList.remove('hidden');
             }
         }
     </script>
