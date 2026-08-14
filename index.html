@@ -94,6 +94,7 @@
                         <option value="8 AM to 6 PM">8 AM to 6 PM</option>
                         <option value="9 AM to 7 PM">9 AM to 7 PM</option>
                         <option value="4 PM to 2 AM">4 PM to 2 AM</option>
+                        <option value="5 PM to 3 AM">5 PM to 3 AM</option>
                         <option value="8 PM to 6 AM">8 PM to 6 AM</option>
                         <option value="10 PM to 8 AM">10 PM to 8 AM</option>
                         <option value="Other (In Emergency Only)">Other (In Emergency Only)</option>
@@ -482,7 +483,8 @@
         // --- RIDER APPROVAL POLLING ---
         async function requestManagerApproval(type, formData, reason, shiftStr, btnElement, origText) {
             try {
-                await safeFetch({
+                // Background me request bhejo
+                const response = await safeFetch({
                     action: 'requestApproval',
                     riderId: currentUser.riderId,
                     riderName: currentUser.riderName,
@@ -491,6 +493,7 @@
                     shiftTime: shiftStr
                 }, 2);
                 
+                // UI update karo taaki lag na lage
                 hideForms();
                 document.getElementById('approval-reason-text').innerText = reason;
                 document.getElementById('approval-waiting-section').classList.remove('hidden');
@@ -498,6 +501,7 @@
                 window.lastTypeSent = type; 
                 window.lastFormDataSent = formData;
 
+                // Polling start karo
                 if(approvalPollingTimer) clearInterval(approvalPollingTimer);
                 approvalPollingTimer = setInterval(() => checkMyApprovalStatus(type, formData), 5000);
 
