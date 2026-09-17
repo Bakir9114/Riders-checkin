@@ -35,6 +35,7 @@
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
         .btn-zomato { background-color: #E23744; color: white; transition: all 0.2s; }
         .btn-zomato:active { transform: scale(0.98); background-color: #cb202d; }
+        .btn-zomato:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
         .input-field { width: 100%; padding: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; outline: none; transition: all 0.2s; font-size: 1rem; }
         .input-field:focus { border-color: #E23744; box-shadow: 0 0 0 3px rgba(226, 55, 68, 0.1); }
         
@@ -61,17 +62,14 @@
         .tab-btn { padding: 0.5rem 1rem; font-weight: 500; color: #6b7280; border-bottom: 2px solid transparent; transition: all 0.2s; }
         .tab-btn.active { color: #E23744; border-bottom-color: #E23744; }
         
-        /* Maps autocomplete fix */
-        .pac-container { z-index: 100000 !important; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-top: 5px; border: none; font-family: inherit; }
-        .pac-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
-        .pac-item:hover { background-color: #f3f4f6; }
-        .pac-item-query { font-size: 14px; font-weight: 500; color: #1f2937; }
-
         /* Hide elements by default */
         .hidden-screen { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Flash Overlay for Anti-Spoofing -->
+    <div id="screenFlash" class="fixed inset-0 bg-white z-[100000] hidden transition-opacity duration-150 opacity-0 pointer-events-none"></div>
 
     <!-- Toast Container -->
     <div id="toastContainer"></div>
@@ -118,7 +116,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-zomato w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zomato">
+                <button type="submit" id="btnLogin" class="btn-zomato w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zomato">
                     Login Securely
                 </button>
             </form>
@@ -292,7 +290,7 @@
             <!-- Footer Buttons -->
             <div class="p-5 border-t border-gray-100 bg-gray-50 sticky bottom-0 z-10 flex gap-3">
                 <button type="button" onclick="closeModal('checkInModal')" class="flex-1 py-3 bg-white border border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-                <button type="button" onclick="submitCheckIn()" class="flex-1 py-3 bg-green-500 rounded-xl text-white font-semibold hover:bg-green-600 shadow-md shadow-green-500/30 transition-colors flex justify-center items-center gap-2">
+                <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="flex-1 py-3 bg-green-500 rounded-xl text-white font-semibold hover:bg-green-600 shadow-md shadow-green-500/30 transition-colors flex justify-center items-center gap-2">
                     Submit <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -387,7 +385,7 @@
              <!-- Footer Buttons -->
             <div class="p-5 border-t border-gray-100 bg-gray-50 sticky bottom-0 z-10 flex gap-3">
                 <button type="button" onclick="closeModal('checkOutModal')" class="flex-1 py-3 bg-white border border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors">Cancel</button>
-                <button type="button" onclick="submitCheckOut()" class="flex-1 py-3 bg-red-500 rounded-xl text-white font-semibold hover:bg-red-600 shadow-md shadow-red-500/30 transition-colors flex justify-center items-center gap-2">
+                <button type="button" id="btnSubmitCheckOut" onclick="submitCheckOut()" class="flex-1 py-3 bg-red-500 rounded-xl text-white font-semibold hover:bg-red-600 shadow-md shadow-red-500/30 transition-colors flex justify-center items-center gap-2">
                     Submit <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -475,15 +473,16 @@
 
     <!-- ==================== JAVASCRIPT ==================== -->
     <script>
-        // --- CONSTANTS & STATE ---
-        const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE'; // REPLACE THIS!
+        // --- CONFIGURATION ---
+        // YAHAN APNA NAYA APPS SCRIPT URL DAALIYE
+        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
         
         let currentUser = null;
         let currentStream = null;
-        let userLocation = null;
         let checkInShift = "";
-        let approvalContext = {}; // Stores data when approval is needed before submit
+        let approvalContext = {};
         let pollingInterval = null;
+        let isSubmitting = false; // Double submit rokne ke liye flag
 
         // Initialize Icons
         lucide.createIcons();
@@ -546,50 +545,59 @@
             lucide.createIcons();
         }
 
-        // --- API CALLER ---
+        // --- STREAMING_CHUNK:API Caller with Timeout protection... ---
         async function apiCall(action, payload) {
-            try {
-                if(SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-                    throw new Error("Pehle SCRIPT_URL replace karein code mein.");
-                }
+            if(APPS_SCRIPT_WEB_APP_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
+                throw new Error("Pehle APPS_SCRIPT_WEB_APP_URL replace karein code mein.");
+            }
 
-                const response = await fetch(SCRIPT_URL, {
+            // Custom Timeout logic to prevent endless waiting and double-clicks
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
+            try {
+                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action, ...payload }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // Important for GAS
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 
                 const result = await response.json();
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
             } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error("Network bahut slow hai. Kripya apna internet check karein.");
+                }
                 console.error(`API Error (${action}):`, error);
                 throw error;
             }
         }
 
-        // --- CORE LOGIC: LOGIN & SESSION ---
+        // --- LOGIC: LOGIN & SESSION ---
         async function handleLogin() {
             const riderId = document.getElementById('riderId').value.trim();
             const secretPin = document.getElementById('secretPin').value.trim();
+            const btn = document.getElementById('btnLogin');
 
-            if (!riderId || !secretPin) {
-                showToast("Dono ID aur PIN zaruri hain.", "error");
-                return;
-            }
+            if (!riderId || !secretPin) return showToast("Dono ID aur PIN zaruri hain.", "error");
 
+            btn.disabled = true;
             showLoader("Authenticating...", "Checking credentials securely");
+            
             try {
                 const res = await apiCall('login', { riderId, secretPin });
-                
                 currentUser = res.data;
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
-                
                 setupDashboard();
             } catch (error) {
                 showToast(error.message || "Login fail ho gaya.", "error");
             } finally {
                 hideLoader();
+                btn.disabled = false;
             }
         }
 
@@ -604,7 +612,7 @@
                 showScreen('mainDashboard');
                 document.getElementById('displayRiderName').innerText = currentUser.riderName;
                 document.getElementById('displayRiderId').innerText = `ID: ${currentUser.riderId}`;
-                syncShiftState(); // Initial sync
+                syncShiftState();
             }
         }
 
@@ -617,11 +625,11 @@
             showScreen('loginScreen');
         }
 
+        // --- STREAMING_CHUNK:Shift Status Syncing... ---
         async function syncShiftState() {
             if (!currentUser || currentUser.role === 'manager') return;
             
             try {
-                // Silently fetch state
                 const res = await apiCall('getShiftState', { riderId: currentUser.riderId });
                 const state = res.shiftState;
                 
@@ -632,33 +640,28 @@
                 const shiftBadge = document.getElementById('shiftInfoBadge');
                 
                 if (state.isShiftActive) {
-                    // UI for Active Shift
+                    // On Duty UI
                     statusIndicator.className = "w-4 h-4 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-colors duration-300 animate-pulse";
                     statusText.innerText = "On Duty";
                     statusText.className = "font-bold text-green-700 text-lg";
-                    
                     shiftBadge.classList.remove('hidden');
                     document.getElementById('currentShiftDisplay').innerText = state.currentShift || "Active";
                     
                     btnCheckIn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                     btnCheckOut.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                     
-                    // If active, stop checking approvals, we are good.
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
-
                 } else {
-                    // UI for Off Duty
+                    // Off Duty UI
                     statusIndicator.className = "w-4 h-4 rounded-full bg-gray-300 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-colors duration-300";
                     statusText.innerText = "Off Duty";
                     statusText.className = "font-bold text-gray-800 text-lg";
-                    
                     shiftBadge.classList.add('hidden');
                     
                     btnCheckIn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                     btnCheckOut.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                     
-                    // Check if there is a pending approval preventing check-in
                     checkInitialApprovalStatus();
                 }
             } catch (e) {
@@ -673,10 +676,7 @@
                 if (res.approvalStatus === 'pending') {
                     showApprovalPendingUI();
                 }
-             } catch(e) {
-                 // No pending request, do nothing
-                 document.getElementById('approvalStatusArea').classList.add('hidden');
-             }
+             } catch(e) {}
         }
 
         function showApprovalPendingUI() {
@@ -688,7 +688,7 @@
 
         function startPolling() {
             if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(checkApprovalStatusSilent, 10000); // Check every 10s
+            pollingInterval = setInterval(checkApprovalStatusSilent, 10000); // 10s check
         }
 
         function stopPolling() {
@@ -699,22 +699,16 @@
             if(!currentUser) return;
             try {
                 const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
-                
                 if (res.approvalStatus === 'approved') {
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
-                    showToast("Aapki request approve ho gayi hai! Processing...", "success");
-                    // Auto submit the stored context
-                    if(approvalContext && approvalContext.action === 'checkin') {
-                        executeFinalSubmit('checkin', approvalContext.payload);
-                    } else if (approvalContext && approvalContext.action === 'checkout') {
-                        executeFinalSubmit('checkout', approvalContext.payload);
-                    } else {
-                        // Fallback sync
-                        syncShiftState();
-                    }
-                    approvalContext = {}; // Clear
-
+                    showToast("Manager ne approve kar diya hai! Processing...", "success");
+                    
+                    if(approvalContext && approvalContext.action === 'checkin') executeFinalSubmit('checkin', approvalContext.payload);
+                    else if (approvalContext && approvalContext.action === 'checkout') executeFinalSubmit('checkout', approvalContext.payload);
+                    else syncShiftState();
+                    
+                    approvalContext = {};
                 } else if (res.approvalStatus === 'rejected') {
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
@@ -722,9 +716,7 @@
                     approvalContext = {};
                     syncShiftState();
                 }
-            } catch (e) {
-                // Not found or error
-            }
+            } catch (e) {}
         }
 
         async function checkApprovalStatusManual() {
@@ -750,81 +742,168 @@
 
         function promptApproval(type, contextPayload) {
             approvalContext = { action: type, payload: contextPayload };
-            const modal = document.getElementById('approvalModal');
-            
             document.getElementById('approvalModalTitle').innerText = type === 'checkin' ? "Late/Early Check-In" : "Late/Early Check-Out";
-            
-            modal.classList.remove('hidden-screen');
+            document.getElementById('approvalModal').classList.remove('hidden-screen');
         }
 
         async function submitApprovalRequest() {
             const reason = document.getElementById('approvalReason').value;
-            if(!reason) {
-                showToast("Kripya reason select karein.", "error");
-                return;
-            }
+            if(!reason) return showToast("Kripya reason select karein.", "error");
 
             const shiftT = document.querySelector('input[name="shiftTime"]:checked') ? document.querySelector('input[name="shiftTime"]:checked').value : "";
-
             showLoader("Sending Request...");
+            
             try {
                 await apiCall('requestApproval', {
-                    riderId: currentUser.riderId,
-                    riderName: currentUser.riderName,
-                    type: approvalContext.action,
-                    reason: reason,
-                    shiftTime: shiftT
+                    riderId: currentUser.riderId, riderName: currentUser.riderName,
+                    type: approvalContext.action, reason: reason, shiftTime: shiftT
                 });
                 
-                closeModal('approvalModal');
-                closeModal('checkInModal');
-                closeModal('checkOutModal');
-                
+                closeModal('approvalModal'); closeModal('checkInModal'); closeModal('checkOutModal');
                 showApprovalPendingUI();
                 showToast("Request manager ko bhej di gayi hai.", "success");
-
             } catch (e) {
                 showToast(e.message, "error");
             } finally { hideLoader(); }
         }
 
-
-        // --- TIME VALIDATION ---
+        // --- STREAMING_CHUNK:Time & Location validation... ---
         function validateTime(type, selectedShift) {
             const now = new Date();
-            const hour = now.getHours();
-            const minutes = now.getMinutes();
-            const timeInMinutes = hour * 60 + minutes;
-
+            const timeInMinutes = now.getHours() * 60 + now.getMinutes();
             let isException = false;
 
             if (type === 'checkin') {
                 if (selectedShift === 'Morning') {
-                    // Morning: 6 AM (360) to 3 PM (900). 
-                    // Allowed Check-in: 5:45 AM (345) to 6:30 AM (390) ideally. Let's say strictly between 5:30 and 7:00
-                    const startAllowed = 5 * 60 + 30; // 5:30 AM
-                    const endAllowed = 7 * 60; // 7:00 AM
-                    if (timeInMinutes < startAllowed || timeInMinutes > endAllowed) isException = true;
+                    // Check-in allowed ideally between 5:30 AM and 7:00 AM
+                    if (timeInMinutes < (5 * 60 + 30) || timeInMinutes > (7 * 60)) isException = true;
                 } else if (selectedShift === 'Evening') {
-                    // Evening: 4 PM (960) to 1 AM (next day).
-                    // Allowed Check-in: 3:30 PM (930) to 5:00 PM (1020)
-                    const startAllowed = 15 * 60 + 30; // 3:30 PM
-                    const endAllowed = 17 * 60; // 5:00 PM
-                    if (timeInMinutes < startAllowed || timeInMinutes > endAllowed) isException = true;
+                    // Check-in allowed ideally between 3:30 PM and 5:00 PM
+                    if (timeInMinutes < (15 * 60 + 30) || timeInMinutes > (17 * 60)) isException = true;
                 }
-            } else if (type === 'checkout') {
-                // Checkout needs shift context, which we might not reliably have on frontend
-                // Simplified: Require approval if Checkout is too quick (< 4 hours) or too late (> 12 hours) from Check-in
-                // Since we don't store check-in time locally robustly in this version, we will trust the manager to check KMs/Rides for now
-                // OR add complex logic. For this demo, let's just use it for Check-in primarily.
-                isException = false; // Bypass complex checkout validation for simplicity unless requested
             }
-
             return isException;
         }
 
-        // --- SUBMISSION HANDLERS ---
+        function getLocation(type) {
+            const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
+            addrInput.value = "Fetching GPS (High Accuracy)...";
+            addrInput.classList.add('animate-pulse');
+
+            if (!navigator.geolocation) {
+                addrInput.value = "";
+                return showToast("Geolocation browser me support nahi karti.", "error");
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    // Strict Accuracy Check (Mock Location/Fake GPS Defense)
+                    if (position.coords.accuracy > 150) {
+                        addrInput.value = "";
+                        addrInput.classList.remove('animate-pulse');
+                        showToast(`GPS signal weak hai (Accuracy: ${Math.round(position.coords.accuracy)}m). Kripya khule aasmaan ke niche aakar try karein, ya fake GPS band karein.`, "error");
+                        return;
+                    }
+
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
+                    document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
+
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                        const data = await res.json();
+                        addrInput.value = data.display_name || "Address found";
+                    } catch (e) {
+                        addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+                    }
+                    addrInput.classList.remove('animate-pulse');
+                },
+                (error) => {
+                    let msg = "Location error.";
+                    if(error.code == 1) msg = "Please allow location access in browser settings.";
+                    if(error.code == 3) msg = "Location dhoondhne me timeout ho gaya. Khule aasmaan ke neeche aayein.";
+                    addrInput.value = "";
+                    addrInput.classList.remove('animate-pulse');
+                    showToast(msg, "error");
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        // --- STREAMING_CHUNK:Camera & Anti-Spoofing Flash Setup... ---
+        async function startCamera() {
+            const video = document.getElementById('videoElement');
+            const loading = document.getElementById('cameraLoading');
+            try {
+                loading.style.display = 'flex';
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = currentStream;
+                video.play();
+                loading.style.display = 'none';
+            } catch (err) {
+                loading.style.display = 'none';
+                showToast("Camera access denied.", "error");
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                document.getElementById('videoElement').srcObject = null;
+            }
+        }
+
+        function captureImage() {
+            if (!currentStream) return showToast("Camera is not running", "error");
+            
+            const flash = document.getElementById('screenFlash');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvasElement');
+            const img = document.getElementById('capturedImage');
+            
+            // 1. Activate White Flash for Anti-Spoofing
+            flash.classList.remove('hidden');
+            void flash.offsetWidth; // Trigger reflow
+            flash.classList.remove('opacity-0');
+            flash.classList.add('opacity-100');
+
+            // 2. Capture image AT THE PEAK of the flash (approx 150ms)
+            setTimeout(() => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // 60% quality compression
+                document.getElementById('selfieData').value = dataUrl;
+                
+                img.src = dataUrl;
+                img.classList.remove('hidden');
+                
+                document.getElementById('btnCapture').classList.add('hidden');
+                document.getElementById('btnRetake').classList.remove('hidden');
+                
+                // 3. Hide Flash smoothly
+                flash.classList.remove('opacity-100');
+                flash.classList.add('opacity-0');
+                setTimeout(() => flash.classList.add('hidden'), 150);
+            }, 150);
+        }
+
+        function retakePhoto() {
+            document.getElementById('capturedImage').classList.add('hidden');
+            document.getElementById('selfieData').value = '';
+            document.getElementById('btnCapture').classList.remove('hidden');
+            document.getElementById('btnRetake').classList.add('hidden');
+        }
+
+        // --- STREAMING_CHUNK:Submit Actions (Double Click Protected)... ---
         async function submitCheckIn() {
+            if (isSubmitting) return; // Prevent double clicks
+            
             const shiftTime = document.querySelector('input[name="shiftTime"]:checked');
             const lat = document.getElementById('ci_lat').value;
             const selfie = document.getElementById('selfieData').value;
@@ -833,6 +912,9 @@
             if (!shiftTime) return showToast("Kripya apna shift time select karein.", "error");
             if (!lat) return showToast("Location zaruri hai. 'Get Location' pe click karein.", "error");
             if (!selfie) return showToast("Selfie click karna zaruri hai.", "error");
+
+            isSubmitting = true;
+            document.getElementById('btnSubmitCheckIn').disabled = true;
 
             const payload = {
                 type: 'checkin',
@@ -850,12 +932,16 @@
             
             if (needsApproval) {
                 promptApproval('checkin', payload);
+                isSubmitting = false;
+                document.getElementById('btnSubmitCheckIn').disabled = false;
             } else {
-                executeFinalSubmit('checkin', payload);
+                await executeFinalSubmit('checkin', payload);
             }
         }
 
         async function submitCheckOut() {
+            if (isSubmitting) return; // Prevent double clicks
+
             const lat = document.getElementById('co_lat').value;
             const addr = document.getElementById('co_address').value;
             const totalRides = document.getElementById('totalRides').value;
@@ -872,6 +958,9 @@
                 if(!orderId) return showToast("Last Order ID bharna zaruri hai.", "error");
             }
 
+            isSubmitting = true;
+            document.getElementById('btnSubmitCheckOut').disabled = true;
+
             const payload = {
                 type: 'checkout',
                 riderId: currentUser.riderId,
@@ -886,149 +975,39 @@
                 manualKms: document.getElementById('manualKms').value || 0,
                 lastOrder: lastOrder,
                 orderId: orderId,
-                selfie: "" // Optional on checkout usually, saving bandwidth
+                selfie: "" 
             };
 
-            executeFinalSubmit('checkout', payload);
+            await executeFinalSubmit('checkout', payload);
         }
 
         async function executeFinalSubmit(type, payload) {
             showLoader("Submitting Data...", "Uploading details securely...");
             try {
-                // Get IP (optional extra security)
-                try {
-                    const ipRes = await fetch('https://api.ipify.org?format=json');
-                    const ipData = await ipRes.json();
-                    payload.ipAddress = ipData.ip;
-                } catch(e) { payload.ipAddress = "Unknown"; }
-
                 await apiCall('submit', payload);
                 
                 showToast(type === 'checkin' ? "Check-In Successful!" : "Check-Out Successful!", "success");
-                
                 closeModal(type === 'checkin' ? 'checkInModal' : 'checkOutModal');
                 
                 if (type === 'checkin') {
                     document.getElementById('checkInForm').reset();
-                    document.getElementById('capturedImage').classList.add('hidden');
-                    document.getElementById('selfieData').value = '';
-                    document.getElementById('btnCapture').classList.remove('hidden');
-                    document.getElementById('btnRetake').classList.add('hidden');
+                    retakePhoto();
                 } else {
                     document.getElementById('checkOutForm').reset();
                 }
-
                 await syncShiftState();
 
             } catch (error) {
                 showToast(error.message, "error");
             } finally {
                 hideLoader();
+                isSubmitting = false;
+                if(document.getElementById('btnSubmitCheckIn')) document.getElementById('btnSubmitCheckIn').disabled = false;
+                if(document.getElementById('btnSubmitCheckOut')) document.getElementById('btnSubmitCheckOut').disabled = false;
             }
         }
 
-        // --- HARDWARE APIS (LOCATION & CAMERA) ---
-        function getLocation(type) {
-            const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
-            addrInput.value = "Fetching GPS location...";
-            addrInput.classList.add('animate-pulse');
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
-                        
-                        document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
-                        document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
-
-                        try {
-                            // Free reverse geocoding
-                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
-                            const data = await res.json();
-                            addrInput.value = data.display_name || "Address found";
-                        } catch (e) {
-                            addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
-                        }
-                        addrInput.classList.remove('animate-pulse');
-                    },
-                    (error) => {
-                        let msg = "Location error.";
-                        if(error.code == 1) msg = "Please allow location access in browser settings.";
-                        addrInput.value = "";
-                        addrInput.classList.remove('animate-pulse');
-                        showToast(msg, "error");
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            } else {
-                showToast("Geolocation not supported.", "error");
-            }
-        }
-
-        async function startCamera() {
-            const video = document.getElementById('videoElement');
-            const loading = document.getElementById('cameraLoading');
-            
-            try {
-                loading.style.display = 'flex';
-                currentStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, // Front camera
-                    audio: false 
-                });
-                video.srcObject = currentStream;
-                video.play();
-                loading.style.display = 'none';
-            } catch (err) {
-                console.error("Camera error:", err);
-                loading.style.display = 'none';
-                showToast("Camera access denied. Please allow permissions.", "error");
-            }
-        }
-
-        function stopCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                document.getElementById('videoElement').srcObject = null;
-            }
-        }
-
-        function captureImage() {
-            const video = document.getElementById('videoElement');
-            const canvas = document.getElementById('canvasElement');
-            const img = document.getElementById('capturedImage');
-            
-            if (!currentStream) return showToast("Camera is not running", "error");
-
-            // Set canvas dimensions to match video internal dimensions
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            const ctx = canvas.getContext('2d');
-            // Handle mirroring if front camera
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Compress image to Base64 JPEG (0.6 quality is usually good enough for selfies and saves 70% size)
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-            
-            document.getElementById('selfieData').value = dataUrl;
-            img.src = dataUrl;
-            img.classList.remove('hidden');
-            
-            document.getElementById('btnCapture').classList.add('hidden');
-            document.getElementById('btnRetake').classList.remove('hidden');
-        }
-
-        function retakePhoto() {
-            document.getElementById('capturedImage').classList.add('hidden');
-            document.getElementById('selfieData').value = '';
-            document.getElementById('btnCapture').classList.remove('hidden');
-            document.getElementById('btnRetake').classList.add('hidden');
-        }
-
-        // --- MODAL CONTROLS ---
+        // --- UI Modal Controls ---
         function openCheckInModal() {
             document.getElementById('checkInModal').classList.remove('hidden-screen');
             startCamera();
@@ -1042,17 +1021,10 @@
             document.getElementById(modalId).classList.add('hidden-screen');
             if(modalId === 'checkInModal') stopCamera();
         }
+        function checkShiftTime(shift) { checkInShift = shift; }
+        function switchManagerTab(tabId) {}
 
-        function checkShiftTime(shift) {
-            checkInShift = shift;
-        }
-
-
-        // --- MANAGER SPECIFIC LOGIC ---
-        function switchManagerTab(tabId) {
-            // Simple tab switcher if more tabs are added later
-        }
-
+        // --- STREAMING_CHUNK:Manager Dashboard Setup... ---
         async function loadPendingApprovals() {
             const container = document.getElementById('approvalsList');
             const badge = document.getElementById('approvalCountBadge');
@@ -1122,8 +1094,7 @@
             } finally { hideLoader(); }
         }
 
-
-        // --- INITIALIZATION ---
+        // --- STREAMING_CHUNK:App Initialization... ---
         window.onload = () => {
             const savedSession = localStorage.getItem('riderSession');
             if (savedSession) {
