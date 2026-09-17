@@ -68,6 +68,8 @@
         
         .hidden-screen { display: none !important; }
         .dark-modal { background: #111827; border-top-left-radius: 1.5rem; border-top-right-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
+        
+        select option { background: #1F2937; color: white; }
     </style>
 </head>
 <body class="bg-darkBg text-white min-h-screen flex flex-col antialiased">
@@ -83,6 +85,7 @@
         <p class="text-sm text-gray-400 mt-2 text-center px-4" id="loaderSubText">Please wait...</p>
     </div>
 
+    <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="loginScreen" class="flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full animate-fade-in relative z-10">
         <div class="text-center mb-10">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-3xl shadow-[0_0_25px_rgba(56,189,248,0.4)] mb-6">
@@ -114,6 +117,7 @@
         </div>
     </div>
 
+    <!-- ==================== MAIN DASHBOARD (RIDER) ==================== -->
     <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full relative min-h-screen">
         
         <div class="text-center mb-10">
@@ -165,6 +169,7 @@
         </div>
     </div>
 
+    <!-- ==================== MANAGER DASHBOARD ==================== -->
     <div id="managerDashboard" class="hidden-screen flex-1 flex flex-col w-full min-h-screen">
         <header class="bg-cardBg border-b border-gray-800 px-6 py-4 shadow-md sticky top-0 z-20">
             <div class="flex justify-between items-center max-w-4xl mx-auto w-full">
@@ -197,6 +202,7 @@
         </div>
     </div>
 
+    <!-- ==================== MODALS ==================== -->
     
     <!-- Approval Exception Modal -->
     <div id="approvalModal" class="hidden-screen fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -211,12 +217,12 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Reason</label>
                     <select id="approvalReason" class="glass-input text-sm">
-                        <option value="" class="text-black">Select a reason...</option>
-                        <option value="Traffic/Vehicle Issue" class="text-black">Traffic ya Vehicle Issue</option>
-                        <option value="Health Issue" class="text-black">Health Issue</option>
-                        <option value="Manager Instruction" class="text-black">Manager ne bola tha</option>
-                        <option value="App Glitch" class="text-black">App me problem thi</option>
-                        <option value="Other" class="text-black">Other</option>
+                        <option value="">Select a reason...</option>
+                        <option value="Traffic/Vehicle Issue">Traffic ya Vehicle Issue</option>
+                        <option value="Health Issue">Health Issue</option>
+                        <option value="Manager Instruction">Manager ne bola tha</option>
+                        <option value="App Glitch">App me problem thi</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
             </div>
@@ -253,7 +259,7 @@
                     <div class="flex gap-2 mt-2 hidden"><input type="text" id="ci_lat"><input type="text" id="ci_lon"></div>
                 </div>
 
-                <!-- Camera -->
+                <!-- Camera with Timestamp Logic -->
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="camera" class="w-4 h-4 text-blue-400"></i> Live Selfie</label>
                     <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
@@ -273,19 +279,18 @@
                     <input type="hidden" id="selfieData">
                 </div>
 
-                <!-- NEW: 7 Shifts Selector -->
+                <!-- Advanced Shift Dropdown -->
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4 text-blue-400"></i> Select Shift</label>
-                    
-                    <select id="shiftTimeSelector" class="glass-input text-sm w-full">
-                        <option value="" class="text-black" disabled selected>Tap to select your shift</option>
-                        <option value="7 AM to 5 PM" class="text-black">7 AM to 5 PM</option>
-                        <option value="8 AM to 6 PM" class="text-black">8 AM to 6 PM</option>
-                        <option value="9 AM to 7 PM" class="text-black">9 AM to 7 PM</option>
-                        <option value="4 PM to 2 AM" class="text-black">4 PM to 2 AM (Next Day)</option>
-                        <option value="5 PM to 3 AM" class="text-black">5 PM to 3 AM (Next Day)</option>
-                        <option value="10 PM to 8 AM" class="text-black">10 PM to 8 AM (Next Day)</option>
-                        <option value="Other" class="text-black">Other (Emergency Shift)</option>
+                    <select id="shiftSelection" class="glass-input text-sm">
+                        <option value="" disabled selected>Apni shift chunein...</option>
+                        <option value="7 AM to 5 PM">7 AM to 5 PM</option>
+                        <option value="8 AM to 6 PM">8 AM to 6 PM</option>
+                        <option value="9 AM to 7 PM">9 AM to 7 PM</option>
+                        <option value="4 PM to Next day 2 AM">4 PM to 2 AM (Next Day)</option>
+                        <option value="5 PM to Next day 3 AM">5 PM to 3 AM (Next Day)</option>
+                        <option value="10 PM to Next Day 8 AM">10 PM to 8 AM (Next Day)</option>
+                        <option value="Other">Other Emergency Shift (10 Hrs)</option>
                     </select>
                 </div>
             </div>
@@ -362,7 +367,6 @@
                     <div id="orderIdContainer" class="hidden">
                         <label class="block text-[10px] text-gray-500 mb-1 uppercase">Order ID</label>
                         <input type="text" id="orderId" class="glass-input py-2 text-sm" placeholder="e.g. ORDER-123">
-                        <p class="text-[10px] text-yellow-500 mt-1">* Entering Order ID bypasses Early Check-out approval.</p>
                     </div>
                 </div>
             </div>
@@ -376,15 +380,28 @@
     </div>
 
     <script>
-        // --- YAHAN APNA APPS SCRIPT URL DAALEIN ---
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
+        // --- APPS SCRIPT URL ---
+        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
         
         let currentUser = null;
         let currentStream = null;
         let isSubmitting = false;
         let pollingInterval = null;
         let approvalContext = {};
-        let shiftSyncData = { currentShift: "", checkInTime: 0 }; // Stores backend shift info
+        
+        // Globals to remember shift during checkout
+        let activeShiftName = "";
+        let activeCheckInTimeMs = 0;
+
+        // --- ALL 7 SHIFTS LOGIC DICTIONARY ---
+        const shiftsConfig = {
+            '7 AM to 5 PM': { startH: 7, startM: 0, endH: 17, endM: 0 },
+            '8 AM to 6 PM': { startH: 8, startM: 0, endH: 18, endM: 0 },
+            '9 AM to 7 PM': { startH: 9, startM: 0, endH: 19, endM: 0 },
+            '4 PM to Next day 2 AM': { startH: 16, startM: 0, endH: 26, endM: 0 },
+            '5 PM to Next day 3 AM': { startH: 17, startM: 0, endH: 27, endM: 0 },
+            '10 PM to Next Day 8 AM': { startH: 22, startM: 0, endH: 32, endM: 0 }
+        };
 
         lucide.createIcons();
 
@@ -431,11 +448,14 @@
                 throw new Error("Backend URL update karein code mein.");
             }
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000);
+            // TIMEOUT INCREASED TO 60 SECONDS to solve the "Internet Slow" error
+            const timeoutId = setTimeout(() => controller.abort(), 60000); 
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', body: JSON.stringify({ action, ...payload }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: controller.signal
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                    signal: controller.signal,
+                    redirect: 'follow' 
                 });
                 clearTimeout(timeoutId);
                 const result = await response.json();
@@ -443,7 +463,7 @@
                 return result;
             } catch (error) {
                 clearTimeout(timeoutId);
-                if (error.name === 'AbortError') throw new Error("Internet slow hai, dobara try karein.");
+                if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai, dobara try karein.");
                 throw error;
             }
         }
@@ -505,105 +525,69 @@
                 const btnCheckOut = document.getElementById('btnCheckOut');
                 
                 if (res.shiftState && res.shiftState.isShiftActive) {
+                    activeShiftName = res.shiftState.currentShift;
+                    activeCheckInTimeMs = res.shiftState.checkInTime;
+                    
                     btnCheckIn.classList.add('hidden'); 
                     btnCheckOut.classList.remove('hidden');
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
-                    
-                    shiftSyncData.currentShift = res.shiftState.currentShift;
-                    shiftSyncData.checkInTime = res.shiftState.checkInTime;
                 } else {
+                    activeShiftName = "";
+                    activeCheckInTimeMs = 0;
+                    
                     btnCheckIn.classList.remove('hidden'); 
                     btnCheckOut.classList.add('hidden');
                     checkInitialApprovalStatus();
-                    shiftSyncData.currentShift = "";
-                    shiftSyncData.checkInTime = 0;
                 }
             } catch (e) { console.error("Sync error", e); }
         }
 
-        // --- NEW VALIDATION LOGIC FOR 7 SHIFTS ---
-        function getShiftTimeBounds(shiftStr, checkInTimestamp = null) {
-            if (!shiftStr) return null;
-            
-            // If "Other", it lasts exactly 10 hours from Check-In time
-            if (shiftStr === "Other") {
-                if (!checkInTimestamp) return null; // We can't know checkout bound without checkin time
-                let start = new Date(checkInTimestamp);
-                let end = new Date(checkInTimestamp);
-                end.setHours(end.getHours() + 10); 
-                return { start, end };
-            }
-
-            // Parse formatted strings like "7 AM to 5 PM" or "4 PM to 2 AM"
-            const match = shiftStr.match(/(\d{1,2})\s*(AM|PM)\s*to\s*(\d{1,2})\s*(AM|PM)/i);
-            if (!match) return null;
-            
-            let startH = parseInt(match[1]), startM = match[2].toUpperCase();
-            let endH = parseInt(match[3]), endM = match[4].toUpperCase();
-            
-            if (startM === 'PM' && startH !== 12) startH += 12; 
-            if (startM === 'AM' && startH === 12) startH = 0;
-            if (endM === 'PM' && endH !== 12) endH += 12; 
-            if (endM === 'AM' && endH === 12) endH = 0;
-            
-            let now = new Date();
-            let start = new Date(now), end = new Date(now); 
-            
-            start.setHours(startH, 0, 0, 0); 
-            end.setHours(endH, 0, 0, 0);
-            
-            // Adjust dates for overnight shifts (e.g., 10 PM to 8 AM)
-            if (end <= start) {
-                if (now.getHours() < startH && now.getHours() < 12) {
-                    // It's early morning (e.g. 1 AM), the shift "started" yesterday
-                    start.setDate(start.getDate() - 1); 
-                } else {
-                    // It's late night (e.g. 11 PM), the shift "ends" tomorrow
-                    end.setDate(end.getDate() + 1);
+        // --- NEW 7 SHIFTS ADVANCED VALIDATION LOGIC ---
+        function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
+            // 1. "Other" Emergency Shift Logic (Always approval for checkin, 10 hours for checkout)
+            if (selectedShift === 'Other') {
+                if (type === 'checkin') return true; 
+                if (type === 'checkout') {
+                    if (lastOrderYes) return false; 
+                    if (!checkInTimeMs) return true; // Safety
+                    
+                    const now = new Date().getTime();
+                    const expectedEnd = checkInTimeMs + (10 * 60 * 60 * 1000); // exactly 10 hours after checkin
+                    
+                    // Approval if checking out earlier than 30 mins before the 10 hour mark
+                    if (now < expectedEnd - (30 * 60 * 1000)) return true;
+                    return false;
                 }
             }
-            return { start, end };
-        }
 
-        function validateTime(type, selectedShift, isLastOrderValid = false) {
-            let isException = false;
-            let reason = "";
+            const shift = shiftsConfig[selectedShift];
+            if (!shift) return false;
+
+            const now = new Date();
+            let currentH = now.getHours();
+            const currentM = now.getMinutes();
+
+            // Next Day Logic (if current hour is morning, but shift is night-wrap)
+            if (currentH < 12 && shift.startH >= 16) {
+                currentH += 24;
+            }
+
+            const timeInMinutes = currentH * 60 + currentM;
 
             if (type === 'checkin') {
-                if (selectedShift === "Other") {
-                    isException = true;
-                    reason = "Emergency/Other shift always requires check-in approval.";
-                } else {
-                    const bounds = getShiftTimeBounds(selectedShift);
-                    if (bounds) {
-                        const now = new Date();
-                        const diffMins = (now - bounds.start) / 60000;
-                        if (diffMins > 20) {
-                            isException = true;
-                            reason = `Late check-in by ${Math.floor(diffMins)} mins.`;
-                        }
-                    }
-                }
+                const shiftStartMins = shift.startH * 60 + shift.startM;
+                // Approval if checking in > 20 mins late
+                if (timeInMinutes > shiftStartMins + 20) return true;
             } else if (type === 'checkout') {
-                // If they completed the last order, they can bypass the early checkout rule
-                if (isLastOrderValid) {
-                    return { isException: false };
-                }
-
-                // If "Other" shift, use stored Check-in time to find end bounds
-                const bounds = getShiftTimeBounds(selectedShift, shiftSyncData.checkInTime);
-                if (bounds) {
-                    const now = new Date();
-                    const diffMinsEarly = (bounds.end - now) / 60000;
-                    if (diffMinsEarly > 30) {
-                        isException = true;
-                        reason = `Early check-out by ${Math.floor(diffMinsEarly)} mins without Last Order completion.`;
-                    }
-                }
+                // If Last order is completed, bypass Early CheckOut approval
+                if (lastOrderYes) return false;
+                
+                const shiftEndMins = shift.endH * 60 + shift.endM;
+                // Approval if checking out > 30 mins early
+                if (timeInMinutes < shiftEndMins - 30) return true;
             }
-
-            return { isException, reason };
+            return false;
         }
 
         async function checkInitialApprovalStatus() {
@@ -674,25 +658,9 @@
             finally { hideLoader(); }
         }
 
-        function promptApproval(type, contextPayload, customReason) {
+        function promptApproval(type, contextPayload) {
             approvalContext = { action: type, payload: contextPayload };
             document.getElementById('approvalModalTitle').innerText = type === 'checkin' ? "Late Check-In" : "Early Check-Out";
-            
-            const reasonDropdown = document.getElementById('approvalReason');
-            // If it's the "Other" shift checkin, auto-select a reason or add note
-            if (customReason && customReason.includes("Emergency")) {
-                let exists = false;
-                for(let opt of reasonDropdown.options) { if(opt.value === "Emergency/Other Shift") exists = true; }
-                if(!exists) {
-                    const newOpt = document.createElement('option');
-                    newOpt.value = "Emergency/Other Shift";
-                    newOpt.text = "Emergency/Other Shift Selected";
-                    newOpt.className = "text-black";
-                    reasonDropdown.add(newOpt);
-                }
-                reasonDropdown.value = "Emergency/Other Shift";
-            }
-
             document.getElementById('approvalModal').classList.remove('hidden-screen');
         }
 
@@ -700,7 +668,9 @@
             const reason = document.getElementById('approvalReason').value;
             if(!reason) return showToast("Select a reason.", "error");
 
-            const shiftT = document.getElementById('shiftTimeSelector') ? document.getElementById('shiftTimeSelector').value : "N/A";
+            const shiftSelector = document.getElementById('shiftSelection');
+            const shiftT = shiftSelector ? shiftSelector.value : activeShiftName;
+            
             showLoader("Sending Request...");
             
             try {
@@ -779,7 +749,7 @@
             finally { hideLoader(); }
         }
 
-        // --- GPS AND CAMERA (WITH EXCEPTION FOR TEST ID) ---
+        // --- GPS AND CAMERA WITH TIMESTAMP LOGIC ---
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
@@ -789,7 +759,6 @@
                 async (position) => {
                     const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
                     
-                    // STRICT MOCK LOCATION BLOCK (100 METERS) - BYPASSED FOR TEST ID
                     if (position.coords.accuracy > 100 && !isTestUser) {
                         addrInput.value = "";
                         return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Ghar se bahar aakar try karein ya Mock Location band karein.`, "error");
@@ -834,11 +803,30 @@
             setTimeout(() => {
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
-                ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+                
+                // Draw Mirrored Image
+                ctx.translate(canvas.width, 0); 
+                ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Reset Mirroring for Text (taaki text seedha aaye)
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+                // Add Timestamp Text Background
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+
+                // Add Timestamp Text
+                ctx.fillStyle = "white";
+                ctx.font = "bold 14px sans-serif";
+                const timeString = new Date().toLocaleString('en-IN');
+                ctx.fillText(`Time: ${timeString}`, 15, canvas.height - 15);
+
+                // Convert to Image
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 document.getElementById('selfieData').value = dataUrl;
                 img.src = dataUrl; img.classList.remove('hidden');
+                
                 document.getElementById('btnCapture').classList.add('hidden');
                 document.getElementById('btnRetake').classList.remove('hidden');
                 setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
@@ -852,12 +840,11 @@
             document.getElementById('btnRetake').classList.add('hidden');
         }
 
-        // --- SUBMIT WITH DOUBLE CLICK LOCK & COMPLEX VALIDATION ---
+        // --- SUBMIT WITH DOUBLE CLICK LOCK & SHIFT VALIDATION ---
         async function submitCheckIn() {
             if(isSubmitting) return;
-            const shift = document.getElementById('shiftTimeSelector').value;
-            const lat = document.getElementById('ci_lat').value;
-            const selfie = document.getElementById('selfieData').value;
+            const shift = document.getElementById('shiftSelection').value;
+            const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
             
             if (!shift) return showToast("Shift time select karein.", "error");
             if (!lat) return showToast("Location zaruri hai.", "error");
@@ -869,9 +856,9 @@
                 address: document.getElementById('ci_address').value, selfie: selfie
             };
 
-            const validation = validateTime('checkin', shift);
-            if (validation.isException) {
-                promptApproval('checkin', payload, validation.reason);
+            const needsApproval = validateTime('checkin', shift, false, 0);
+            if (needsApproval) {
+                promptApproval('checkin', payload);
                 return;
             }
 
@@ -885,12 +872,9 @@
 
             const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked').value;
             const orderIdVal = document.getElementById('orderId').value.trim();
-
             if (lastOrderVal === 'Yes' && !orderIdVal) {
                 return showToast("Order ID is required.", "error");
             }
-            
-            const isLastOrderValid = (lastOrderVal === 'Yes' && orderIdVal !== "");
 
             const payload = {
                 type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
@@ -901,13 +885,11 @@
                 selfie: ""
             };
 
-            if (!shiftSyncData.currentShift) {
-                return showToast("Shift data load nahi hui, app refresh karein.", "error");
-            }
-
-            const validation = validateTime('checkout', shiftSyncData.currentShift, isLastOrderValid); 
-            if (validation.isException) {
-                promptApproval('checkout', payload, validation.reason);
+            const lastOrderCompleted = (lastOrderVal === 'Yes' && orderIdVal !== "");
+            const needsApproval = validateTime('checkout', activeShiftName, lastOrderCompleted, activeCheckInTimeMs); 
+            
+            if (needsApproval) {
+                promptApproval('checkout', payload);
                 return;
             }
 
@@ -927,11 +909,7 @@
                 showToast(type === 'checkin' ? "Check-In Successful!" : "Check-Out Successful!", "success");
                 closeModal(type === 'checkin' ? 'checkInModal' : 'checkOutModal'); 
                 
-                if(type === 'checkin') { 
-                    // Need to reset the form properly, specifically the selector
-                    document.getElementById('shiftTimeSelector').selectedIndex = 0; 
-                    retakePhoto(); 
-                }
+                if(type === 'checkin') { document.getElementById('checkInForm').reset(); retakePhoto(); }
                 syncShiftState();
             } catch (e) { showToast(e.message, "error"); } 
             finally { 
