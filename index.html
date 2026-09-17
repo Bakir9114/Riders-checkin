@@ -381,7 +381,7 @@
 
     <script>
         // --- APPS SCRIPT URL ---
-        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         let currentUser = null;
         let currentStream = null;
@@ -448,7 +448,7 @@
                 throw new Error("Backend URL update karein code mein.");
             }
             const controller = new AbortController();
-            // TIMEOUT INCREASED TO 60 SECONDS to solve the "Internet Slow" error
+            // TIMEOUT 60 SECONDS
             const timeoutId = setTimeout(() => controller.abort(), 60000); 
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
@@ -543,19 +543,15 @@
             } catch (e) { console.error("Sync error", e); }
         }
 
-        // --- NEW 7 SHIFTS ADVANCED VALIDATION LOGIC ---
         function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
-            // 1. "Other" Emergency Shift Logic (Always approval for checkin, 10 hours for checkout)
             if (selectedShift === 'Other') {
                 if (type === 'checkin') return true; 
                 if (type === 'checkout') {
                     if (lastOrderYes) return false; 
-                    if (!checkInTimeMs) return true; // Safety
+                    if (!checkInTimeMs) return true;
                     
                     const now = new Date().getTime();
-                    const expectedEnd = checkInTimeMs + (10 * 60 * 60 * 1000); // exactly 10 hours after checkin
-                    
-                    // Approval if checking out earlier than 30 mins before the 10 hour mark
+                    const expectedEnd = checkInTimeMs + (10 * 60 * 60 * 1000);
                     if (now < expectedEnd - (30 * 60 * 1000)) return true;
                     return false;
                 }
@@ -568,7 +564,6 @@
             let currentH = now.getHours();
             const currentM = now.getMinutes();
 
-            // Next Day Logic (if current hour is morning, but shift is night-wrap)
             if (currentH < 12 && shift.startH >= 16) {
                 currentH += 24;
             }
@@ -577,14 +572,10 @@
 
             if (type === 'checkin') {
                 const shiftStartMins = shift.startH * 60 + shift.startM;
-                // Approval if checking in > 20 mins late
                 if (timeInMinutes > shiftStartMins + 20) return true;
             } else if (type === 'checkout') {
-                // If Last order is completed, bypass Early CheckOut approval
                 if (lastOrderYes) return false;
-                
                 const shiftEndMins = shift.endH * 60 + shift.endM;
-                // Approval if checking out > 30 mins early
                 if (timeInMinutes < shiftEndMins - 30) return true;
             }
             return false;
@@ -686,7 +677,6 @@
             finally { hideLoader(); }
         }
 
-        // --- MANAGER DASHBOARD FUNCTIONS ---
         async function loadPendingApprovals() {
             const container = document.getElementById('approvalsList');
             container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
@@ -744,12 +734,11 @@
             try {
                 await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
                 showToast(`Request ${status}`, "success");
-                loadPendingApprovals(); // refresh
+                loadPendingApprovals();
             } catch(e) { showToast(e.message, "error"); } 
             finally { hideLoader(); }
         }
 
-        // --- GPS AND CAMERA WITH TIMESTAMP LOGIC ---
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
@@ -796,7 +785,6 @@
             const canvas = document.getElementById('canvasElement');
             const img = document.getElementById('capturedImage');
             
-            // ANTI-SPOOF FLASH
             flash.classList.remove('hidden');
             flash.classList.add('animate-flash');
             
@@ -804,25 +792,20 @@
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
                 
-                // Draw Mirrored Image
                 ctx.translate(canvas.width, 0); 
                 ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Reset Mirroring for Text (taaki text seedha aaye)
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-                // Add Timestamp Text Background
                 ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                 ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
 
-                // Add Timestamp Text
                 ctx.fillStyle = "white";
                 ctx.font = "bold 14px sans-serif";
                 const timeString = new Date().toLocaleString('en-IN');
                 ctx.fillText(`Time: ${timeString}`, 15, canvas.height - 15);
 
-                // Convert to Image
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 document.getElementById('selfieData').value = dataUrl;
                 img.src = dataUrl; img.classList.remove('hidden');
@@ -840,7 +823,6 @@
             document.getElementById('btnRetake').classList.add('hidden');
         }
 
-        // --- SUBMIT WITH DOUBLE CLICK LOCK & SHIFT VALIDATION ---
         async function submitCheckIn() {
             if(isSubmitting) return;
             const shift = document.getElementById('shiftSelection').value;
@@ -919,7 +901,6 @@
             }
         }
 
-        // --- MODAL CONTROLS ---
         function openCheckInModal() { document.getElementById('checkInModal').classList.remove('hidden-screen'); startCamera(); }
         function openCheckOutModal() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden-screen'); if(id==='checkInModal') stopCamera(); }
