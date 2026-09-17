@@ -102,14 +102,12 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Secret PIN</label>
                     <div class="relative">
-                        <!-- Alphanumeric PIN (no pattern) -->
                         <input type="password" id="secretPin" class="glass-input pr-12" placeholder="Enter your PIN">
                         <button type="button" onclick="togglePassword('secretPin', 'eyeIcon')" class="absolute inset-y-0 right-0 pr-4 flex items-center">
                             <i data-lucide="eye" id="eyeIcon" class="h-5 w-5 text-gray-400 hover:text-white"></i>
                         </button>
                     </div>
                 </div>
-                <!-- FIXED ONCLICK (Double click fix handled in JS) -->
                 <button type="button" onclick="handleLogin()" id="btnLogin" class="w-full btn-glow-green rounded-xl py-4 text-white font-bold text-lg mt-4 flex items-center justify-center gap-2">
                     <i data-lucide="log-in" class="w-5 h-5"></i> Secure Login
                 </button>
@@ -130,7 +128,6 @@
 
         <div class="bg-cardBg rounded-2xl p-5 flex items-center justify-between border border-gray-800 shadow-lg mb-8">
             <div class="flex items-center gap-4">
-                <!-- Smart Letter Avatar -->
                 <div id="userAvatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
                     A
                 </div>
@@ -382,7 +379,7 @@
 
     <script>
         // --- YAHAN APNA APPS SCRIPT URL DAALEIN ---
-        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         let currentUser = null;
         let currentStream = null;
@@ -521,26 +518,17 @@
             } catch (e) { console.error("Sync error", e); }
         }
 
-        // --- APPROVAL LOGIC ---
         function validateTime(type, selectedShift) {
             const now = new Date();
             const timeInMinutes = now.getHours() * 60 + now.getMinutes();
             let isException = false;
 
             if (type === 'checkin') {
-                // 20 mins late check
-                if (selectedShift === 'Morning') {
-                    if (timeInMinutes > (6 * 60 + 20)) isException = true; // Later than 6:20 AM
-                } else if (selectedShift === 'Evening') {
-                    if (timeInMinutes > (16 * 60 + 20)) isException = true; // Later than 4:20 PM
-                }
+                if (selectedShift === 'Morning' && timeInMinutes > (6 * 60 + 20)) isException = true; 
+                else if (selectedShift === 'Evening' && timeInMinutes > (16 * 60 + 20)) isException = true;
             } else if (type === 'checkout') {
-                // 35 mins early check
-                if (selectedShift === 'Morning') {
-                    if (timeInMinutes < (15 * 60 - 35)) isException = true; // Before 2:25 PM
-                } else if (selectedShift === 'Evening') {
-                    if (timeInMinutes < (25 * 60 - 35) && timeInMinutes > (5 * 60)) isException = true; // Before 12:25 AM
-                }
+                if (selectedShift === 'Morning' && timeInMinutes < (15 * 60 - 35)) isException = true;
+                else if (selectedShift === 'Evening' && timeInMinutes < (25 * 60 - 35) && timeInMinutes > (5 * 60)) isException = true;
             }
             return isException;
         }
@@ -563,7 +551,7 @@
 
         function startPolling() {
             if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(checkApprovalStatusSilent, 10000); // 10s check
+            pollingInterval = setInterval(checkApprovalStatusSilent, 10000);
         }
 
         function stopPolling() {
@@ -702,7 +690,7 @@
             finally { hideLoader(); }
         }
 
-        // --- GPS AND CAMERA ---
+        // --- GPS AND CAMERA (WITH EXCEPTION FOR TEST ID) ---
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
@@ -710,11 +698,15 @@
 
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
-                    // STRICT MOCK LOCATION BLOCK (100 METERS)
-                    if (position.coords.accuracy > 100) {
+                    // Check if current user is the specific Test ID to bypass GPS strictness
+                    const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
+                    
+                    // STRICT MOCK LOCATION BLOCK (100 METERS) - BYPASSED FOR TEST ID
+                    if (position.coords.accuracy > 100 && !isTestUser) {
                         addrInput.value = "";
                         return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Ghar se bahar aakar try karein ya Mock Location band karein.`, "error");
                     }
+                    
                     const lat = position.coords.latitude, lon = position.coords.longitude;
                     document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
                     document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
@@ -816,8 +808,7 @@
                 return showToast("Order ID is required.", "error");
             }
 
-            // Using previous shift time stored during sync if needed, but assuming Evening for safety check
-            const needsApproval = validateTime('checkout', 'Evening'); // Approximation, ideally pass checked-in shift
+            const needsApproval = validateTime('checkout', 'Evening'); 
             if (needsApproval) {
                 promptApproval('checkout', payload);
                 return;
