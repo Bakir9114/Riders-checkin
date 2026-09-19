@@ -70,6 +70,10 @@
         .dark-modal { background: #111827; border-top-left-radius: 1.5rem; border-top-right-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
         
         select option { background: #1F2937; color: white; }
+        
+        /* Stepper Styles */
+        .step-indicator { width: 8px; height: 8px; border-radius: 50%; background: #374151; transition: all 0.3s; }
+        .step-indicator.active { background: #3B82F6; transform: scale(1.5); }
     </style>
 </head>
 <body class="bg-darkBg text-white min-h-screen flex flex-col antialiased">
@@ -145,10 +149,10 @@
         </div>
 
         <div class="space-y-4">
-            <button onclick="openCheckInModal()" id="btnCheckIn" class="w-full btn-glow-green rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3">
+            <button onclick="openCheckInWizard()" id="btnCheckIn" class="w-full btn-glow-green rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3">
                 <i data-lucide="log-in" class="w-6 h-6"></i> Check-In
             </button>
-            <button onclick="openCheckOutModal()" id="btnCheckOut" class="w-full btn-glow-red rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3 hidden">
+            <button onclick="openCheckOutWizard()" id="btnCheckOut" class="w-full btn-glow-red rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3 hidden">
                 <i data-lucide="log-out" class="w-6 h-6"></i> Check-Out
             </button>
         </div>
@@ -159,7 +163,7 @@
             <h3 class="font-bold text-yellow-500 text-sm mb-1">Approval Pending</h3>
             <p class="text-xs text-yellow-200/70 mb-3">Manager ki approval ka wait karein.</p>
             <div class="flex gap-2 w-full">
-                 <button onclick="checkApprovalStatusManual()" class="flex-1 bg-yellow-800/50 text-yellow-400 py-2 rounded-lg text-xs font-semibold hover:bg-yellow-700/50 border border-yellow-700/50">
+                 <button onclick="checkApprovalStatusManual()" id="btnRefreshStatus" class="flex-1 bg-yellow-800/50 text-yellow-400 py-2 rounded-lg text-xs font-semibold hover:bg-yellow-700/50 border border-yellow-700/50">
                     Refresh Status
                 </button>
                 <button onclick="cancelApprovalRequest()" class="flex-1 bg-red-900/30 text-red-400 py-2 rounded-lg text-xs font-semibold hover:bg-red-900/50 border border-red-800/50">
@@ -202,8 +206,201 @@
         </div>
     </div>
 
-    <!-- ==================== MODALS ==================== -->
+    <!-- ==================== WIZARD MODALS ==================== -->
     
+    <!-- Check-In Multi-Step Modal -->
+    <div id="checkInModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
+            
+            <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="log-in" class="text-emerald-400 w-6 h-6"></i> Check In
+                </h3>
+                <button onclick="closeModal('checkInModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="flex justify-center gap-3 pt-4 bg-[#111827]">
+                <div id="ci-dot-1" class="step-indicator active"></div>
+                <div id="ci-dot-2" class="step-indicator"></div>
+                <div id="ci-dot-3" class="step-indicator"></div>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative">
+                
+                <!-- Step 1: Shift Selection -->
+                <div id="ci-step-1" class="space-y-4">
+                    <h4 class="text-lg font-bold text-white mb-2">Step 1: Shift Selection</h4>
+                    <p class="text-sm text-gray-400 mb-4">Apni current shift select karein.</p>
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                        <select id="shiftSelection" class="glass-input text-sm" onchange="document.getElementById('ciBtnNext1').classList.remove('btn-disabled', 'bg-gray-700'); document.getElementById('ciBtnNext1').classList.add('btn-glow-blue');">
+                            <option value="" disabled selected>Apni shift chunein...</option>
+                            <option value="7 AM to 5 PM">7 AM to 5 PM</option>
+                            <option value="8 AM to 6 PM">8 AM to 6 PM</option>
+                            <option value="9 AM to 7 PM">9 AM to 7 PM</option>
+                            <option value="4 PM to Next day 2 AM">4 PM to 2 AM (Next Day)</option>
+                            <option value="5 PM to Next day 3 AM">5 PM to 3 AM (Next Day)</option>
+                            <option value="10 PM to Next Day 8 AM">10 PM to 8 AM (Next Day)</option>
+                            <option value="Other">Other Emergency Shift (10 Hrs)</option>
+                        </select>
+                    </div>
+                    <button type="button" id="ciBtnNext1" onclick="goToCiStep(2)" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold mt-4 btn-disabled">
+                        Next Step
+                    </button>
+                </div>
+
+                <!-- Step 2: Location -->
+                <div id="ci-step-2" class="space-y-4 hidden-screen">
+                    <h4 class="text-lg font-bold text-white mb-2">Step 2: Fetch Location</h4>
+                    <p class="text-sm text-gray-400 mb-4">Ghar se bahar aakar GPS fetch karein.</p>
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800 text-center">
+                        <button type="button" onclick="getLocation('checkIn')" class="w-full btn-glow-blue text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 mb-4">
+                            <i data-lucide="crosshair" class="w-5 h-5"></i> Detect Location
+                        </button>
+                        <input type="text" id="ci_address" readonly placeholder="No location detected" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none text-center">
+                        <div class="hidden"><input type="text" id="ci_lat"><input type="text" id="ci_lon"></div>
+                    </div>
+                    <div class="flex gap-3 mt-4">
+                        <button type="button" onclick="goToCiStep(1)" class="flex-1 bg-gray-800 text-white py-4 rounded-xl font-bold border border-gray-700">Back</button>
+                        <button type="button" id="ciBtnNext2" onclick="goToCiStep(3)" class="flex-1 bg-gray-700 text-white py-4 rounded-xl font-bold btn-disabled">Next Step</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Blind Auto-Selfie & Submit -->
+                <div id="ci-step-3" class="space-y-4 hidden-screen">
+                    <h4 class="text-lg font-bold text-white mb-2">Step 3: Auto-Selfie & Submit</h4>
+                    <p class="text-sm text-gray-400 mb-4">Camera mein dekhein, photo automatically click hokar hide ho jayegi.</p>
+                    
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                        <!-- Camera Area -->
+                        <div id="cameraArea">
+                            <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
+                                <video id="videoElement" autoplay playsinline></video>
+                                <div class="camera-guide"></div>
+                                
+                                <!-- Auto Capture Countdown Overlay -->
+                                <div id="cameraCountdownText" class="absolute inset-0 flex items-center justify-center text-7xl font-extrabold text-white drop-shadow-[0_0_15px_rgba(0,0,0,1)] z-30 hidden">3</div>
+                                
+                                <canvas id="canvasElement"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Success Message (Shown after hidden capture) -->
+                        <div id="selfieSuccessArea" class="hidden text-center p-6 bg-green-900/30 border border-green-700/50 rounded-xl">
+                            <i data-lucide="check-circle" class="w-12 h-12 text-green-500 mx-auto mb-2"></i>
+                            <p class="text-green-400 font-bold text-lg">Selfie Captured Securely</p>
+                            <p class="text-xs text-green-200/70 mt-1">Photo is encrypted and hidden for security. You can now submit.</p>
+                        </div>
+                        
+                        <input type="hidden" id="selfieData">
+                    </div>
+
+                    <div class="flex gap-3 mt-4">
+                        <!-- Removed Back button here to prevent looping camera logic. User must submit or close. -->
+                        <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="w-full btn-glow-green py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 btn-disabled">
+                            Final Submit <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check-Out Multi-Step Modal -->
+    <div id="checkOutModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
+            <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="log-out" class="text-rose-500 w-6 h-6"></i> Check Out
+                </h3>
+                <button onclick="closeModal('checkOutModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="flex justify-center gap-3 pt-4 bg-[#111827]">
+                <div id="co-dot-1" class="step-indicator active"></div>
+                <div id="co-dot-2" class="step-indicator"></div>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative">
+                <!-- Step 1: Location -->
+                <div id="co-step-1" class="space-y-4">
+                    <h4 class="text-lg font-bold text-white mb-2">Step 1: Fetch Location</h4>
+                    <p class="text-sm text-gray-400 mb-4">Ghar se bahar aakar GPS fetch karein.</p>
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800 text-center">
+                        <button type="button" onclick="getLocation('checkOut')" class="w-full btn-glow-blue text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 mb-4">
+                            <i data-lucide="crosshair" class="w-5 h-5"></i> Detect Location
+                        </button>
+                        <input type="text" id="co_address" readonly placeholder="No location detected" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none text-center">
+                        <div class="hidden"><input type="text" id="co_lat"><input type="text" id="co_lon"></div>
+                    </div>
+                    <button type="button" id="coBtnNext1" onclick="goToCoStep(2)" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold mt-4 btn-disabled">
+                        Next Step
+                    </button>
+                </div>
+
+                <!-- Step 2: Details & Submit -->
+                <div id="co-step-2" class="space-y-4 hidden-screen">
+                    <h4 class="text-lg font-bold text-white mb-2">Step 2: Ride Details</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Rides</label>
+                            <input type="number" id="totalRides" class="glass-input" placeholder="0">
+                        </div>
+                        <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total KMs</label>
+                            <input type="number" id="totalKms" step="0.1" class="glass-input" placeholder="0.0">
+                        </div>
+                    </div>
+
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                        <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Manual Entry</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual Orders</label>
+                                <input type="number" id="manualOrders" class="glass-input py-2 text-sm" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual KMs</label>
+                                <input type="number" id="manualKms" step="0.1" class="glass-input py-2 text-sm" placeholder="0.0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                        <label class="block text-sm font-bold text-gray-300 mb-3">Completed Last Order?</label>
+                        <div class="flex gap-4 mb-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="lastOrder" value="Yes" class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.remove('hidden')">
+                                <span class="ml-2 text-sm text-gray-300">Yes</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="lastOrder" value="No" checked class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.add('hidden'); document.getElementById('orderId').value=''">
+                                <span class="ml-2 text-sm text-gray-300">No</span>
+                            </label>
+                        </div>
+                        <div id="orderIdContainer" class="hidden">
+                            <label class="block text-[10px] text-gray-500 mb-1 uppercase">Order ID</label>
+                            <input type="text" id="orderId" class="glass-input py-2 text-sm" placeholder="e.g. ORDER-123">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 mt-4">
+                        <button type="button" onclick="goToCoStep(1)" class="flex-1 bg-gray-800 text-white py-4 rounded-xl font-bold border border-gray-700">Back</button>
+                        <button type="button" id="btnSubmitCheckOut" onclick="submitCheckOut()" class="flex-[2] btn-glow-red py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2">
+                            Submit Check-Out <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Approval Exception Modal -->
     <div id="approvalModal" class="hidden-screen fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="dark-modal w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-slide-up border border-gray-700">
@@ -234,151 +431,6 @@
         </div>
     </div>
 
-    <!-- Check-In Modal -->
-    <div id="checkInModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i data-lucide="log-in" class="text-emerald-400 w-6 h-6"></i> Check In
-                </h3>
-                <button onclick="closeModal('checkInModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-                <!-- Location -->
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="text-sm font-bold text-gray-300 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i> Location</label>
-                        <button type="button" onclick="getLocation('checkIn')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex gap-1 items-center">
-                            <i data-lucide="crosshair" class="w-3 h-3"></i> Locate
-                        </button>
-                    </div>
-                    <input type="text" id="ci_address" readonly placeholder="Tap Locate to get GPS" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none">
-                    <div class="flex gap-2 mt-2 hidden"><input type="text" id="ci_lat"><input type="text" id="ci_lon"></div>
-                </div>
-
-                <!-- Camera with Timestamp Logic -->
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="camera" class="w-4 h-4 text-blue-400"></i> Live Selfie</label>
-                    <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
-                        <video id="videoElement" autoplay playsinline></video>
-                        <div class="camera-guide"></div>
-                        <canvas id="canvasElement"></canvas>
-                        <img id="capturedImage" class="hidden w-full h-full object-cover absolute inset-0 z-20 rounded-lg">
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="button" id="btnCapture" onclick="captureImage()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-2">
-                            <i data-lucide="aperture" class="w-4 h-4"></i> Click Photo
-                        </button>
-                        <button type="button" id="btnRetake" onclick="retakePhoto()" class="hidden flex-1 bg-gray-700 text-white py-3 rounded-lg text-sm font-semibold hover:bg-gray-600 flex items-center justify-center gap-2">
-                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Retake
-                        </button>
-                    </div>
-                    <input type="hidden" id="selfieData">
-                </div>
-
-                <!-- Advanced Shift Dropdown -->
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4 text-blue-400"></i> Select Shift</label>
-                    <select id="shiftSelection" class="glass-input text-sm">
-                        <option value="" disabled selected>Apni shift chunein...</option>
-                        <option value="7 AM to 5 PM">7 AM to 5 PM</option>
-                        <option value="8 AM to 6 PM">8 AM to 6 PM</option>
-                        <option value="9 AM to 7 PM">9 AM to 7 PM</option>
-                        <option value="4 PM to Next day 2 AM">4 PM to 2 AM (Next Day)</option>
-                        <option value="5 PM to Next day 3 AM">5 PM to 3 AM (Next Day)</option>
-                        <option value="10 PM to Next Day 8 AM">10 PM to 8 AM (Next Day)</option>
-                        <option value="Other">Other Emergency Shift (10 Hrs)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="p-5 border-t border-gray-800 bg-[#111827] sticky bottom-0 z-10">
-                <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="w-full btn-glow-green py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 text-lg">
-                    Submit Check-In <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Check-Out Modal -->
-    <div id="checkOutModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i data-lucide="log-out" class="text-rose-500 w-6 h-6"></i> Check Out
-                </h3>
-                <button onclick="closeModal('checkOutModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="text-sm font-bold text-gray-300 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i> End Location</label>
-                        <button type="button" onclick="getLocation('checkOut')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex gap-1">
-                            <i data-lucide="crosshair" class="w-3 h-3"></i> Locate
-                        </button>
-                    </div>
-                    <input type="text" id="co_address" readonly placeholder="Tap Locate" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none">
-                    <div class="hidden"><input type="text" id="co_lat"><input type="text" id="co_lon"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Rides</label>
-                        <input type="number" id="totalRides" class="glass-input" placeholder="0">
-                    </div>
-                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total KMs</label>
-                        <input type="number" id="totalKms" step="0.1" class="glass-input" placeholder="0.0">
-                    </div>
-                </div>
-
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Manual Entry</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual Orders</label>
-                            <input type="number" id="manualOrders" class="glass-input py-2 text-sm" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual KMs</label>
-                            <input type="number" id="manualKms" step="0.1" class="glass-input py-2 text-sm" placeholder="0.0">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="block text-sm font-bold text-gray-300 mb-3">Completed Last Order?</label>
-                    <div class="flex gap-4 mb-3">
-                        <label class="flex items-center">
-                            <input type="radio" name="lastOrder" value="Yes" class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.remove('hidden')">
-                            <span class="ml-2 text-sm text-gray-300">Yes</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="lastOrder" value="No" checked class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.add('hidden'); document.getElementById('orderId').value=''">
-                            <span class="ml-2 text-sm text-gray-300">No</span>
-                        </label>
-                    </div>
-                    <div id="orderIdContainer" class="hidden">
-                        <label class="block text-[10px] text-gray-500 mb-1 uppercase">Order ID</label>
-                        <input type="text" id="orderId" class="glass-input py-2 text-sm" placeholder="e.g. ORDER-123">
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-5 border-t border-gray-800 bg-[#111827] sticky bottom-0 z-10">
-                <button type="button" id="btnSubmitCheckOut" onclick="submitCheckOut()" class="w-full btn-glow-red py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 text-lg">
-                    Submit Check-Out <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
         // --- APPS SCRIPT URL ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
@@ -388,12 +440,13 @@
         let isSubmitting = false;
         let pollingInterval = null;
         let approvalContext = {};
+        let autoCaptureTimer = null;
         
         // Globals to remember shift during checkout
         let activeShiftName = "";
         let activeCheckInTimeMs = 0;
 
-        // --- ALL 7 SHIFTS LOGIC DICTIONARY ---
+        // --- 7 SHIFTS CONFIG ---
         const shiftsConfig = {
             '7 AM to 5 PM': { startH: 7, startM: 0, endH: 17, endM: 0 },
             '8 AM to 6 PM': { startH: 8, startM: 0, endH: 18, endM: 0 },
@@ -444,11 +497,7 @@
         }
 
         async function apiCall(action, payload) {
-            if(!APPS_SCRIPT_WEB_APP_URL || APPS_SCRIPT_WEB_APP_URL.includes('YOUR_GOOGLE')) {
-                throw new Error("Backend URL update karein code mein.");
-            }
             const controller = new AbortController();
-            // TIMEOUT 60 SECONDS
             const timeoutId = setTimeout(() => controller.abort(), 60000); 
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
@@ -464,7 +513,7 @@
             } catch (error) {
                 clearTimeout(timeoutId);
                 if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai, dobara try karein.");
-                throw error;
+                throw new Error("Data fetching failed. " + error.message);
             }
         }
 
@@ -475,7 +524,7 @@
 
             const btn = document.getElementById('btnLogin');
             btn.disabled = true; 
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.classList.add('btn-disabled');
             showLoader("Authenticating...", "Secure login in progress");
             
             try {
@@ -488,7 +537,7 @@
             } finally {
                 hideLoader();
                 btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.remove('btn-disabled');
             }
         }
 
@@ -513,6 +562,7 @@
         function logout() {
             localStorage.removeItem('riderSession');
             currentUser = null; stopCamera(); stopPolling();
+            if(autoCaptureTimer) clearInterval(autoCaptureTimer);
             document.getElementById('loginForm').reset();
             showScreen('loginScreen');
         }
@@ -543,6 +593,176 @@
             } catch (e) { console.error("Sync error", e); }
         }
 
+        // --- WIZARD LOGIC ---
+        function openCheckInWizard() {
+            document.getElementById('checkInModal').classList.remove('hidden-screen');
+            goToCiStep(1);
+        }
+
+        function goToCiStep(step) {
+            ['ci-step-1', 'ci-step-2', 'ci-step-3'].forEach(id => document.getElementById(id).classList.add('hidden-screen'));
+            ['ci-dot-1', 'ci-dot-2', 'ci-dot-3'].forEach(id => document.getElementById(id).classList.remove('active'));
+            
+            document.getElementById(`ci-step-${step}`).classList.remove('hidden-screen');
+            document.getElementById(`ci-dot-${step}`).classList.add('active');
+            
+            if (step === 3) {
+                // Start Camera and Auto Capture Process
+                startCamera().then(success => {
+                    if (success) startAutoCaptureCountdown();
+                });
+            } else {
+                stopCamera();
+                if(autoCaptureTimer) clearInterval(autoCaptureTimer);
+            }
+        }
+
+        function openCheckOutWizard() {
+            document.getElementById('checkOutModal').classList.remove('hidden-screen');
+            goToCoStep(1);
+        }
+
+        function goToCoStep(step) {
+            ['co-step-1', 'co-step-2'].forEach(id => document.getElementById(id).classList.add('hidden-screen'));
+            ['co-dot-1', 'co-dot-2'].forEach(id => document.getElementById(id).classList.remove('active'));
+            
+            document.getElementById(`co-step-${step}`).classList.remove('hidden-screen');
+            document.getElementById(`co-dot-${step}`).classList.add('active');
+        }
+
+        function closeModal(id) { 
+            document.getElementById(id).classList.add('hidden-screen'); 
+            stopCamera(); 
+            if(autoCaptureTimer) clearInterval(autoCaptureTimer);
+        }
+
+        // --- GPS ---
+        function getLocation(type) {
+            const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
+            addrInput.value = "Fetching GPS...";
+            if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
+                    
+                    if (position.coords.accuracy > 100 && !isTestUser) {
+                        addrInput.value = "";
+                        return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Ghar se bahar aakar try karein ya Mock Location band karein.`, "error");
+                    }
+                    
+                    const lat = position.coords.latitude, lon = position.coords.longitude;
+                    document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
+                    document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                        const data = await res.json();
+                        addrInput.value = data.display_name || "Location found";
+                        
+                        // Enable Next Button
+                        const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
+                        nextBtn.classList.remove('btn-disabled', 'bg-gray-700');
+                        nextBtn.classList.add('btn-glow-blue');
+                        
+                    } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
+                },
+                (err) => { addrInput.value = ""; showToast("Location Access zaruri hai.", "error"); },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        // --- CAMERA WITH BLIND AUTO CAPTURE ---
+        async function startCamera() {
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                document.getElementById('videoElement').srcObject = currentStream;
+                return true;
+            } catch (err) { 
+                showToast("Camera permission denied.", "error"); 
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); document.getElementById('videoElement').srcObject = null; }
+        }
+
+        function startAutoCaptureCountdown() {
+            const overlayText = document.getElementById('cameraCountdownText');
+            
+            // Reset UI for camera view
+            document.getElementById('cameraArea').classList.remove('hidden');
+            document.getElementById('selfieSuccessArea').classList.add('hidden');
+            document.getElementById('selfieData').value = '';
+            document.getElementById('btnSubmitCheckIn').classList.add('btn-disabled');
+            
+            let countdown = 3;
+            overlayText.innerText = countdown;
+            overlayText.classList.remove('hidden');
+            
+            if(autoCaptureTimer) clearInterval(autoCaptureTimer);
+            
+            autoCaptureTimer = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    overlayText.innerText = countdown;
+                } else {
+                    clearInterval(autoCaptureTimer);
+                    overlayText.innerText = "📸";
+                    captureImageAndHide();
+                    setTimeout(() => overlayText.classList.add('hidden'), 500);
+                }
+            }, 1000);
+        }
+
+        function captureImageAndHide() {
+            if (!currentStream) return;
+            const flash = document.getElementById('screenFlash');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvasElement');
+            
+            flash.classList.remove('hidden');
+            flash.classList.add('animate-flash');
+            
+            setTimeout(() => {
+                // COMPRESSION
+                const MAX_WIDTH = 480; 
+                const scale = MAX_WIDTH / video.videoWidth;
+                canvas.width = MAX_WIDTH; 
+                canvas.height = video.videoHeight * scale;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width, 0); 
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // TIMESTAMP
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 12px sans-serif";
+                const timeString = new Date().toLocaleString('en-IN');
+                ctx.fillText(`Time: ${timeString}`, 10, canvas.height - 10);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+                document.getElementById('selfieData').value = dataUrl;
+                
+                // STOP CAMERA IMMEDIATELY (BLIND CAPTURE)
+                stopCamera();
+                
+                // HIDE CAMERA, SHOW SUCCESS MSG
+                document.getElementById('cameraArea').classList.add('hidden');
+                document.getElementById('selfieSuccessArea').classList.remove('hidden');
+                
+                // Allow Submit
+                document.getElementById('btnSubmitCheckIn').classList.remove('btn-disabled');
+                
+                setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
+            }, 100);
+        }
+
+        // --- SUBMIT WITH DOUBLE CLICK LOCK & SHIFT VALIDATION ---
         function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
             if (selectedShift === 'Other') {
                 if (type === 'checkin') return true; 
@@ -581,248 +801,6 @@
             return false;
         }
 
-        async function checkInitialApprovalStatus() {
-             try {
-                const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
-                if (res.approvalStatus === 'pending') {
-                    showApprovalPendingUI();
-                }
-             } catch(e) {}
-        }
-
-        function showApprovalPendingUI() {
-            document.getElementById('approvalStatusArea').classList.remove('hidden');
-            document.getElementById('btnCheckIn').classList.add('hidden');
-            document.getElementById('btnCheckOut').classList.add('hidden');
-            startPolling();
-        }
-
-        function startPolling() {
-            if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(checkApprovalStatusSilent, 10000);
-        }
-
-        function stopPolling() {
-            if (pollingInterval) clearInterval(pollingInterval);
-        }
-
-        async function checkApprovalStatusSilent() {
-            if(!currentUser) return;
-            try {
-                const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
-                if (res.approvalStatus === 'approved') {
-                    stopPolling();
-                    document.getElementById('approvalStatusArea').classList.add('hidden');
-                    showToast("Manager approved! Processing...", "success");
-                    
-                    if(approvalContext && approvalContext.action === 'checkin') executeFinalSubmit('checkin', approvalContext.payload);
-                    else if (approvalContext && approvalContext.action === 'checkout') executeFinalSubmit('checkout', approvalContext.payload);
-                    else syncShiftState();
-                    
-                    approvalContext = {};
-                } else if (res.approvalStatus === 'rejected') {
-                    stopPolling();
-                    document.getElementById('approvalStatusArea').classList.add('hidden');
-                    showToast("Manager rejected request.", "error");
-                    approvalContext = {};
-                    syncShiftState();
-                }
-            } catch (e) {}
-        }
-
-        async function checkApprovalStatusManual() {
-            showLoader("Checking Status...");
-            await checkApprovalStatusSilent();
-            hideLoader();
-        }
-
-        async function cancelApprovalRequest() {
-            showLoader("Cancelling...");
-            try {
-                await apiCall('cancelApproval', { riderId: currentUser.riderId });
-                stopPolling();
-                document.getElementById('approvalStatusArea').classList.add('hidden');
-                approvalContext = {};
-                showToast("Request cancelled.", "success");
-                syncShiftState();
-            } catch(e) { showToast(e.message, "error"); } 
-            finally { hideLoader(); }
-        }
-
-        function promptApproval(type, contextPayload) {
-            approvalContext = { action: type, payload: contextPayload };
-            document.getElementById('approvalModalTitle').innerText = type === 'checkin' ? "Late Check-In" : "Early Check-Out";
-            document.getElementById('approvalModal').classList.remove('hidden-screen');
-        }
-
-        async function submitApprovalRequest() {
-            const reason = document.getElementById('approvalReason').value;
-            if(!reason) return showToast("Select a reason.", "error");
-
-            const shiftSelector = document.getElementById('shiftSelection');
-            const shiftT = shiftSelector ? shiftSelector.value : activeShiftName;
-            
-            showLoader("Sending Request...");
-            
-            try {
-                await apiCall('requestApproval', {
-                    riderId: currentUser.riderId, riderName: currentUser.riderName,
-                    type: approvalContext.action, reason: reason, shiftTime: shiftT
-                });
-                
-                closeModal('approvalModal'); closeModal('checkInModal'); closeModal('checkOutModal');
-                showApprovalPendingUI();
-                showToast("Request sent to manager.", "success");
-            } catch (e) { showToast(e.message, "error"); } 
-            finally { hideLoader(); }
-        }
-
-        async function loadPendingApprovals() {
-            const container = document.getElementById('approvalsList');
-            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
-            lucide.createIcons();
-            
-            try {
-                const res = await apiCall('getPendingApprovals', {});
-                const data = res.data;
-                
-                if (data.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800">
-                            <i data-lucide="check-circle" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
-                            <p class="text-gray-400 font-medium">No pending approvals.</p>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = '';
-                    data.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg";
-                        card.innerHTML = `
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h4 class="font-bold text-white">${item.riderName} <span class="text-xs text-gray-500 ml-1">(${item.riderId})</span></h4>
-                                    <span class="inline-block mt-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-500 text-xs font-bold rounded border border-yellow-700/50">
-                                        ${item.type.toUpperCase()} EXCEPTION
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="bg-darkBg rounded-lg p-3 text-sm text-gray-300 mb-4 border border-gray-800">
-                                <p><span class="text-gray-500">Reason:</span> ${item.reason}</p>
-                                ${item.shiftTime ? `<p><span class="text-gray-500">Shift:</span> ${item.shiftTime}</p>` : ''}
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="respondApproval(${item.rowNumber}, 'approved')" class="flex-1 btn-glow-green py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1">
-                                    <i data-lucide="check" class="w-4 h-4"></i> Approve
-                                </button>
-                                <button onclick="respondApproval(${item.rowNumber}, 'rejected')" class="flex-1 bg-gray-800 border border-red-500/30 text-red-400 py-2 rounded-lg text-sm font-semibold hover:bg-gray-700 flex items-center justify-center gap-1">
-                                    <i data-lucide="x" class="w-4 h-4"></i> Reject
-                                </button>
-                            </div>
-                        `;
-                        container.appendChild(card);
-                    });
-                }
-                lucide.createIcons();
-            } catch(e) {
-                container.innerHTML = `<p class="text-red-500 text-center p-4">Error loading data.</p>`;
-            }
-        }
-
-        async function respondApproval(rowNum, status) {
-            showLoader("Updating...");
-            try {
-                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
-                showToast(`Request ${status}`, "success");
-                loadPendingApprovals();
-            } catch(e) { showToast(e.message, "error"); } 
-            finally { hideLoader(); }
-        }
-
-        function getLocation(type) {
-            const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
-            addrInput.value = "Fetching GPS...";
-            if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
-
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
-                    
-                    if (position.coords.accuracy > 100 && !isTestUser) {
-                        addrInput.value = "";
-                        return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Ghar se bahar aakar try karein ya Mock Location band karein.`, "error");
-                    }
-                    
-                    const lat = position.coords.latitude, lon = position.coords.longitude;
-                    document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
-                    document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
-                        const data = await res.json();
-                        addrInput.value = data.display_name || "Location found";
-                    } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
-                },
-                (err) => { addrInput.value = ""; showToast("Location Access zaruri hai.", "error"); },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
-        }
-
-        async function startCamera() {
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                document.getElementById('videoElement').srcObject = currentStream;
-            } catch (err) { showToast("Camera permission denied.", "error"); }
-        }
-
-        function stopCamera() {
-            if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); document.getElementById('videoElement').srcObject = null; }
-        }
-
-        function captureImage() {
-            if (!currentStream) return;
-            const flash = document.getElementById('screenFlash');
-            const video = document.getElementById('videoElement');
-            const canvas = document.getElementById('canvasElement');
-            const img = document.getElementById('capturedImage');
-            
-            flash.classList.remove('hidden');
-            flash.classList.add('animate-flash');
-            
-            setTimeout(() => {
-                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                
-                ctx.translate(canvas.width, 0); 
-                ctx.scale(-1, 1);
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
-
-                ctx.fillStyle = "white";
-                ctx.font = "bold 14px sans-serif";
-                const timeString = new Date().toLocaleString('en-IN');
-                ctx.fillText(`Time: ${timeString}`, 15, canvas.height - 15);
-
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-                document.getElementById('selfieData').value = dataUrl;
-                img.src = dataUrl; img.classList.remove('hidden');
-                
-                document.getElementById('btnCapture').classList.add('hidden');
-                document.getElementById('btnRetake').classList.remove('hidden');
-                setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
-            }, 100);
-        }
-
-        function retakePhoto() {
-            document.getElementById('capturedImage').classList.add('hidden');
-            document.getElementById('selfieData').value = '';
-            document.getElementById('btnCapture').classList.remove('hidden');
-            document.getElementById('btnRetake').classList.add('hidden');
-        }
-
         async function submitCheckIn() {
             if(isSubmitting) return;
             const shift = document.getElementById('shiftSelection').value;
@@ -830,7 +808,7 @@
             
             if (!shift) return showToast("Shift time select karein.", "error");
             if (!lat) return showToast("Location zaruri hai.", "error");
-            if (!selfie) return showToast("Selfie click karein.", "error");
+            if (!selfie) return showToast("Selfie generate nahi hui.", "error");
 
             const payload = {
                 type: 'checkin', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
@@ -882,7 +860,7 @@
             isSubmitting = true;
             const btnId = type === 'checkin' ? 'btnSubmitCheckIn' : 'btnSubmitCheckOut';
             const btn = document.getElementById(btnId);
-            if(btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+            if(btn) { btn.disabled = true; btn.classList.add('btn-disabled'); }
             
             showLoader("Submitting...");
 
@@ -891,19 +869,187 @@
                 showToast(type === 'checkin' ? "Check-In Successful!" : "Check-Out Successful!", "success");
                 closeModal(type === 'checkin' ? 'checkInModal' : 'checkOutModal'); 
                 
-                if(type === 'checkin') { document.getElementById('checkInForm').reset(); retakePhoto(); }
                 syncShiftState();
             } catch (e) { showToast(e.message, "error"); } 
             finally { 
                 isSubmitting = false; 
-                if(btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                if(btn) { btn.disabled = false; btn.classList.remove('btn-disabled'); }
                 hideLoader(); 
             }
         }
 
-        function openCheckInModal() { document.getElementById('checkInModal').classList.remove('hidden-screen'); startCamera(); }
-        function openCheckOutModal() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden-screen'); if(id==='checkInModal') stopCamera(); }
+        // --- APPROVAL POLLING ---
+        async function checkInitialApprovalStatus() {
+             try {
+                const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
+                if (res.approvalStatus === 'pending') {
+                    showApprovalPendingUI();
+                }
+             } catch(e) {}
+        }
+
+        function showApprovalPendingUI() {
+            document.getElementById('approvalStatusArea').classList.remove('hidden');
+            document.getElementById('btnCheckIn').classList.add('hidden');
+            document.getElementById('btnCheckOut').classList.add('hidden');
+            startPolling();
+        }
+
+        function startPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(checkApprovalStatusSilent, 12000); // Poll every 12 seconds
+        }
+
+        function stopPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+        }
+
+        let isPolling = false;
+        async function checkApprovalStatusSilent() {
+            if(!currentUser || isPolling) return;
+            isPolling = true;
+            try {
+                const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
+                if (res.approvalStatus === 'approved') {
+                    stopPolling();
+                    document.getElementById('approvalStatusArea').classList.add('hidden');
+                    showToast("Manager approved! Processing...", "success");
+                    
+                    if(approvalContext && approvalContext.action === 'checkin') executeFinalSubmit('checkin', approvalContext.payload);
+                    else if (approvalContext && approvalContext.action === 'checkout') executeFinalSubmit('checkout', approvalContext.payload);
+                    else syncShiftState();
+                    
+                    approvalContext = {};
+                } else if (res.approvalStatus === 'rejected') {
+                    stopPolling();
+                    document.getElementById('approvalStatusArea').classList.add('hidden');
+                    showToast("Manager rejected request.", "error");
+                    approvalContext = {};
+                    syncShiftState();
+                }
+            } catch (e) {} finally { isPolling = false; }
+        }
+
+        async function checkApprovalStatusManual() {
+            const btn = document.getElementById('btnRefreshStatus');
+            btn.disabled = true;
+            showLoader("Checking Status...");
+            await checkApprovalStatusSilent();
+            hideLoader();
+            btn.disabled = false;
+        }
+
+        async function cancelApprovalRequest() {
+            showLoader("Cancelling...");
+            try {
+                await apiCall('cancelApproval', { riderId: currentUser.riderId });
+                stopPolling();
+                document.getElementById('approvalStatusArea').classList.add('hidden');
+                approvalContext = {};
+                showToast("Request cancelled.", "success");
+                syncShiftState();
+            } catch(e) { showToast(e.message, "error"); } 
+            finally { hideLoader(); }
+        }
+
+        function promptApproval(type, contextPayload) {
+            approvalContext = { action: type, payload: contextPayload };
+            document.getElementById('approvalModalTitle').innerText = type === 'checkin' ? "Late Check-In" : "Early Check-Out";
+            document.getElementById('approvalModal').classList.remove('hidden-screen');
+        }
+
+        async function submitApprovalRequest() {
+            const reason = document.getElementById('approvalReason').value;
+            if(!reason) return showToast("Select a reason.", "error");
+
+            const shiftSelector = document.getElementById('shiftSelection');
+            const shiftT = shiftSelector ? shiftSelector.value : activeShiftName;
+            
+            showLoader("Sending Request...");
+            
+            try {
+                await apiCall('requestApproval', {
+                    riderId: currentUser.riderId, riderName: currentUser.riderName,
+                    type: approvalContext.action, reason: reason, shiftTime: shiftT
+                });
+                
+                closeModal('approvalModal'); closeModal('checkInModal'); closeModal('checkOutModal');
+                showApprovalPendingUI();
+                showToast("Request sent to manager.", "success");
+            } catch (e) { showToast(e.message, "error"); } 
+            finally { hideLoader(); }
+        }
+
+        // --- MANAGER DASHBOARD FUNCTIONS ---
+        async function loadPendingApprovals() {
+            const container = document.getElementById('approvalsList');
+            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
+            lucide.createIcons();
+            
+            try {
+                const res = await apiCall('getPendingApprovals', {});
+                const data = res.data;
+                
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800">
+                            <i data-lucide="check-circle" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                            <p class="text-gray-400 font-medium">No pending approvals.</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '';
+                    data.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold text-white">${item.riderName} <span class="text-xs text-gray-500 ml-1">(${item.riderId})</span></h4>
+                                    <span class="inline-block mt-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-500 text-xs font-bold rounded border border-yellow-700/50">
+                                        ${item.type.toUpperCase()} EXCEPTION
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-darkBg rounded-lg p-3 text-sm text-gray-300 mb-4 border border-gray-800">
+                                <p><span class="text-gray-500">Reason:</span> ${item.reason}</p>
+                                ${item.shiftTime ? `<p><span class="text-gray-500">Shift:</span> ${item.shiftTime}</p>` : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="respondApproval(${item.rowNumber}, 'approved', this)" class="flex-1 btn-glow-green py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1">
+                                    <i data-lucide="check" class="w-4 h-4"></i> Approve
+                                </button>
+                                <button onclick="respondApproval(${item.rowNumber}, 'rejected', this)" class="flex-1 bg-gray-800 border border-red-500/30 text-red-400 py-2 rounded-lg text-sm font-semibold hover:bg-gray-700 flex items-center justify-center gap-1">
+                                    <i data-lucide="x" class="w-4 h-4"></i> Reject
+                                </button>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+                lucide.createIcons();
+            } catch(e) {
+                container.innerHTML = `<p class="text-red-500 text-center p-4">Error loading data. Retrying...</p>`;
+            }
+        }
+
+        async function respondApproval(rowNum, status, btnElement) {
+            // STRICT DUPLICATE PREVENTION
+            btnElement.disabled = true;
+            btnElement.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`;
+            lucide.createIcons();
+
+            try {
+                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
+                showToast(`Request ${status}`, "success");
+                loadPendingApprovals();
+            } catch(e) { 
+                showToast(e.message, "error"); 
+                btnElement.disabled = false;
+                btnElement.innerHTML = status === 'approved' ? `<i data-lucide="check" class="w-4 h-4"></i> Approve` : `<i data-lucide="x" class="w-4 h-4"></i> Reject`;
+                lucide.createIcons();
+            } 
+        }
 
         window.onload = () => {
             const saved = localStorage.getItem('riderSession');
