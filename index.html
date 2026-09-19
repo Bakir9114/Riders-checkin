@@ -298,7 +298,6 @@
                     </div>
 
                     <div class="flex gap-3 mt-4">
-                        <!-- Removed Back button here to prevent looping camera logic. User must submit or close. -->
                         <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="w-full btn-glow-green py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 btn-disabled">
                             Final Submit <i data-lucide="check-circle" class="w-5 h-5"></i>
                         </button>
@@ -442,11 +441,10 @@
         let approvalContext = {};
         let autoCaptureTimer = null;
         
-        // Globals to remember shift during checkout
         let activeShiftName = "";
         let activeCheckInTimeMs = 0;
 
-        // --- 7 SHIFTS CONFIG ---
+        // --- SHIFTS CONFIG ---
         const shiftsConfig = {
             '7 AM to 5 PM': { startH: 7, startM: 0, endH: 17, endM: 0 },
             '8 AM to 6 PM': { startH: 8, startM: 0, endH: 18, endM: 0 },
@@ -496,9 +494,10 @@
             lucide.createIcons();
         }
 
-        async function apiCall(action, payload) {
+        async function apiCall(action, payload, retryCount = 1) {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000); 
+            const timeoutId = setTimeout(() => controller.abort(), 12000); 
+            
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', body: JSON.stringify({ action, ...payload }),
@@ -507,13 +506,20 @@
                     redirect: 'follow' 
                 });
                 clearTimeout(timeoutId);
+                
                 const result = await response.json();
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
             } catch (error) {
                 clearTimeout(timeoutId);
+                if (retryCount > 0 && (error.message.includes('JSON') || error.name === 'AbortError' || error.message.includes('Unexpected token'))) {
+                    console.log(`Retrying API Call... ${action}`);
+                    await new Promise(r => setTimeout(r, 1000)); 
+                    return apiCall(action, payload, retryCount - 1);
+                }
+                
                 if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai, dobara try karein.");
-                throw new Error("Data fetching failed. " + error.message);
+                throw new Error(error.message || "Network Error");
             }
         }
 
@@ -555,7 +561,7 @@
                 if(currentUser.riderName) {
                     document.getElementById('userAvatar').innerText = currentUser.riderName.charAt(0).toUpperCase();
                 }
-                syncShiftState();
+                syncShiftState(); 
             }
         }
 
@@ -593,7 +599,6 @@
             } catch (e) { console.error("Sync error", e); }
         }
 
-        // --- WIZARD LOGIC ---
         function openCheckInWizard() {
             document.getElementById('checkInModal').classList.remove('hidden-screen');
             goToCiStep(1);
@@ -607,7 +612,6 @@
             document.getElementById(`ci-dot-${step}`).classList.add('active');
             
             if (step === 3) {
-                // Start Camera and Auto Capture Process
                 startCamera().then(success => {
                     if (success) startAutoCaptureCountdown();
                 });
@@ -636,7 +640,6 @@
             if(autoCaptureTimer) clearInterval(autoCaptureTimer);
         }
 
-        // --- GPS ---
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
@@ -659,7 +662,6 @@
                         const data = await res.json();
                         addrInput.value = data.display_name || "Location found";
                         
-                        // Enable Next Button
                         const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
                         nextBtn.classList.remove('btn-disabled', 'bg-gray-700');
                         nextBtn.classList.add('btn-glow-blue');
@@ -671,7 +673,6 @@
             );
         }
 
-        // --- CAMERA WITH BLIND AUTO CAPTURE ---
         async function startCamera() {
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -690,7 +691,6 @@
         function startAutoCaptureCountdown() {
             const overlayText = document.getElementById('cameraCountdownText');
             
-            // Reset UI for camera view
             document.getElementById('cameraArea').classList.remove('hidden');
             document.getElementById('selfieSuccessArea').classList.add('hidden');
             document.getElementById('selfieData').value = '';
@@ -725,7 +725,6 @@
             flash.classList.add('animate-flash');
             
             setTimeout(() => {
-                // COMPRESSION
                 const MAX_WIDTH = 480; 
                 const scale = MAX_WIDTH / video.videoWidth;
                 canvas.width = MAX_WIDTH; 
@@ -736,7 +735,6 @@
                 ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // TIMESTAMP
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                 ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
@@ -748,21 +746,17 @@
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
                 document.getElementById('selfieData').value = dataUrl;
                 
-                // STOP CAMERA IMMEDIATELY (BLIND CAPTURE)
                 stopCamera();
                 
-                // HIDE CAMERA, SHOW SUCCESS MSG
                 document.getElementById('cameraArea').classList.add('hidden');
                 document.getElementById('selfieSuccessArea').classList.remove('hidden');
                 
-                // Allow Submit
                 document.getElementById('btnSubmitCheckIn').classList.remove('btn-disabled');
                 
                 setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
             }, 100);
         }
 
-        // --- SUBMIT WITH DOUBLE CLICK LOCK & SHIFT VALIDATION ---
         function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
             if (selectedShift === 'Other') {
                 if (type === 'checkin') return true; 
@@ -878,7 +872,6 @@
             }
         }
 
-        // --- APPROVAL POLLING ---
         async function checkInitialApprovalStatus() {
              try {
                 const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
@@ -897,7 +890,7 @@
 
         function startPolling() {
             if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(checkApprovalStatusSilent, 12000); // Poll every 12 seconds
+            pollingInterval = setInterval(checkApprovalStatusSilent, 10000); // Check every 10 secs
         }
 
         function stopPolling() {
@@ -910,6 +903,7 @@
             isPolling = true;
             try {
                 const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
+                // Handles direct sheet edits (if manager manually types approved/rejected)
                 if (res.approvalStatus === 'approved') {
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
@@ -980,7 +974,6 @@
             finally { hideLoader(); }
         }
 
-        // --- MANAGER DASHBOARD FUNCTIONS ---
         async function loadPendingApprovals() {
             const container = document.getElementById('approvalsList');
             container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
@@ -1034,7 +1027,6 @@
         }
 
         async function respondApproval(rowNum, status, btnElement) {
-            // STRICT DUPLICATE PREVENTION
             btnElement.disabled = true;
             btnElement.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`;
             lucide.createIcons();
