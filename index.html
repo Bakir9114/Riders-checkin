@@ -494,7 +494,7 @@
             lucide.createIcons();
         }
 
-        async function apiCall(action, payload, retryCount = 1) {
+        async function apiCall(action, payload) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 12000); 
             
@@ -512,12 +512,6 @@
                 return result;
             } catch (error) {
                 clearTimeout(timeoutId);
-                if (retryCount > 0 && (error.message.includes('JSON') || error.name === 'AbortError' || error.message.includes('Unexpected token'))) {
-                    console.log(`Retrying API Call... ${action}`);
-                    await new Promise(r => setTimeout(r, 1000)); 
-                    return apiCall(action, payload, retryCount - 1);
-                }
-                
                 if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai, dobara try karein.");
                 throw new Error(error.message || "Network Error");
             }
@@ -903,7 +897,6 @@
             isPolling = true;
             try {
                 const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
-                // Handles direct sheet edits (if manager manually types approved/rejected)
                 if (res.approvalStatus === 'approved') {
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
@@ -1040,12 +1033,21 @@
                 btnElement.disabled = false;
                 btnElement.innerHTML = status === 'approved' ? `<i data-lucide="check" class="w-4 h-4"></i> Approve` : `<i data-lucide="x" class="w-4 h-4"></i> Reject`;
                 lucide.createIcons();
-            } 
+            }
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('riderSession');
-            if (saved) { currentUser = JSON.parse(saved); setupDashboard(); }
+            const session = localStorage.getItem('riderSession');
+            if (session) {
+                try {
+                    currentUser = JSON.parse(session);
+                    setupDashboard();
+                } catch(e) {
+                    showScreen('loginScreen');
+                }
+            } else {
+                showScreen('loginScreen');
+            }
         };
     </script>
 </body>
