@@ -787,6 +787,23 @@
             } catch (e) { showToast(e.message, "error"); } finally { hideLoader(); }
         }
 
+        async function respondApproval(rowNumber, statusResponse, buttonElement) {
+            const originalHtml = buttonElement.innerHTML;
+            buttonElement.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Wait...`;
+            buttonElement.disabled = true;
+            
+            try {
+                await apiCall('respondApproval', { rowNumber, statusResponse });
+                showToast(`Request ${statusResponse}!`, "success");
+                loadPendingApprovals(); // Instantly refresh the manager's list
+            } catch (e) {
+                showToast(e.message, "error");
+                buttonElement.innerHTML = originalHtml;
+                buttonElement.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
         async function loadPendingApprovals() {
             const container = document.getElementById('approvalsList'); container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`; lucide.createIcons();
             try {
