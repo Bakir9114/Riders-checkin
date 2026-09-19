@@ -339,7 +339,13 @@
     </div>
 
     <script>
+        // REPLACE WITH YOUR BRAND NEW DEPLOYMENT URL
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
+        
+        // --- STORE GEO-FENCE COORDINATES ---
+        const STORE_LAT = 28.6099951; 
+        const STORE_LON = 77.3400511;
+        const ALLOWED_RADIUS_METERS = 100;
         
         let currentUser = null;
         let currentStream = null;
@@ -347,6 +353,7 @@
         let pollingInterval = null;
         let approvalContext = {};
         let autoCaptureTimer = null;
+        
         let activeShiftName = "";
         let activeCheckInTimeMs = 0;
 
@@ -437,15 +444,13 @@
             
             if (!riderIdInput || !secretPinInput) return showToast("Dono ID aur PIN zaruri hain.", "error");
 
-            // --- DEVICE LOCK FEATURE ---
             const lockedId = localStorage.getItem('farmako_locked_id');
             if (lockedId && lockedId !== riderIdInput) {
                 return showToast(`Security Alert: Yeh phone pehle se ${lockedId} ke sath link hai.`, "error");
             }
-            // ---------------------------
 
             const btn = document.getElementById('btnLogin');
-            const originalHtml = btn.innerHTML; // Save original state to fix stuck button issue
+            const originalHtml = btn.innerHTML; // Fix: Saving button state
             
             btn.disabled = true; 
             btn.classList.add('btn-disabled');
@@ -456,7 +461,7 @@
             try {
                 const res = await apiCall('login', { riderId: riderIdInput, secretPin: secretPinInput, deviceId: getDeviceId() });
                 
-                // --- LOCK THE DEVICE TO THIS ID UPON SUCCESSFUL LOGIN ---
+                // Device Lock Entry creation on success
                 localStorage.setItem('farmako_locked_id', res.data.riderId);
                 
                 currentUser = res.data;
@@ -551,44 +556,85 @@
             catch (e) { return "Unknown IP"; }
         }
 
+        // --- Haversine Distance Formula ---
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c; // Distance in meters
+        }
+
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
-            addrInput.value = "Fetching GPS...";
+            const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
+            
+            addrInput.value = "Fetching GPS (High Accuracy)...";
             if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
 
+            // Success Handler (Geofencing yahan check hoti hai)
+            const handleSuccess = async (position, isFallback = false) => {
+                const lat = position.coords.latitude, lon = position.coords.longitude;
+                document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
+                document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
+                
+                // GEO-FENCE CHECK (100 meters strict)
+                const distance = calculateDistance(lat, lon, STORE_LAT, STORE_LON);
+                const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
+
+                if (distance > ALLOWED_RADIUS_METERS && !isTestUser) {
+                    addrInput.value = "";
+                    let errorMsg = `Location Error: Aap store se bahar hain (Distance: ${Math.round(distance)}m). Store par jakar try karein.`;
+                    if (isFallback) {
+                        errorMsg += " (Note: Network location used due to poor GPS signal).";
+                    }
+                    return showToast(errorMsg, "error");
+                }
+
+                try {
+                    addrInput.value = "Resolving Address...";
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                    const data = await res.json();
+                    addrInput.value = data.display_name || "Location found";
+                } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
+                
+                // Enable next button ONLY if inside geofence
+                nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); 
+                nextBtn.classList.add('btn-glow-blue');
+                if (isFallback) showToast("Location fetched using Network/WiFi.", "success");
+            };
+
+            // Attempt 1: High Accuracy (Timeout set to 20 seconds)
             navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
-                    if (position.coords.accuracy > 100 && !isTestUser) {
-                        addrInput.value = ""; return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Ghar se bahar aakar try karein.`, "error");
-                    }
-                    const lat = position.coords.latitude, lon = position.coords.longitude;
-                    document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
-                    document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
-                        const data = await res.json();
-                        addrInput.value = data.display_name || "Location found";
-                    } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
-                    
-                    // Always enable next button after coordinate fetch
-                    const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
-                    nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); nextBtn.classList.add('btn-glow-blue');
-                },
+                (pos) => handleSuccess(pos, false),
                 (err) => { 
-                    addrInput.value = ""; 
-                    if (err.code === err.PERMISSION_DENIED) {
-                        showToast("Location permission denied. Settings me allow karein.", "error");
-                    } else if (err.code === err.TIMEOUT) {
-                        showToast("Location timeout. Khule aasman (Open Sky) me jaakar try karein.", "error");
-                    } else if (err.code === err.POSITION_UNAVAILABLE) {
-                        showToast("Location unavailable. Kripya phone ka GPS on karein.", "error");
-                    } else {
-                        showToast("Unknown location error occurred.", "error");
+                    // Agar Open Sky/Timeout error aaye, toh Network Location par switch karein
+                    if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+                        showToast("Poor GPS signal. Switching to Network Location...", "info");
+                        addrInput.value = "Fetching Network Location...";
+                        
+                        // Attempt 2: Fallback to Low Accuracy (No strict GPS required)
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => handleSuccess(pos, true),
+                            (fallbackErr) => {
+                                addrInput.value = ""; 
+                                showToast("Dono GPS methods fail ho gaye. Browser Permissions check karein.", "error");
+                            },
+                            { enableHighAccuracy: false, timeout: 20000, maximumAge: Infinity }
+                        );
+                    } else if (err.code === err.PERMISSION_DENIED) {
+                        addrInput.value = ""; 
+                        showToast("Location permission denied. Browser settings mein allow karein.", "error");
                     }
                 },
-                // Improved timeout (25s) and cached age (10s) for better accuracy handling inside stores
-                { enableHighAccuracy: true, timeout: 25000, maximumAge: 10000 }
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
             );
         }
 
@@ -756,14 +802,6 @@
                 }
                 lucide.createIcons();
             } catch(e) { container.innerHTML = `<p class="text-red-500 text-center p-4">Error loading data. Retrying...</p>`; }
-        }
-
-        async function respondApproval(rowNum, status, btnElement) {
-            btnElement.disabled = true; btnElement.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`; lucide.createIcons();
-            try {
-                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
-                showToast(`Request ${status}`, "success"); loadPendingApprovals();
-            } catch(e) { showToast(e.message, "error"); btnElement.disabled = false; btnElement.innerHTML = status === 'approved' ? `<i data-lucide="check" class="w-4 h-4"></i> Approve` : `<i data-lucide="x" class="w-4 h-4"></i> Reject`; lucide.createIcons(); }
         }
 
         window.onload = () => {
