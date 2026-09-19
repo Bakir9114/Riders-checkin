@@ -339,7 +339,7 @@
     </div>
 
     <script>
-        const APPS_SCRIPT_WEB_APP_URL = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         let currentUser = null;
         let currentStream = null;
@@ -411,6 +411,7 @@
         async function apiCall(action, payload) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 12000); 
+            
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', body: JSON.stringify({ action, ...payload }),
@@ -419,6 +420,7 @@
                     redirect: 'follow' 
                 });
                 clearTimeout(timeoutId);
+                
                 const result = await response.json();
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
@@ -430,17 +432,33 @@
         }
 
         async function handleLogin() {
-            const riderId = document.getElementById('riderId').value.trim();
-            const secretPin = document.getElementById('secretPin').value.trim();
-            if (!riderId || !secretPin) return showToast("Dono ID aur PIN zaruri hain.", "error");
+            const riderIdInput = document.getElementById('riderId').value.trim().toUpperCase();
+            const secretPinInput = document.getElementById('secretPin').value.trim();
+            
+            if (!riderIdInput || !secretPinInput) return showToast("Dono ID aur PIN zaruri hain.", "error");
+
+            // --- DEVICE LOCK FEATURE ---
+            const lockedId = localStorage.getItem('farmako_locked_id');
+            if (lockedId && lockedId !== riderIdInput) {
+                return showToast(`Security Alert: Yeh phone pehle se ${lockedId} ke sath link hai.`, "error");
+            }
+            // ---------------------------
 
             const btn = document.getElementById('btnLogin');
+            const originalHtml = btn.innerHTML; // Save original state to fix stuck button issue
+            
             btn.disabled = true; 
             btn.classList.add('btn-disabled');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Please Wait...`;
+            lucide.createIcons();
             showLoader("Authenticating...", "Secure login in progress");
             
             try {
-                const res = await apiCall('login', { riderId, secretPin, deviceId: getDeviceId() });
+                const res = await apiCall('login', { riderId: riderIdInput, secretPin: secretPinInput, deviceId: getDeviceId() });
+                
+                // --- LOCK THE DEVICE TO THIS ID UPON SUCCESSFUL LOGIN ---
+                localStorage.setItem('farmako_locked_id', res.data.riderId);
+                
                 currentUser = res.data;
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
                 setupDashboard();
@@ -450,11 +468,14 @@
                 hideLoader();
                 btn.disabled = false;
                 btn.classList.remove('btn-disabled');
+                btn.innerHTML = originalHtml; // Safely restore button UI
+                lucide.createIcons();
             }
         }
 
         function setupDashboard() {
             if (!currentUser) return;
+            
             if (currentUser.role === 'manager') {
                 showScreen('managerDashboard');
                 document.getElementById('managerNameDisplay').innerText = currentUser.riderName;
@@ -488,6 +509,7 @@
                 if (res.shiftState && res.shiftState.isShiftActive) {
                     activeShiftName = res.shiftState.currentShift;
                     activeCheckInTimeMs = res.shiftState.checkInTime;
+                    
                     btnCheckIn.classList.add('hidden'); 
                     btnCheckOut.classList.remove('hidden');
                     stopPolling();
@@ -495,6 +517,35 @@
                 } else {
                     activeShiftName = "";
                     activeCheckInTimeMs = 0;
+                    
+                    btnCheckIn.classList.remove('hidden'); 
+                    btnCheckOut.classList.add('hidden');
+                    checkInitialApprovalStatus();
+                }
+            } catch (e) { console.error("Sync error", e); }
+        }
+
+        function openCheckInWizard() { document.getElementById('checkInModal').classList.remove('hidden-screen'); goToCiStep(1); }
+        function goToCiStep(step) {
+            ['ci-step-1', 'ci-step-2', 'ci-step-3'].forEach(id => document.getElementById(id).classList.add('hidden-screen'));
+            ['ci-dot-1', 'ci-dot-2', 'ci-dot-3'].forEach(id => document.getElementById(id).classList.remove('active'));
+            document.getElementById(`ci-step-${step}`).classList.remove('hidden-screen');
+            document.getElementById(`ci-dot-${step}`).classList.add('active');
+            
+            if (step === 3) startCamera().then(success => { if (success) startAutoCaptureCountdown(); });
+            else { stopCamera(); if(autoCaptureTimer) clearInterval(autoCaptureTimer); }
+        }
+
+        function openCheckOutWizard() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); goToCoStep(1); }
+        function goToCoStep(step) {
+            ['co-step-1', 'co-step-2'].forEach(id => document.getElementById(id).classList.add('hidden-screen'));
+            ['co-dot-1', 'co-dot-2'].forEach(id => document.getElementById(id).classList.remove('active'));
+            document.getElementById(`co-step-${step}`).classList.remove('hidden-screen');
+            document.getElementById(`co-dot-${step}`).classList.add('active');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden-screen'); stopCamera(); if(autoCaptureTimer) clearInterval(autoCaptureTimer); }
+
         async function getIpAddress() {
             try { const res = await fetch('https://api.ipify.org?format=json'); const data = await res.json(); return data.ip || "Unknown IP"; } 
             catch (e) { return "Unknown IP"; }
@@ -503,10 +554,7 @@
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
-            if (!navigator.geolocation) {
-                addrInput.value = "";
-                return showToast("Browser location support nahi karta.", "error");
-            }
+            if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
 
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
@@ -521,26 +569,25 @@
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
                         const data = await res.json();
                         addrInput.value = data.display_name || "Location found";
-                        const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
-                        nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); nextBtn.classList.add('btn-glow-blue');
-                    } catch(e) { 
-                        addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; 
-                        const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
-                        nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); nextBtn.classList.add('btn-glow-blue');
-                    }
+                    } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
+                    
+                    // Always enable next button after coordinate fetch
+                    const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
+                    nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); nextBtn.classList.add('btn-glow-blue');
                 },
                 (err) => { 
                     addrInput.value = ""; 
                     if (err.code === err.PERMISSION_DENIED) {
-                        showToast("Location permission denied. Please allow it in settings.", "error");
-                    } else if (err.code === err.POSITION_UNAVAILABLE) {
-                        showToast("Location information unavailable. Check your GPS.", "error");
+                        showToast("Location permission denied. Settings me allow karein.", "error");
                     } else if (err.code === err.TIMEOUT) {
-                        showToast("Location request timed out. Please try again outside.", "error");
+                        showToast("Location timeout. Khule aasman (Open Sky) me jaakar try karein.", "error");
+                    } else if (err.code === err.POSITION_UNAVAILABLE) {
+                        showToast("Location unavailable. Kripya phone ka GPS on karein.", "error");
                     } else {
-                        showToast("An unknown error occurred while fetching location.", "error");
+                        showToast("Unknown location error occurred.", "error");
                     }
                 },
+                // Improved timeout (25s) and cached age (10s) for better accuracy handling inside stores
                 { enableHighAccuracy: true, timeout: 25000, maximumAge: 10000 }
             );
         }
@@ -556,6 +603,7 @@
             document.getElementById('cameraArea').classList.remove('hidden'); document.getElementById('selfieSuccessArea').classList.add('hidden');
             document.getElementById('selfieData').value = ''; document.getElementById('btnSubmitCheckIn').classList.add('btn-disabled');
             let countdown = 3; overlayText.innerText = countdown; overlayText.classList.remove('hidden');
+            
             if(autoCaptureTimer) clearInterval(autoCaptureTimer);
             autoCaptureTimer = setInterval(() => {
                 countdown--;
@@ -568,13 +616,16 @@
             if (!currentStream) return;
             const flash = document.getElementById('screenFlash'); const video = document.getElementById('videoElement'); const canvas = document.getElementById('canvasElement');
             flash.classList.remove('hidden'); flash.classList.add('animate-flash');
+            
             setTimeout(() => {
                 const MAX_WIDTH = 480; const scale = MAX_WIDTH / video.videoWidth; canvas.width = MAX_WIDTH; canvas.height = video.videoHeight * scale;
                 const ctx = canvas.getContext('2d'); ctx.translate(canvas.width, 0); ctx.scale(-1, 1); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
-                ctx.fillStyle = "white"; ctx.font = "bold 12px sans-serif"; ctx.fillText(`Time: ${new Date().toLocaleString('en-IN')}`, 10, canvas.height - 10);
+                ctx.fillStyle = "yellow"; ctx.font = "bold 14px sans-serif"; const timeString = new Date().toLocaleString('en-IN'); ctx.fillText(`Date & Time: ${timeString}`, 10, canvas.height - 10);
+                
                 document.getElementById('selfieData').value = canvas.toDataURL('image/jpeg', 0.4);
                 stopCamera();
+                
                 document.getElementById('cameraArea').classList.add('hidden'); document.getElementById('selfieSuccessArea').classList.remove('hidden');
                 document.getElementById('btnSubmitCheckIn').classList.remove('btn-disabled');
                 setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
@@ -587,18 +638,21 @@
                 if (type === 'checkout') {
                     if (lastOrderYes) return false; 
                     if (!checkInTimeMs) return true;
-                    return new Date().getTime() < (checkInTimeMs + (10 * 60 * 60 * 1000)) - (30 * 60 * 1000);
+                    if (new Date().getTime() < (checkInTimeMs + (10 * 60 * 60 * 1000)) - (30 * 60 * 1000)) return true;
+                    return false;
                 }
             }
             const shift = shiftsConfig[selectedShift];
             if (!shift) return false;
+
             const now = new Date(); let currentH = now.getHours(); const currentM = now.getMinutes();
-            if (currentH < 12 && shift.startH >= 16) currentH += 24;
+            if (currentH < 12 && shift.startH >= 16) { currentH += 24; }
             const timeInMinutes = currentH * 60 + currentM;
-            if (type === 'checkin') return timeInMinutes > (shift.startH * 60 + shift.startM) + 20;
-            if (type === 'checkout') {
+
+            if (type === 'checkin') { if (timeInMinutes > (shift.startH * 60 + shift.startM) + 20) return true; } 
+            else if (type === 'checkout') {
                 if (lastOrderYes) return false;
-                return timeInMinutes < (shift.endH * 60 + shift.endM) - 30;
+                if (timeInMinutes < (shift.endH * 60 + shift.endM) - 30) return true;
             }
             return false;
         }
@@ -606,7 +660,8 @@
         async function submitCheckIn() {
             if(isSubmitting) return;
             const shift = document.getElementById('shiftSelection').value; const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
-            if (!shift || !lat || !selfie) return showToast("Sabhi fields bharna zaruri hai.", "error");
+            if (!shift) return showToast("Shift time select karein.", "error"); if (!lat) return showToast("Location zaruri hai.", "error"); if (!selfie) return showToast("Selfie generate nahi hui.", "error");
+
             const payload = { type: 'checkin', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, shiftTime: shift, latitude: lat, longitude: document.getElementById('ci_lon').value, address: document.getElementById('ci_address').value, selfie: selfie };
             if (validateTime('checkin', shift, false, 0)) { promptApproval('checkin', payload); return; }
             await executeFinalSubmit('checkin', payload);
@@ -615,15 +670,21 @@
         async function submitCheckOut() {
             if(isSubmitting) return;
             const lat = document.getElementById('co_lat').value; if (!lat) return showToast("Location zaruri hai.", "error");
-            const payload = { type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value, totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value, manualOrders: 0, manualKms: 0, lastOrder: 'No', orderId: '', selfie: '' };
-            if (validateTime('checkout', activeShiftName, false, activeCheckInTimeMs)) { promptApproval('checkout', payload); return; }
+            const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked').value; const orderIdVal = document.getElementById('orderId').value.trim();
+            if (lastOrderVal === 'Yes' && !orderIdVal) return showToast("Order ID is required.", "error");
+
+            const payload = { type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value, totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value, manualOrders: document.getElementById('manualOrders').value || 0, manualKms: document.getElementById('manualKms').value || 0, lastOrder: lastOrderVal, orderId: orderIdVal, selfie: "" };
+            if (validateTime('checkout', activeShiftName, (lastOrderVal === 'Yes' && orderIdVal !== ""), activeCheckInTimeMs)) { promptApproval('checkout', payload); return; }
             await executeFinalSubmit('checkout', payload);
         }
 
         async function executeFinalSubmit(type, payload) {
             isSubmitting = true; const btn = document.getElementById(type === 'checkin' ? 'btnSubmitCheckIn' : 'btnSubmitCheckOut');
             if(btn) { btn.disabled = true; btn.classList.add('btn-disabled'); }
-            showLoader("Submitting...");
+            showLoader("Saving Request...");
+
+            payload.ipAddress = await getIpAddress();
+
             try {
                 await apiCall('submit', payload);
                 showToast(type === 'checkin' ? "Check-In Successful!" : "Check-Out Successful!", "success");
