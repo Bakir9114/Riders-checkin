@@ -10,12 +10,16 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { darkBg: '#0B1120', cardBg: '#111827', cardInner: '#1F2937' },
+                    colors: {
+                        darkBg: '#0B1120',
+                        cardBg: '#111827',
+                        cardInner: '#1F2937',
+                    },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'fade-in': 'fadeIn 0.3s ease-out',
                         'slide-up': 'slideUp 0.4s ease-out',
-                        'flash': 'flash 0.15s ease-out forwards'
+                        'flash': 'flash 0.15s ease-out forwards',
                     },
                     keyframes: {
                         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
@@ -28,45 +32,64 @@
     </script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; background-color: #0B1120; color: white; }
+        
         .glass-input { background: rgba(31, 41, 55, 0.7); border: 1px solid rgba(55, 65, 81, 0.5); color: white; width: 100%; padding: 1rem; border-radius: 1rem; outline: none; transition: all 0.2s; }
         .glass-input:focus { border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         .glass-input::placeholder { color: #9CA3AF; }
+
         .btn-glow-green { background: linear-gradient(to right, #10B981, #14B8A6); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); transition: transform 0.1s; }
         .btn-glow-green:active:not(:disabled) { transform: scale(0.98); }
+        
         .btn-glow-red { background: linear-gradient(to right, #EF4444, #F43F5E); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); transition: transform 0.1s; }
         .btn-glow-red:active:not(:disabled) { transform: scale(0.98); }
+        
         .btn-glow-blue { background: linear-gradient(to right, #3B82F6, #06B6D4); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transition: transform 0.1s; }
         .btn-glow-blue:active:not(:disabled) { transform: scale(0.98); }
-        .btn-disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; pointer-events: none; }
+
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+        /* Loader */
         #globalLoader { display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .loader-spinner { width: 50px; height: 50px; border: 4px solid #1F2937; border-top: 4px solid #3B82F6; border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        /* Camera */
         #cameraContainer { position: relative; overflow: hidden; border-radius: 1rem; background: #000; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
         #videoElement { width: 100%; height: auto; display: block; transform: scaleX(-1); }
         #canvasElement { display: none; }
         .camera-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60%; height: 70%; border: 2px dashed rgba(255, 255, 255, 0.6); border-radius: 50% 50% 40% 40%; pointer-events: none; }
+
+        /* Toast */
         #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; }
         .toast { padding: 14px 18px; border-radius: 12px; color: white; font-weight: 500; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease-out; background: #1F2937; border: 1px solid rgba(255,255,255,0.1); }
         .toast.success { border-left: 4px solid #10B981; }
         .toast.error { border-left: 4px solid #EF4444; }
+        
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
         .hidden-screen { display: none !important; }
         .dark-modal { background: #111827; border-top-left-radius: 1.5rem; border-top-right-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
+        
         select option { background: #1F2937; color: white; }
+        
+        /* Stepper Styles */
         .step-indicator { width: 8px; height: 8px; border-radius: 50%; background: #374151; transition: all 0.3s; }
         .step-indicator.active { background: #3B82F6; transform: scale(1.5); }
     </style>
 </head>
 <body class="bg-darkBg text-white min-h-screen flex flex-col antialiased">
 
+    <!-- Flash Overlay for Anti-Spoofing -->
     <div id="screenFlash" class="fixed inset-0 bg-white z-[100000] hidden pointer-events-none"></div>
+
     <div id="toastContainer"></div>
+
     <div id="globalLoader">
         <div class="loader-spinner mb-4"></div>
         <p class="text-white font-medium text-lg" id="loaderText">Processing...</p>
         <p class="text-sm text-gray-400 mt-2 text-center px-4" id="loaderSubText">Please wait...</p>
     </div>
 
-    <!-- Login Screen -->
+    <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="loginScreen" class="flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full animate-fade-in relative z-10">
         <div class="text-center mb-10">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-3xl shadow-[0_0_25px_rgba(56,189,248,0.4)] mb-6">
@@ -80,7 +103,7 @@
             <form id="loginForm" class="space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Rider ID</label>
-                    <input type="text" id="riderId" class="glass-input" placeholder="e.g. FAR028">
+                    <input type="text" id="riderId" class="glass-input" placeholder="e.g. FAR001">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Secret PIN</label>
@@ -98,8 +121,9 @@
         </div>
     </div>
 
-    <!-- Main Dashboard -->
+    <!-- ==================== MAIN DASHBOARD (RIDER) ==================== -->
     <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full relative min-h-screen">
+        
         <div class="text-center mb-10">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.4)] mb-4">
                 <i data-lucide="clock" class="w-8 h-8 text-white"></i>
@@ -110,7 +134,9 @@
 
         <div class="bg-cardBg rounded-2xl p-5 flex items-center justify-between border border-gray-800 shadow-lg mb-8">
             <div class="flex items-center gap-4">
-                <div id="userAvatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">A</div>
+                <div id="userAvatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    A
+                </div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium tracking-wide uppercase">Welcome Back</p>
                     <h2 id="displayRiderName" class="text-lg font-bold text-white leading-tight">Name</h2>
@@ -131,6 +157,7 @@
             </button>
         </div>
 
+        <!-- Approval Pending Alert -->
         <div id="approvalStatusArea" class="hidden mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-2xl p-4 text-center">
             <i data-lucide="clock" class="w-6 h-6 text-yellow-500 mx-auto mb-2 animate-pulse"></i>
             <h3 class="font-bold text-yellow-500 text-sm mb-1">Approval Pending</h3>
@@ -146,7 +173,7 @@
         </div>
     </div>
 
-    <!-- Manager Dashboard -->
+    <!-- ==================== MANAGER DASHBOARD ==================== -->
     <div id="managerDashboard" class="hidden-screen flex-1 flex flex-col w-full min-h-screen">
         <header class="bg-cardBg border-b border-gray-800 px-6 py-4 shadow-md sticky top-0 z-20">
             <div class="flex justify-between items-center max-w-4xl mx-auto w-full">
@@ -172,13 +199,19 @@
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
                 </button>
             </div>
-            <div id="approvalsList" class="space-y-4"></div>
+            
+            <div id="approvalsList" class="space-y-4">
+                <!-- Data injected here -->
+            </div>
         </div>
     </div>
 
-    <!-- Check-in Modal -->
+    <!-- ==================== WIZARD MODALS ==================== -->
+    
+    <!-- Check-In Multi-Step Modal -->
     <div id="checkInModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
+            
             <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
                 <h3 class="text-xl font-bold text-white flex items-center gap-2">
                     <i data-lucide="log-in" class="text-emerald-400 w-6 h-6"></i> Check In
@@ -188,6 +221,7 @@
                 </button>
             </div>
 
+            <!-- Progress Indicator -->
             <div class="flex justify-center gap-3 pt-4 bg-[#111827]">
                 <div id="ci-dot-1" class="step-indicator active"></div>
                 <div id="ci-dot-2" class="step-indicator"></div>
@@ -195,6 +229,8 @@
             </div>
 
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative">
+                
+                <!-- Step 1: Shift Selection (Moved to first) -->
                 <div id="ci-step-1" class="space-y-4">
                     <h4 class="text-lg font-bold text-white mb-2">Step 1: Shift Selection</h4>
                     <p class="text-sm text-gray-400 mb-4">Apni current shift select karein.</p>
@@ -210,12 +246,15 @@
                             <option value="Other">Other Emergency Shift (10 Hrs)</option>
                         </select>
                     </div>
-                    <button type="button" id="ciBtnNext1" onclick="goToCiStep(2)" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold mt-4 btn-disabled">Next Step</button>
+                    <button type="button" id="ciBtnNext1" onclick="goToCiStep(2)" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold mt-4 btn-disabled">
+                        Next Step
+                    </button>
                 </div>
 
+                <!-- Step 2: Location -->
                 <div id="ci-step-2" class="space-y-4 hidden-screen">
                     <h4 class="text-lg font-bold text-white mb-2">Step 2: Fetch Location</h4>
-                    <p class="text-sm text-gray-400 mb-4">Ghar se bahar aakar GPS fetch karein.</p>
+                    <p class="text-sm text-gray-400 mb-4">Store par khade rehkar GPS fetch karein.</p>
                     <div class="bg-cardInner p-4 rounded-xl border border-gray-800 text-center">
                         <button type="button" onclick="getLocation('checkIn')" class="w-full btn-glow-blue text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 mb-4">
                             <i data-lucide="crosshair" class="w-5 h-5"></i> Detect Location
@@ -229,27 +268,27 @@
                     </div>
                 </div>
 
+                <!-- Step 3: Auto Selfie & Submit -->
                 <div id="ci-step-3" class="space-y-4 hidden-screen">
-                    <h4 class="text-lg font-bold text-white mb-2">Step 3: Auto-Selfie & Submit</h4>
-                    <p class="text-sm text-gray-400 mb-4">Camera mein dekhein, photo automatically click hokar hide ho jayegi.</p>
+                    <h4 class="text-lg font-bold text-white mb-2">Step 3: Auto-Selfie</h4>
+                    <p class="text-sm text-gray-400 mb-4">Camera mein dekhein, photo automatically click hogi.</p>
                     <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                        <div id="cameraArea">
-                            <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
-                                <video id="videoElement" autoplay playsinline></video>
-                                <div class="camera-guide"></div>
-                                <div id="cameraCountdownText" class="absolute inset-0 flex items-center justify-center text-7xl font-extrabold text-white drop-shadow-[0_0_15px_rgba(0,0,0,1)] z-30 hidden">3</div>
-                                <canvas id="canvasElement"></canvas>
-                            </div>
-                        </div>
-                        <div id="selfieSuccessArea" class="hidden text-center p-6 bg-green-900/30 border border-green-700/50 rounded-xl">
-                            <i data-lucide="check-circle" class="w-12 h-12 text-green-500 mx-auto mb-2"></i>
-                            <p class="text-green-400 font-bold text-lg">Selfie Captured Securely</p>
+                        <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
+                            <video id="videoElement" autoplay playsinline></video>
+                            <div class="camera-guide"></div>
+                            
+                            <!-- Auto Capture Countdown Overlay -->
+                            <div id="cameraCountdownText" class="absolute inset-0 flex items-center justify-center text-7xl font-extrabold text-white drop-shadow-[0_0_15px_rgba(0,0,0,1)] z-30 hidden">3</div>
+                            
+                            <canvas id="canvasElement"></canvas>
+                            <img id="capturedImage" class="hidden w-full h-full object-cover absolute inset-0 z-20 rounded-lg">
                         </div>
                         <input type="hidden" id="selfieData">
                     </div>
                     <div class="flex gap-3 mt-4">
-                        <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="w-full btn-glow-green py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 btn-disabled">
-                            Final Submit <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        <button type="button" onclick="goToCiStep(2)" class="flex-1 bg-gray-800 text-white py-4 rounded-xl font-bold border border-gray-700">Back</button>
+                        <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="flex-[2] btn-glow-green py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 btn-disabled">
+                            Submit Check-In <i data-lucide="check-circle" class="w-5 h-5"></i>
                         </button>
                     </div>
                 </div>
@@ -257,7 +296,7 @@
         </div>
     </div>
 
-    <!-- Check-out Modal -->
+    <!-- Check-Out Multi-Step Modal -->
     <div id="checkOutModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
             <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
@@ -269,15 +308,17 @@
                 </button>
             </div>
 
+            <!-- Progress Indicator -->
             <div class="flex justify-center gap-3 pt-4 bg-[#111827]">
                 <div id="co-dot-1" class="step-indicator active"></div>
                 <div id="co-dot-2" class="step-indicator"></div>
             </div>
 
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative">
+                <!-- Step 1: Location -->
                 <div id="co-step-1" class="space-y-4">
                     <h4 class="text-lg font-bold text-white mb-2">Step 1: Fetch Location</h4>
-                    <p class="text-sm text-gray-400 mb-4">Ghar se bahar aakar GPS fetch karein.</p>
+                    <p class="text-sm text-gray-400 mb-4">Store par khade rehkar GPS fetch karein.</p>
                     <div class="bg-cardInner p-4 rounded-xl border border-gray-800 text-center">
                         <button type="button" onclick="getLocation('checkOut')" class="w-full btn-glow-blue text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 mb-4">
                             <i data-lucide="crosshair" class="w-5 h-5"></i> Detect Location
@@ -285,11 +326,15 @@
                         <input type="text" id="co_address" readonly placeholder="No location detected" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none text-center">
                         <div class="hidden"><input type="text" id="co_lat"><input type="text" id="co_lon"></div>
                     </div>
-                    <button type="button" id="coBtnNext1" onclick="goToCoStep(2)" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold mt-4 btn-disabled">Next Step</button>
+                    <button type="button" id="coBtnNext1" onclick="goToCoStep(2)" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold mt-4 btn-disabled">
+                        Next Step
+                    </button>
                 </div>
 
+                <!-- Step 2: Details & Submit -->
                 <div id="co-step-2" class="space-y-4 hidden-screen">
                     <h4 class="text-lg font-bold text-white mb-2">Step 2: Ride Details</h4>
+                    
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                             <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Rides</label>
@@ -300,6 +345,39 @@
                             <input type="number" id="totalKms" step="0.1" class="glass-input" placeholder="0.0">
                         </div>
                     </div>
+
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                        <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Manual Entry</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual Orders</label>
+                                <input type="number" id="manualOrders" class="glass-input py-2 text-sm" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual KMs</label>
+                                <input type="number" id="manualKms" step="0.1" class="glass-input py-2 text-sm" placeholder="0.0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
+                        <label class="block text-sm font-bold text-gray-300 mb-3">Completed Last Order?</label>
+                        <div class="flex gap-4 mb-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="lastOrder" value="Yes" class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.remove('hidden')">
+                                <span class="ml-2 text-sm text-gray-300">Yes</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="lastOrder" value="No" checked class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.add('hidden'); document.getElementById('orderId').value=''">
+                                <span class="ml-2 text-sm text-gray-300">No</span>
+                            </label>
+                        </div>
+                        <div id="orderIdContainer" class="hidden">
+                            <label class="block text-[10px] text-gray-500 mb-1 uppercase">Order ID</label>
+                            <input type="text" id="orderId" class="glass-input py-2 text-sm" placeholder="e.g. ORDER-123">
+                        </div>
+                    </div>
+
                     <div class="flex gap-3 mt-4">
                         <button type="button" onclick="goToCoStep(1)" class="flex-1 bg-gray-800 text-white py-4 rounded-xl font-bold border border-gray-700">Back</button>
                         <button type="button" id="btnSubmitCheckOut" onclick="submitCheckOut()" class="flex-[2] btn-glow-red py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2">
@@ -311,7 +389,7 @@
         </div>
     </div>
 
-    <!-- Approval Modal -->
+    <!-- Approval Exception Modal -->
     <div id="approvalModal" class="hidden-screen fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="dark-modal w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-slide-up border border-gray-700">
             <div class="mx-auto w-16 h-16 bg-yellow-900/40 border border-yellow-700/50 rounded-full flex items-center justify-center mb-4">
@@ -319,6 +397,7 @@
             </div>
             <h3 class="text-xl font-bold text-white mb-2" id="approvalModalTitle">Time Exception</h3>
             <p class="text-sm text-gray-400 mb-6" id="approvalModalMessage">Aapka time standard shift se alag hai. Manager se approval request karein.</p>
+            
             <div class="space-y-4 text-left mb-6">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Reason</label>
@@ -327,10 +406,12 @@
                         <option value="Traffic/Vehicle Issue">Traffic ya Vehicle Issue</option>
                         <option value="Health Issue">Health Issue</option>
                         <option value="Manager Instruction">Manager ne bola tha</option>
+                        <option value="App Glitch">App me problem thi</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
             </div>
+
             <div class="flex gap-3">
                 <button onclick="closeModal('approvalModal')" class="flex-1 py-3 bg-cardInner rounded-xl text-gray-300 font-semibold hover:bg-gray-800 border border-gray-700">Cancel</button>
                 <button onclick="submitApprovalRequest()" class="flex-1 py-3 bg-gradient-to-r from-yellow-600 to-amber-500 rounded-xl text-white font-bold shadow-lg">Request</button>
@@ -339,14 +420,14 @@
     </div>
 
     <script>
+        // --- APPS SCRIPT URL ---
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
-        // --- STORE GEO-FENCE COORDINATES (STRICT GURUGRAM LOCATION) ---
-        // PLEASE VERIFY: Latitude is usually around 28 in North India, Longitude around 77.
-        const STORE_LAT = 28.461013; 
-        const STORE_LON = 77.079280;
-        const ALLOWED_RADIUS_METERS = 200; // Radius strict 200m
-        
+        // --- GEOFENCE SETTINGS ---
+        const STORE_LAT = 28.461013; // Sushant Lok Latitude
+        const STORE_LON = 77.079280; // Sushant Lok Longitude
+        const ALLOWED_RADIUS_METERS = 200; // 200 meters from store allowed
+
         let currentUser = null;
         let currentStream = null;
         let isSubmitting = false;
@@ -354,9 +435,11 @@
         let approvalContext = {};
         let autoCaptureTimer = null;
         
+        // Globals to remember shift during checkout
         let activeShiftName = "";
         let activeCheckInTimeMs = 0;
 
+        // --- 7 SHIFTS CONFIG ---
         const shiftsConfig = {
             '7 AM to 5 PM': { startH: 7, startM: 0, endH: 17, endM: 0 },
             '8 AM to 6 PM': { startH: 8, startM: 0, endH: 18, endM: 0 },
@@ -367,15 +450,6 @@
         };
 
         lucide.createIcons();
-
-        function getDeviceId() {
-            let deviceId = localStorage.getItem('farmako_device_id');
-            if (!deviceId) {
-                deviceId = 'DEV_' + Math.random().toString(36).substr(2, 9).toUpperCase() + '_' + Date.now();
-                localStorage.setItem('farmako_device_id', deviceId);
-            }
-            return deviceId;
-        }
 
         function showScreen(screenId) {
             ['loginScreen', 'mainDashboard', 'managerDashboard'].forEach(id => {
@@ -417,9 +491,7 @@
 
         async function apiCall(action, payload) {
             const controller = new AbortController();
-            // FIX: Timeout ko 12 sec se badhakar 20 sec kiya taaki slow internet par bhi chale
-            const timeoutId = setTimeout(() => controller.abort(), 20000); 
-            
+            const timeoutId = setTimeout(() => controller.abort(), 60000); 
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', body: JSON.stringify({ action, ...payload }),
@@ -428,45 +500,40 @@
                     redirect: 'follow' 
                 });
                 clearTimeout(timeoutId);
-                
                 const result = await response.json();
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
             } catch (error) {
                 clearTimeout(timeoutId);
                 if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai, dobara try karein.");
-                throw new Error(error.message || "Network Error");
+                throw new Error("Data fetching failed. " + error.message);
             }
         }
 
         async function handleLogin() {
-            const riderIdInput = document.getElementById('riderId').value.trim().toUpperCase();
-            const secretPinInput = document.getElementById('secretPin').value.trim();
-            
-            if (!riderIdInput || !secretPinInput) return showToast("Dono ID aur PIN zaruri hain.", "error");
+            const riderId = document.getElementById('riderId').value.trim().toUpperCase();
+            const secretPin = document.getElementById('secretPin').value.trim();
+            if (!riderId || !secretPin) return showToast("Dono ID aur PIN zaruri hain.", "error");
 
-            const lockedId = localStorage.getItem('farmako_locked_id');
-            if (lockedId && lockedId !== riderIdInput) {
+            // --- FRONTEND DEVICE LOCK LOGIC ---
+            const lockedId = localStorage.getItem('farmako_device_locked_id');
+            if (lockedId && lockedId !== riderId) {
                 return showToast(`Security Alert: Yeh phone pehle se ${lockedId} ke sath link hai.`, "error");
             }
 
             const btn = document.getElementById('btnLogin');
-            const originalHtml = btn.innerHTML; 
-            
             btn.disabled = true; 
             btn.classList.add('btn-disabled');
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Please Wait...`;
-            lucide.createIcons();
             showLoader("Authenticating...", "Secure login in progress");
             
             try {
-                const res = await apiCall('login', { riderId: riderIdInput, secretPin: secretPinInput, deviceId: getDeviceId() });
-                
-                // Device Lock Entry creation on success
-                localStorage.setItem('farmako_locked_id', res.data.riderId);
-                
+                const res = await apiCall('login', { riderId, secretPin });
                 currentUser = res.data;
+                
+                // Save session and lock the device to this Rider ID
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
+                localStorage.setItem('farmako_device_locked_id', currentUser.riderId);
+
                 setupDashboard();
             } catch (error) {
                 showToast(error.message || "Login fail ho gaya.", "error");
@@ -474,8 +541,6 @@
                 hideLoader();
                 btn.disabled = false;
                 btn.classList.remove('btn-disabled');
-                btn.innerHTML = originalHtml; 
-                lucide.createIcons();
             }
         }
 
@@ -493,13 +558,15 @@
                 if(currentUser.riderName) {
                     document.getElementById('userAvatar').innerText = currentUser.riderName.charAt(0).toUpperCase();
                 }
-                syncShiftState(); 
+                syncShiftState();
             }
         }
 
         function logout() {
             localStorage.removeItem('riderSession');
-            currentUser = null; stopCamera(); stopPolling();
+            currentUser = null; 
+            stopCamera(); 
+            stopPolling();
             if(autoCaptureTimer) clearInterval(autoCaptureTimer);
             document.getElementById('loginForm').reset();
             showScreen('loginScreen');
@@ -531,305 +598,496 @@
             } catch (e) { console.error("Sync error", e); }
         }
 
-        function openCheckInWizard() { document.getElementById('checkInModal').classList.remove('hidden-screen'); goToCiStep(1); }
+        // --- WIZARD LOGIC (REORDERED: Shift -> Location -> Auto-Selfie) ---
+        function openCheckInWizard() {
+            document.getElementById('checkInModal').classList.remove('hidden-screen');
+            goToCiStep(1);
+        }
+
         function goToCiStep(step) {
             ['ci-step-1', 'ci-step-2', 'ci-step-3'].forEach(id => document.getElementById(id).classList.add('hidden-screen'));
             ['ci-dot-1', 'ci-dot-2', 'ci-dot-3'].forEach(id => document.getElementById(id).classList.remove('active'));
+            
             document.getElementById(`ci-step-${step}`).classList.remove('hidden-screen');
             document.getElementById(`ci-dot-${step}`).classList.add('active');
             
-            if (step === 3) startCamera().then(success => { if (success) startAutoCaptureCountdown(); });
-            else { stopCamera(); if(autoCaptureTimer) clearInterval(autoCaptureTimer); }
+            if (step === 3) {
+                startCamera().then(success => {
+                    if (success) startAutoCaptureCountdown();
+                });
+            } else {
+                stopCamera();
+                if(autoCaptureTimer) clearInterval(autoCaptureTimer);
+            }
         }
 
-        function openCheckOutWizard() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); goToCoStep(1); }
+        function openCheckOutWizard() {
+            document.getElementById('checkOutModal').classList.remove('hidden-screen');
+            goToCoStep(1);
+        }
+
         function goToCoStep(step) {
             ['co-step-1', 'co-step-2'].forEach(id => document.getElementById(id).classList.add('hidden-screen'));
             ['co-dot-1', 'co-dot-2'].forEach(id => document.getElementById(id).classList.remove('active'));
+            
             document.getElementById(`co-step-${step}`).classList.remove('hidden-screen');
             document.getElementById(`co-dot-${step}`).classList.add('active');
         }
 
-        function closeModal(id) { document.getElementById(id).classList.add('hidden-screen'); stopCamera(); if(autoCaptureTimer) clearInterval(autoCaptureTimer); }
-
-        async function getIpAddress() {
-            try { const res = await fetch('https://api.ipify.org?format=json'); const data = await res.json(); return data.ip || "Unknown IP"; } 
-            catch (e) { return "Unknown IP"; }
+        function closeModal(id) { 
+            document.getElementById(id).classList.add('hidden-screen'); 
+            stopCamera(); 
+            if(autoCaptureTimer) clearInterval(autoCaptureTimer);
         }
 
-        // --- Haversine Distance Formula ---
+        // --- GEOFENCE MATH (Haversine Formula) ---
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth's radius in meters
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
+            const R = 6371e3; // Earth radius in meters
+            const p1 = lat1 * Math.PI/180;
+            const p2 = lat2 * Math.PI/180;
+            const dp = (lat2-lat1) * Math.PI/180;
+            const dl = (lon2-lon1) * Math.PI/180;
 
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const a = Math.sin(dp/2) * Math.sin(dp/2) +
+                      Math.cos(p1) * Math.cos(p2) *
+                      Math.sin(dl/2) * Math.sin(dl/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-            return R * c; // Distance in meters
+            return R * c;
         }
 
         function getLocation(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
-            const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
-            
             addrInput.value = "Fetching GPS (High Accuracy)...";
             if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
 
-            // Success Handler
-            const handleSuccess = async (position, isFallback = false) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                
-                document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
-                document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
-                
-                // GEO-FENCE CHECK - using precise Haversine calculation
-                const distance = calculateDistance(lat, lon, STORE_LAT, STORE_LON);
-                const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
-
-                // Debugging: Log the coordinates and distance to the console to help pinpoint the issue
-                console.log(`My Location: Lat ${lat}, Lon ${lon}`);
-                console.log(`Store Location: Lat ${STORE_LAT}, Lon ${STORE_LON}`);
-                console.log(`Calculated Distance: ${distance} meters`);
-
-                if (distance > ALLOWED_RADIUS_METERS && !isTestUser) {
-                    addrInput.value = "";
-                    let errorMsg = `Location Error: Aap store se bahar hain (Distance: ${Math.round(distance)}m). Store par jakar try karein.`;
-                    if (isFallback) {
-                        errorMsg += " (Note: Network location used due to poor GPS signal).";
-                    }
-                    return showToast(errorMsg, "error");
-                }
-
-                try {
-                    addrInput.value = "Resolving Address...";
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
-                    const data = await res.json();
-                    addrInput.value = data.display_name || "Location found";
-                } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
-                
-                nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); 
-                nextBtn.classList.add('btn-glow-blue');
-                if (isFallback) showToast("Location fetched using Network/WiFi.", "success");
-            };
-
             navigator.geolocation.getCurrentPosition(
-                (pos) => handleSuccess(pos, false),
-                (err) => { 
-                    if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
-                        showToast("Poor GPS signal. Switching to Network Location...", "info");
-                        addrInput.value = "Fetching Network Location...";
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    // --- TEST ID BYPASS ---
+                    // Agar user TESTFAR044 hai, toh Geofencing bypass ho jayegi.
+                    const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
+                    
+                    // 1. Accuracy Check (To prevent Mock Locations/Indoor bad signals)
+                    if (accuracy > 150 && !isTestUser) {
+                        addrInput.value = "";
+                        return showToast(`GPS signal weak hai (Accuracy: ${Math.round(accuracy)}m). Khule aasman (Open Sky) mein aakar try karein.`, "error");
+                    }
+                    
+                    // 2. Geofence Distance Check (Sushant Lok Store)
+                    const distance = calculateDistance(lat, lon, STORE_LAT, STORE_LON);
+                    if (distance > ALLOWED_RADIUS_METERS && !isTestUser) {
+                        addrInput.value = "";
+                        return showToast(`Location Error: Aap store se bahar hain (Distance: ${Math.round(distance)}m). Store par jakar try karein.`, "error");
+                    }
+
+                    // --- PASSED ---
+                    if (isTestUser) showToast("Test ID Bypass Active. Distance ignored.", "success");
+
+                    document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
+                    document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
+                    
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                        const data = await res.json();
+                        addrInput.value = data.display_name || "Location found";
                         
-                        navigator.geolocation.getCurrentPosition(
-                            (pos) => handleSuccess(pos, true),
-                            (fallbackErr) => {
-                                addrInput.value = ""; 
-                                showToast("Dono GPS methods fail ho gaye. Browser Permissions check karein.", "error");
-                            },
-                            { enableHighAccuracy: false, timeout: 20000, maximumAge: Infinity }
-                        );
-                    } else if (err.code === err.PERMISSION_DENIED) {
-                        addrInput.value = ""; 
-                        showToast("Location permission denied. Browser settings mein allow karein.", "error");
+                        const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
+                        nextBtn.classList.remove('btn-disabled', 'bg-gray-700');
+                        nextBtn.classList.add('btn-glow-blue');
+                    } catch(e) { 
+                        addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; 
+                        const nextBtn = document.getElementById(type === 'checkIn' ? 'ciBtnNext2' : 'coBtnNext1');
+                        nextBtn.classList.remove('btn-disabled', 'bg-gray-700');
+                        nextBtn.classList.add('btn-glow-blue');
                     }
                 },
-                { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
+                (err) => { 
+                    addrInput.value = ""; 
+                    showToast("Location Access Timeout/Denied. Phone Location On karein.", "error"); 
+                },
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
             );
         }
 
+        // --- CAMERA WITH AUTO CAPTURE & COMPRESSION ---
         async function startCamera() {
-            try { currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); document.getElementById('videoElement').srcObject = currentStream; return true; } 
-            catch (err) { showToast("Camera permission denied.", "error"); return false; }
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                document.getElementById('videoElement').srcObject = currentStream;
+                return true;
+            } catch (err) { 
+                showToast("Camera permission denied.", "error"); 
+                return false;
+            }
         }
-        function stopCamera() { if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); document.getElementById('videoElement').srcObject = null; } }
+
+        function stopCamera() {
+            if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); document.getElementById('videoElement').srcObject = null; }
+        }
 
         function startAutoCaptureCountdown() {
             const overlayText = document.getElementById('cameraCountdownText');
-            document.getElementById('cameraArea').classList.remove('hidden'); document.getElementById('selfieSuccessArea').classList.add('hidden');
-            document.getElementById('selfieData').value = ''; document.getElementById('btnSubmitCheckIn').classList.add('btn-disabled');
-            let countdown = 3; overlayText.innerText = countdown; overlayText.classList.remove('hidden');
+            const img = document.getElementById('capturedImage');
+            
+            img.classList.add('hidden');
+            document.getElementById('selfieData').value = '';
+            document.getElementById('btnSubmitCheckIn').classList.add('btn-disabled');
+            
+            let countdown = 3;
+            overlayText.innerText = countdown;
+            overlayText.classList.remove('hidden');
             
             if(autoCaptureTimer) clearInterval(autoCaptureTimer);
+            
             autoCaptureTimer = setInterval(() => {
                 countdown--;
-                if (countdown > 0) { overlayText.innerText = countdown; } 
-                else { clearInterval(autoCaptureTimer); overlayText.innerText = "📸"; captureImageAndHide(); setTimeout(() => overlayText.classList.add('hidden'), 500); }
+                if (countdown > 0) {
+                    overlayText.innerText = countdown;
+                } else {
+                    clearInterval(autoCaptureTimer);
+                    overlayText.innerText = "📸";
+                    captureImage();
+                    setTimeout(() => overlayText.classList.add('hidden'), 500);
+                }
             }, 1000);
         }
 
-        function captureImageAndHide() {
+        function captureImage() {
             if (!currentStream) return;
-            const flash = document.getElementById('screenFlash'); const video = document.getElementById('videoElement'); const canvas = document.getElementById('canvasElement');
-            flash.classList.remove('hidden'); flash.classList.add('animate-flash');
+            const flash = document.getElementById('screenFlash');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvasElement');
+            const img = document.getElementById('capturedImage');
+            
+            flash.classList.remove('hidden');
+            flash.classList.add('animate-flash');
             
             setTimeout(() => {
-                const MAX_WIDTH = 480; const scale = MAX_WIDTH / video.videoWidth; canvas.width = MAX_WIDTH; canvas.height = video.videoHeight * scale;
-                const ctx = canvas.getContext('2d'); ctx.translate(canvas.width, 0); ctx.scale(-1, 1); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
-                ctx.fillStyle = "yellow"; ctx.font = "bold 14px sans-serif"; const timeString = new Date().toLocaleString('en-IN'); ctx.fillText(`Date & Time: ${timeString}`, 10, canvas.height - 10);
+                // COMPRESSION
+                const MAX_WIDTH = 480; 
+                const scale = MAX_WIDTH / video.videoWidth;
+                canvas.width = MAX_WIDTH; 
+                canvas.height = video.videoHeight * scale;
                 
-                document.getElementById('selfieData').value = canvas.toDataURL('image/jpeg', 0.4);
-                stopCamera();
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width, 0); 
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                document.getElementById('cameraArea').classList.add('hidden'); document.getElementById('selfieSuccessArea').classList.remove('hidden');
+                // TIMESTAMP
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 12px sans-serif";
+                const timeString = new Date().toLocaleString('en-IN');
+                ctx.fillText(`Time: ${timeString}`, 10, canvas.height - 10);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+                document.getElementById('selfieData').value = dataUrl;
+                img.src = dataUrl; 
+                img.classList.remove('hidden');
+                
+                // Allow Submit only after photo is captured
                 document.getElementById('btnSubmitCheckIn').classList.remove('btn-disabled');
+                
                 setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
             }, 100);
         }
 
+        // --- SUBMIT WITH DOUBLE CLICK LOCK & SHIFT VALIDATION ---
         function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
             if (selectedShift === 'Other') {
                 if (type === 'checkin') return true; 
                 if (type === 'checkout') {
                     if (lastOrderYes) return false; 
                     if (!checkInTimeMs) return true;
-                    if (new Date().getTime() < (checkInTimeMs + (10 * 60 * 60 * 1000)) - (30 * 60 * 1000)) return true;
+                    
+                    const now = new Date().getTime();
+                    const expectedEnd = checkInTimeMs + (10 * 60 * 60 * 1000);
+                    if (now < expectedEnd - (30 * 60 * 1000)) return true;
                     return false;
                 }
             }
+
             const shift = shiftsConfig[selectedShift];
             if (!shift) return false;
 
-            const now = new Date(); let currentH = now.getHours(); const currentM = now.getMinutes();
-            if (currentH < 12 && shift.startH >= 16) { currentH += 24; }
+            const now = new Date();
+            let currentH = now.getHours();
+            const currentM = now.getMinutes();
+
+            if (currentH < 12 && shift.startH >= 16) {
+                currentH += 24;
+            }
+
             const timeInMinutes = currentH * 60 + currentM;
 
-            if (type === 'checkin') { if (timeInMinutes > (shift.startH * 60 + shift.startM) + 20) return true; } 
-            else if (type === 'checkout') {
+            if (type === 'checkin') {
+                const shiftStartMins = shift.startH * 60 + shift.startM;
+                if (timeInMinutes > shiftStartMins + 20) return true;
+            } else if (type === 'checkout') {
                 if (lastOrderYes) return false;
-                if (timeInMinutes < (shift.endH * 60 + shift.endM) - 30) return true;
+                const shiftEndMins = shift.endH * 60 + shift.endM;
+                if (timeInMinutes < shiftEndMins - 30) return true;
             }
             return false;
         }
 
         async function submitCheckIn() {
             if(isSubmitting) return;
-            const shift = document.getElementById('shiftSelection').value; const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
-            if (!shift) return showToast("Shift time select karein.", "error"); if (!lat) return showToast("Location zaruri hai.", "error"); if (!selfie) return showToast("Selfie generate nahi hui.", "error");
+            const shift = document.getElementById('shiftSelection').value;
+            const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
+            
+            if (!shift) return showToast("Shift time select karein.", "error");
+            if (!lat) return showToast("Location zaruri hai.", "error");
+            if (!selfie) return showToast("Selfie generate nahi hui.", "error");
 
-            const payload = { type: 'checkin', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, shiftTime: shift, latitude: lat, longitude: document.getElementById('ci_lon').value, address: document.getElementById('ci_address').value, selfie: selfie };
-            if (validateTime('checkin', shift, false, 0)) { promptApproval('checkin', payload); return; }
+            const payload = {
+                type: 'checkin', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
+                shiftTime: shift, latitude: lat, longitude: document.getElementById('ci_lon').value,
+                address: document.getElementById('ci_address').value, selfie: selfie
+            };
+
+            const needsApproval = validateTime('checkin', shift, false, 0);
+            if (needsApproval) {
+                promptApproval('checkin', payload);
+                return;
+            }
+
             await executeFinalSubmit('checkin', payload);
         }
 
         async function submitCheckOut() {
             if(isSubmitting) return;
-            const lat = document.getElementById('co_lat').value; if (!lat) return showToast("Location zaruri hai.", "error");
-            const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked') ? document.querySelector('input[name="lastOrder"]:checked').value : 'No'; 
-            const orderIdVal = document.getElementById('orderId') ? document.getElementById('orderId').value.trim() : '';
-            if (lastOrderVal === 'Yes' && !orderIdVal) return showToast("Order ID is required.", "error");
+            const lat = document.getElementById('co_lat').value;
+            if (!lat) return showToast("Location zaruri hai.", "error");
 
-            const payload = { type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value, totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value, manualOrders: 0, manualKms: 0, lastOrder: lastOrderVal, orderId: orderIdVal, selfie: "" };
-            if (validateTime('checkout', activeShiftName, (lastOrderVal === 'Yes' && orderIdVal !== ""), activeCheckInTimeMs)) { promptApproval('checkout', payload); return; }
+            const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked').value;
+            const orderIdVal = document.getElementById('orderId').value.trim();
+            if (lastOrderVal === 'Yes' && !orderIdVal) {
+                return showToast("Order ID is required.", "error");
+            }
+
+            const payload = {
+                type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
+                latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value,
+                totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value,
+                manualOrders: document.getElementById('manualOrders').value || 0, manualKms: document.getElementById('manualKms').value || 0,
+                lastOrder: lastOrderVal, orderId: orderIdVal,
+                selfie: ""
+            };
+
+            const lastOrderCompleted = (lastOrderVal === 'Yes' && orderIdVal !== "");
+            const needsApproval = validateTime('checkout', activeShiftName, lastOrderCompleted, activeCheckInTimeMs); 
+            
+            if (needsApproval) {
+                promptApproval('checkout', payload);
+                return;
+            }
+
             await executeFinalSubmit('checkout', payload);
         }
 
         async function executeFinalSubmit(type, payload) {
-            isSubmitting = true; const btn = document.getElementById(type === 'checkin' ? 'btnSubmitCheckIn' : 'btnSubmitCheckOut');
+            isSubmitting = true;
+            const btnId = type === 'checkin' ? 'btnSubmitCheckIn' : 'btnSubmitCheckOut';
+            const btn = document.getElementById(btnId);
             if(btn) { btn.disabled = true; btn.classList.add('btn-disabled'); }
-            showLoader("Saving Request...");
-
-            payload.ipAddress = await getIpAddress();
+            
+            showLoader("Submitting...");
 
             try {
                 await apiCall('submit', payload);
                 showToast(type === 'checkin' ? "Check-In Successful!" : "Check-Out Successful!", "success");
                 closeModal(type === 'checkin' ? 'checkInModal' : 'checkOutModal'); 
                 syncShiftState();
-            } catch (e) { showToast(e.message, "error"); if(btn) { btn.disabled = false; btn.classList.remove('btn-disabled'); } } 
-            finally { isSubmitting = false; hideLoader(); }
+            } catch (e) { showToast(e.message, "error"); } 
+            finally { 
+                isSubmitting = false; 
+                if(btn) { btn.disabled = false; btn.classList.remove('btn-disabled'); }
+                hideLoader(); 
+            }
         }
 
+        // --- APPROVAL POLLING ---
         async function checkInitialApprovalStatus() {
-             try { const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId }); if (res.approvalStatus === 'pending') showApprovalPendingUI(); } catch(e) {}
+             try {
+                const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
+                if (res.approvalStatus === 'pending') {
+                    showApprovalPendingUI();
+                }
+             } catch(e) {}
         }
-        function showApprovalPendingUI() { document.getElementById('approvalStatusArea').classList.remove('hidden'); document.getElementById('btnCheckIn').classList.add('hidden'); document.getElementById('btnCheckOut').classList.add('hidden'); startPolling(); }
-        function startPolling() { if (pollingInterval) clearInterval(pollingInterval); pollingInterval = setInterval(checkApprovalStatusSilent, 10000); }
-        function stopPolling() { if (pollingInterval) clearInterval(pollingInterval); }
+
+        function showApprovalPendingUI() {
+            document.getElementById('approvalStatusArea').classList.remove('hidden');
+            document.getElementById('btnCheckIn').classList.add('hidden');
+            document.getElementById('btnCheckOut').classList.add('hidden');
+            startPolling();
+        }
+
+        function startPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(checkApprovalStatusSilent, 12000); 
+        }
+
+        function stopPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+        }
 
         let isPolling = false;
         async function checkApprovalStatusSilent() {
-            if(!currentUser || isPolling) return; isPolling = true;
+            if(!currentUser || isPolling) return;
+            isPolling = true;
             try {
                 const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
                 if (res.approvalStatus === 'approved') {
-                    stopPolling(); document.getElementById('approvalStatusArea').classList.add('hidden'); showToast("Manager approved! Processing...", "success");
+                    stopPolling();
+                    document.getElementById('approvalStatusArea').classList.add('hidden');
+                    showToast("Manager approved! Processing...", "success");
+                    
                     if(approvalContext && approvalContext.action === 'checkin') executeFinalSubmit('checkin', approvalContext.payload);
                     else if (approvalContext && approvalContext.action === 'checkout') executeFinalSubmit('checkout', approvalContext.payload);
-                    else syncShiftState(); approvalContext = {};
+                    else syncShiftState();
+                    
+                    approvalContext = {};
                 } else if (res.approvalStatus === 'rejected') {
-                    stopPolling(); document.getElementById('approvalStatusArea').classList.add('hidden'); showToast("Manager rejected request.", "error"); approvalContext = {}; syncShiftState();
+                    stopPolling();
+                    document.getElementById('approvalStatusArea').classList.add('hidden');
+                    showToast("Manager rejected request.", "error");
+                    approvalContext = {};
+                    syncShiftState();
                 }
             } catch (e) {} finally { isPolling = false; }
         }
 
         async function checkApprovalStatusManual() {
-            const btn = document.getElementById('btnRefreshStatus'); btn.disabled = true; showLoader("Checking Status...");
-            await checkApprovalStatusSilent(); hideLoader(); btn.disabled = false;
+            const btn = document.getElementById('btnRefreshStatus');
+            btn.disabled = true;
+            showLoader("Checking Status...");
+            await checkApprovalStatusSilent();
+            hideLoader();
+            btn.disabled = false;
         }
 
         async function cancelApprovalRequest() {
             showLoader("Cancelling...");
-            try { await apiCall('cancelApproval', { riderId: currentUser.riderId }); stopPolling(); document.getElementById('approvalStatusArea').classList.add('hidden'); approvalContext = {}; showToast("Request cancelled.", "success"); syncShiftState(); } 
-            catch(e) { showToast(e.message, "error"); } finally { hideLoader(); }
+            try {
+                await apiCall('cancelApproval', { riderId: currentUser.riderId });
+                stopPolling();
+                document.getElementById('approvalStatusArea').classList.add('hidden');
+                approvalContext = {};
+                showToast("Request cancelled.", "success");
+                syncShiftState();
+            } catch(e) { showToast(e.message, "error"); } 
+            finally { hideLoader(); }
         }
 
         function promptApproval(type, contextPayload) {
-            approvalContext = { action: type, payload: contextPayload }; document.getElementById('approvalModalTitle').innerText = type === 'checkin' ? "Late Check-In" : "Early Check-Out"; document.getElementById('approvalModal').classList.remove('hidden-screen');
+            approvalContext = { action: type, payload: contextPayload };
+            document.getElementById('approvalModalTitle').innerText = type === 'checkin' ? "Late Check-In" : "Early Check-Out";
+            document.getElementById('approvalModal').classList.remove('hidden-screen');
         }
 
         async function submitApprovalRequest() {
-            const reason = document.getElementById('approvalReason').value; if(!reason) return showToast("Select a reason.", "error");
-            showLoader("Sending Request...");
-            try {
-                await apiCall('requestApproval', { riderId: currentUser.riderId, riderName: currentUser.riderName, type: approvalContext.action, reason: reason, shiftTime: document.getElementById('shiftSelection').value || activeShiftName });
-                closeModal('approvalModal'); closeModal('checkInModal'); closeModal('checkOutModal'); showApprovalPendingUI(); showToast("Request sent to manager.", "success");
-            } catch (e) { showToast(e.message, "error"); } finally { hideLoader(); }
-        }
+            const reason = document.getElementById('approvalReason').value;
+            if(!reason) return showToast("Select a reason.", "error");
 
-        async function respondApproval(rowNumber, statusResponse, buttonElement) {
-            const originalHtml = buttonElement.innerHTML;
-            buttonElement.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Wait...`;
-            buttonElement.disabled = true;
+            const shiftSelector = document.getElementById('shiftSelection');
+            const shiftT = shiftSelector ? shiftSelector.value : activeShiftName;
+            
+            showLoader("Sending Request...");
             
             try {
-                await apiCall('respondApproval', { rowNumber, statusResponse });
-                showToast(`Request ${statusResponse}!`, "success");
-                loadPendingApprovals(); // Instantly refresh the manager's list
-            } catch (e) {
-                showToast(e.message, "error");
-                buttonElement.innerHTML = originalHtml;
-                buttonElement.disabled = false;
-                lucide.createIcons();
-            }
+                await apiCall('requestApproval', {
+                    riderId: currentUser.riderId, riderName: currentUser.riderName,
+                    type: approvalContext.action, reason: reason, shiftTime: shiftT
+                });
+                
+                closeModal('approvalModal'); closeModal('checkInModal'); closeModal('checkOutModal');
+                showApprovalPendingUI();
+                showToast("Request sent to manager.", "success");
+            } catch (e) { showToast(e.message, "error"); } 
+            finally { hideLoader(); }
         }
 
+        // --- MANAGER DASHBOARD FUNCTIONS ---
         async function loadPendingApprovals() {
-            const container = document.getElementById('approvalsList'); container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`; lucide.createIcons();
+            const container = document.getElementById('approvalsList');
+            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
+            lucide.createIcons();
+            
             try {
-                const res = await apiCall('getPendingApprovals', {}); const data = res.data;
-                if (data.length === 0) container.innerHTML = `<div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800"><i data-lucide="check-circle" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i><p class="text-gray-400 font-medium">No pending approvals.</p></div>`;
-                else {
+                const res = await apiCall('getPendingApprovals', {});
+                const data = res.data;
+                
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800">
+                            <i data-lucide="check-circle" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                            <p class="text-gray-400 font-medium">No pending approvals.</p>
+                        </div>
+                    `;
+                } else {
                     container.innerHTML = '';
                     data.forEach(item => {
-                        const card = document.createElement('div'); card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg";
-                        card.innerHTML = `<div class="flex justify-between items-start mb-3"><div><h4 class="font-bold text-white">${item.riderName} <span class="text-xs text-gray-500 ml-1">(${item.riderId})</span></h4><span class="inline-block mt-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-500 text-xs font-bold rounded border border-yellow-700/50">${item.type.toUpperCase()} EXCEPTION</span></div></div><div class="bg-darkBg rounded-lg p-3 text-sm text-gray-300 mb-4 border border-gray-800"><p><span class="text-gray-500">Reason:</span> ${item.reason}</p>${item.shiftTime ? `<p><span class="text-gray-500">Shift:</span> ${item.shiftTime}</p>` : ''}</div><div class="flex gap-2"><button onclick="respondApproval(${item.rowNumber}, 'approved', this)" class="flex-1 btn-glow-green py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Approve</button><button onclick="respondApproval(${item.rowNumber}, 'rejected', this)" class="flex-1 bg-gray-800 border border-red-500/30 text-red-400 py-2 rounded-lg text-sm font-semibold hover:bg-gray-700 flex items-center justify-center gap-1"><i data-lucide="x" class="w-4 h-4"></i> Reject</button></div>`;
+                        const card = document.createElement('div');
+                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold text-white">${item.riderName} <span class="text-xs text-gray-500 ml-1">(${item.riderId})</span></h4>
+                                    <span class="inline-block mt-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-500 text-xs font-bold rounded border border-yellow-700/50">
+                                        ${item.type.toUpperCase()} EXCEPTION
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-darkBg rounded-lg p-3 text-sm text-gray-300 mb-4 border border-gray-800">
+                                <p><span class="text-gray-500">Reason:</span> ${item.reason}</p>
+                                ${item.shiftTime ? `<p><span class="text-gray-500">Shift:</span> ${item.shiftTime}</p>` : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="respondApproval(${item.rowNumber}, 'approved', this)" class="flex-1 btn-glow-green py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1">
+                                    <i data-lucide="check" class="w-4 h-4"></i> Approve
+                                </button>
+                                <button onclick="respondApproval(${item.rowNumber}, 'rejected', this)" class="flex-1 bg-gray-800 border border-red-500/30 text-red-400 py-2 rounded-lg text-sm font-semibold hover:bg-gray-700 flex items-center justify-center gap-1">
+                                    <i data-lucide="x" class="w-4 h-4"></i> Reject
+                                </button>
+                            </div>
+                        `;
                         container.appendChild(card);
                     });
                 }
                 lucide.createIcons();
-            } catch(e) { container.innerHTML = `<p class="text-red-500 text-center p-4">Error loading data. Retrying...</p>`; }
+            } catch(e) {
+                container.innerHTML = `<p class="text-red-500 text-center p-4">Error loading data. Retrying...</p>`;
+            }
+        }
+
+        async function respondApproval(rowNum, status, btnElement) {
+            btnElement.disabled = true;
+            btnElement.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`;
+            lucide.createIcons();
+
+            try {
+                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
+                showToast(`Request ${status}`, "success");
+                loadPendingApprovals();
+            } catch(e) { 
+                showToast(e.message, "error"); 
+                btnElement.disabled = false;
+                btnElement.innerHTML = status === 'approved' ? `<i data-lucide="check" class="w-4 h-4"></i> Approve` : `<i data-lucide="x" class="w-4 h-4"></i> Reject`;
+                lucide.createIcons();
+            } 
         }
 
         window.onload = () => {
-            const session = localStorage.getItem('riderSession');
-            if (session) { try { currentUser = JSON.parse(session); setupDashboard(); } catch(e) { showScreen('loginScreen'); } } 
-            else { showScreen('loginScreen'); }
+            const saved = localStorage.getItem('riderSession');
+            if (saved) { currentUser = JSON.parse(saved); setupDashboard(); }
         };
     </script>
 </body>
