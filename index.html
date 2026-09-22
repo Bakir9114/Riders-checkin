@@ -3,464 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Farmako Rider App</title>
+    <title>Farmako Rider App - Lightweight</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        darkBg: '#0B1120',
-                        cardBg: '#111827',
-                        cardInner: '#1F2937',
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'fade-in': 'fadeIn 0.3s ease-out',
-                        'slide-up': 'slideUp 0.4s ease-out',
-                        'flash': 'flash 0.15s ease-out forwards',
-                    },
-                    keyframes: {
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-                        flash: { '0%': { opacity: '0' }, '50%': { opacity: '1' }, '100%': { opacity: '0' } }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; background-color: #0B1120; color: white; }
-        .glass-input { background: rgba(31, 41, 55, 0.7); border: 1px solid rgba(55, 65, 81, 0.5); color: white; width: 100%; padding: 1rem; border-radius: 1rem; outline: none; transition: all 0.2s; }
-        .glass-input:focus { border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .glass-input::placeholder { color: #9CA3AF; }
-        .btn-glow-green { background: linear-gradient(to right, #10B981, #14B8A6); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); transition: transform 0.1s; }
-        .btn-glow-green:active:not(:disabled) { transform: scale(0.98); }
-        .btn-glow-red { background: linear-gradient(to right, #EF4444, #F43F5E); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); transition: transform 0.1s; }
-        .btn-glow-red:active:not(:disabled) { transform: scale(0.98); }
-        #globalLoader { display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .loader-spinner { width: 50px; height: 50px; border: 4px solid #1F2937; border-top: 4px solid #3B82F6; border-radius: 50%; animation: spin 1s linear infinite; }
-        #cameraContainer { position: relative; overflow: hidden; border-radius: 1rem; background: #000; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
-        #videoElement { width: 100%; height: auto; display: block; transform: scaleX(-1); }
-        #canvasElement { display: none; }
-        .camera-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60%; height: 70%; border: 2px dashed rgba(255, 255, 255, 0.6); border-radius: 50% 50% 40% 40%; pointer-events: none; }
-        #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; }
-        .toast { padding: 14px 18px; border-radius: 12px; color: white; font-weight: 500; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease-out; background: #1F2937; border: 1px solid rgba(255,255,255,0.1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0B1120; color: white; }
+        .glass-input { background: rgba(31, 41, 55, 0.7); border: 1px solid rgba(55, 65, 81, 0.5); color: white; width: 100%; padding: 1rem; border-radius: 1rem; outline: none; }
+        .glass-input:focus { border-color: #3B82F6; }
+        .hidden-screen { display: none !important; }
+        #globalLoader { display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #1F2937; border-top: 4px solid #3B82F6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 8px; }
+        .toast { padding: 12px 16px; border-radius: 10px; color: white; font-weight: 500; background: #1F2937; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
         .toast.success { border-left: 4px solid #10B981; }
         .toast.error { border-left: 4px solid #EF4444; }
-        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .hidden-screen { display: none !important; }
-        .dark-modal { background: #111827; border-top-left-radius: 1.5rem; border-top-right-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
-<body class="bg-darkBg text-white min-h-screen flex flex-col antialiased">
+<body class="bg-[#0B1120] text-white min-h-screen flex flex-col">
 
-    <div id="screenFlash" class="fixed inset-0 bg-white z-[100000] hidden pointer-events-none"></div>
     <div id="toastContainer"></div>
     <div id="globalLoader">
-        <div class="loader-spinner mb-4"></div>
-        <p class="text-white font-medium text-lg" id="loaderText">Processing...</p>
-        <p class="text-sm text-gray-400 mt-2 text-center px-4" id="loaderSubText">Please wait...</p>
+        <div class="spinner mb-3"></div>
+        <p class="text-sm font-medium text-gray-300" id="loaderText">Processing...</p>
     </div>
 
-    <div id="loginScreen" class="flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full animate-fade-in relative z-10">
-        <div class="text-center mb-10">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-3xl shadow-[0_0_25px_rgba(56,189,248,0.4)] mb-6">
-                <i data-lucide="clock" class="w-10 h-10 text-white"></i>
-            </div>
-            <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Rider Check-In</h1>
-            <p class="mt-2 text-xs tracking-widest text-gray-400 uppercase">Farmako Delivery System</p>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-blue-400">Rider Check-In</h1>
+            <p class="text-xs text-gray-400 mt-1 uppercase tracking-wider">Farmako Delivery System</p>
         </div>
-
-        <div class="bg-cardBg rounded-3xl shadow-2xl p-8 border border-gray-800">
-            <form id="loginForm" class="space-y-6">
+        <div class="bg-[#111827] rounded-2xl p-6 border border-gray-800 shadow-xl">
+            <form id="loginForm" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Rider ID</label>
-                    <input type="text" id="riderId" class="glass-input" placeholder="e.g. FAR044">
+                    <label class="block text-xs font-medium text-gray-400 mb-1">Rider ID</label>
+                    <input type="text" id="riderId" class="glass-input text-sm" placeholder="e.g. FAR044">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Secret PIN</label>
-                    <div class="relative">
-                        <input type="password" id="secretPin" class="glass-input pr-12" placeholder="Enter your PIN">
-                        <button type="button" onclick="togglePassword('secretPin', 'eyeIcon')" class="absolute inset-y-0 right-0 pr-4 flex items-center">
-                            <i data-lucide="eye" id="eyeIcon" class="h-5 w-5 text-gray-400 hover:text-white"></i>
-                        </button>
-                    </div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">Secret PIN</label>
+                    <input type="password" id="secretPin" class="glass-input text-sm" placeholder="Enter PIN">
                 </div>
-                <button type="button" onclick="handleLogin()" id="btnLogin" class="w-full btn-glow-green rounded-xl py-4 text-white font-bold text-lg mt-4 flex items-center justify-center gap-2">
-                    <i data-lucide="log-in" class="w-5 h-5"></i> Secure Login
+                <button type="button" onclick="handleLogin()" id="btnLogin" class="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 text-white font-bold text-sm transition">
+                    Secure Login
                 </button>
             </form>
         </div>
     </div>
 
-    <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full relative min-h-screen">
-        <div class="text-center mb-10">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.4)] mb-4">
-                <i data-lucide="clock" class="w-8 h-8 text-white"></i>
+    <!-- Main Dashboard -->
+    <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full">
+        <div class="bg-[#111827] rounded-2xl p-5 flex items-center justify-between border border-gray-800 mb-6 shadow">
+            <div>
+                <p class="text-[10px] text-gray-400 uppercase">Welcome Back</p>
+                <h2 id="displayRiderName" class="text-base font-bold text-white">Name</h2>
+                <p id="displayRiderId" class="text-xs text-blue-400">ID: ---</p>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Rider Check-In</h1>
-            <p class="mt-1 text-[10px] tracking-widest text-gray-500 uppercase">Farmako Delivery System</p>
+            <button onclick="logout()" class="p-2.5 bg-[#1F2937] rounded-xl hover:bg-gray-700 transition">
+                <i data-lucide="log-out" class="w-4 h-4 text-gray-300"></i>
+            </button>
         </div>
 
-        <div class="bg-cardBg rounded-2xl p-5 flex items-center justify-between border border-gray-800 shadow-lg mb-8">
-            <div class="flex items-center gap-4">
-                <div id="userAvatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">T</div>
+        <div class="space-y-3">
+            <button onclick="openModal('checkInModal')" id="btnCheckIn" class="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-4 text-white font-bold text-sm flex items-center justify-center gap-2">
+                <i data-lucide="log-in" class="w-4 h-4"></i> Check-In
+            </button>
+            <button onclick="openModal('checkOutModal')" id="btnCheckOut" class="w-full bg-rose-600 hover:bg-rose-500 rounded-xl py-4 text-white font-bold text-sm flex items-center justify-center gap-2 hidden">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Check-Out
+            </button>
+        </div>
+    </div>
+
+    <!-- Check-In Modal -->
+    <div id="checkInModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80">
+        <div class="bg-[#111827] w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 border border-gray-800 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-base text-emerald-400">Check In</h3>
+                <button onclick="closeModal('checkInModal')" class="text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="space-y-4">
                 <div>
-                    <p class="text-xs text-gray-400 font-medium tracking-wide uppercase">Welcome Back</p>
-                    <h2 id="displayRiderName" class="text-lg font-bold text-white leading-tight">Name</h2>
-                    <p id="displayRiderId" class="text-xs text-blue-400 mt-0.5">ID: ---</p>
-                </div>
-            </div>
-            <button onclick="logout()" class="w-10 h-10 bg-cardInner rounded-xl flex items-center justify-center hover:bg-gray-700 transition border border-gray-700">
-                <i data-lucide="log-out" class="w-5 h-5 text-gray-300"></i>
-            </button>
-        </div>
-
-        <div class="space-y-4">
-            <button onclick="openCheckInModal()" id="btnCheckIn" class="w-full btn-glow-green rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3">
-                <i data-lucide="log-in" class="w-6 h-6"></i> Check-In
-            </button>
-            <button onclick="openCheckOutModal()" id="btnCheckOut" class="w-full btn-glow-red rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3 hidden">
-                <i data-lucide="log-out" class="w-6 h-6"></i> Check-Out
-            </button>
-        </div>
-    </div>
-
-    <div id="managerDashboard" class="hidden-screen flex-1 flex flex-col w-full min-h-screen">
-        <header class="bg-cardBg border-b border-gray-800 px-6 py-4 shadow-md sticky top-0 z-20">
-            <div class="flex justify-between items-center max-w-4xl mx-auto w-full">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-lg flex items-center justify-center">
-                        <i data-lucide="shield-half" class="w-5 h-5 text-white"></i>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-semibold text-gray-300">Location</label>
+                        <button type="button" onclick="getLocation()" class="text-[10px] bg-blue-600 px-2.5 py-1 rounded-lg">Get GPS</button>
                     </div>
-                    <div>
-                        <h2 class="text-lg font-bold leading-tight">Admin Console</h2>
-                        <p class="text-xs text-blue-400" id="managerNameDisplay">Manager Portal</p>
-                    </div>
-                </div>
-                <button onclick="logout()" class="p-2 bg-cardInner rounded-xl hover:bg-gray-700 transition border border-gray-700">
-                    <i data-lucide="log-out" class="w-5 h-5 text-gray-300"></i>
-                </button>
-            </div>
-        </header>
-
-        <div class="max-w-4xl mx-auto w-full p-4 flex-1">
-            <div class="flex justify-between items-center mb-6 mt-4">
-                <h3 class="text-xl font-bold text-white">Pending Approvals</h3>
-                <button onclick="loadPendingApprovals()" class="text-sm text-blue-400 flex items-center gap-1 bg-cardInner px-3 py-1.5 rounded-lg hover:bg-gray-700 border border-gray-700 transition">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
-                </button>
-            </div>
-            <div id="approvalsList" class="space-y-4"></div>
-        </div>
-    </div>
-
-    <div id="checkInModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="log-in" class="text-emerald-400 w-6 h-6"></i> Check In</h3>
-                <button onclick="closeModal('checkInModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="text-sm font-bold text-gray-300 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i> Location</label>
-                        <button type="button" onclick="getLocation('checkIn')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex gap-1 items-center">
-                            <i data-lucide="crosshair" class="w-3 h-3"></i> Locate
-                        </button>
-                    </div>
-                    <input type="text" id="ci_address" readonly placeholder="Tap Locate to get GPS" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none">
-                    <div class="flex gap-2 mt-2 hidden"><input type="text" id="ci_lat"><input type="text" id="ci_lon"></div>
+                    <input type="text" id="ci_address" readonly placeholder="Tap Get GPS" class="glass-input text-xs py-2">
+                    <input type="hidden" id="ci_lat"><input type="hidden" id="ci_lon">
                 </div>
 
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="camera" class="w-4 h-4 text-blue-400"></i> Live Selfie</label>
-                    <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
-                        <video id="videoElement" autoplay playsinline></video>
-                        <div class="camera-guide"></div>
-                        <canvas id="canvasElement"></canvas>
-                        <img id="capturedImage" class="hidden w-full h-full object-cover absolute inset-0 z-20 rounded-lg">
+                <div>
+                    <label class="text-xs font-semibold text-gray-300 mb-1 block">Live Selfie</label>
+                    <div class="relative rounded-xl overflow-hidden bg-black mb-2 min-h-[200px] flex items-center justify-center">
+                        <video id="videoElement" autoplay playsinline class="w-full h-auto"></video>
+                        <canvas id="canvasElement" class="hidden"></canvas>
+                        <img id="capturedImage" class="hidden absolute inset-0 w-full h-full object-cover">
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" id="btnCapture" onclick="captureImage()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-2">
-                            <i data-lucide="aperture" class="w-4 h-4"></i> Click Photo
-                        </button>
-                        <button type="button" id="btnRetake" onclick="retakePhoto()" class="hidden flex-1 bg-gray-700 text-white py-3 rounded-lg text-sm font-semibold hover:bg-gray-600 flex items-center justify-center gap-2">
-                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Retake
-                        </button>
+                        <button type="button" onclick="captureImage()" id="btnCapture" class="flex-1 bg-blue-600 py-2 rounded-lg text-xs font-semibold">Click Photo</button>
+                        <button type="button" onclick="retakePhoto()" id="btnRetake" class="hidden flex-1 bg-gray-700 py-2 rounded-lg text-xs font-semibold">Retake</button>
                     </div>
                     <input type="hidden" id="selfieData">
                 </div>
 
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4 text-blue-400"></i> Select Shift</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="relative flex items-center p-3 border border-gray-700 rounded-xl cursor-pointer hover:bg-gray-800">
-                            <input type="radio" name="shiftTime" value="Morning" class="h-4 w-4 text-blue-500 bg-darkBg border-gray-600">
-                            <span class="ml-2 text-sm font-medium text-gray-300">Morning <span class="block text-[10px] text-gray-500">6AM-3PM</span></span>
-                        </label>
-                        <label class="relative flex items-center p-3 border border-gray-700 rounded-xl cursor-pointer hover:bg-gray-800">
-                            <input type="radio" name="shiftTime" value="Evening" class="h-4 w-4 text-blue-500 bg-darkBg border-gray-600">
-                            <span class="ml-2 text-sm font-medium text-gray-300">Evening <span class="block text-[10px] text-gray-500">4PM-1AM</span></span>
-                        </label>
-                    </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-300 mb-1 block">Select Shift</label>
+                    <select id="shiftSelection" class="glass-input text-xs py-2">
+                        <option value="7 AM to 5 PM">7 AM to 5 PM</option>
+                        <option value="8 AM to 6 PM">8 AM to 6 PM</option>
+                        <option value="9 AM to 7 PM">9 AM to 7 PM</option>
+                        <option value="4 PM to Next day 2 AM">4 PM to 2 AM (Next Day)</option>
+                        <option value="5 PM to Next day 3 AM">5 PM to 3 AM (Next Day)</option>
+                        <option value="10 PM to Next Day 8 AM">10 PM to 8 AM (Next Day)</option>
+                        <option value="Other">Other Emergency Shift</option>
+                    </select>
                 </div>
-            </div>
 
-            <div class="p-5 border-t border-gray-800 bg-[#111827] sticky bottom-0 z-10">
-                <button type="button" id="btnSubmitCheckIn" onclick="submitCheckIn()" class="w-full btn-glow-green py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 text-lg">
-                    Submit Check-In <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
+                <button onclick="submitCheckIn()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm mt-2">Submit Check-In</button>
             </div>
         </div>
     </div>
 
-    <div id="checkOutModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="log-out" class="text-rose-500 w-6 h-6"></i> Check Out</h3>
-                <button onclick="closeModal('checkOutModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <!-- Check-Out Modal -->
+    <div id="checkOutModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80">
+        <div class="bg-[#111827] w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 border border-gray-800 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-base text-rose-500">Check Out</h3>
+                <button onclick="closeModal('checkOutModal')" class="text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="text-sm font-bold text-gray-300 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i> End Location</label>
-                        <button type="button" onclick="getLocation('checkOut')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex gap-1">
-                            <i data-lucide="crosshair" class="w-3 h-3"></i> Locate
-                        </button>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-semibold text-gray-300">End Location</label>
+                        <button type="button" onclick="getLocationCheckout()" class="text-[10px] bg-blue-600 px-2.5 py-1 rounded-lg">Get GPS</button>
                     </div>
-                    <input type="text" id="co_address" readonly placeholder="Tap Locate" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none">
-                    <div class="hidden"><input type="text" id="co_lat"><input type="text" id="co_lon"></div>
+                    <input type="text" id="co_address" readonly placeholder="Tap Get GPS" class="glass-input text-xs py-2">
+                    <input type="hidden" id="co_lat"><input type="hidden" id="co_lon">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Rides</label>
-                        <input type="number" id="totalRides" class="glass-input" placeholder="0">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase mb-1">Total Rides</label>
+                        <input type="number" id="totalRides" class="glass-input text-xs py-2" placeholder="0">
                     </div>
-                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total KMs</label>
-                        <input type="number" id="totalKms" step="0.1" class="glass-input" placeholder="0.0">
-                    </div>
-                </div>
-
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="block text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Manual Entry</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual Orders</label>
-                            <input type="number" id="manualOrders" class="glass-input py-2 text-sm" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual KMs</label>
-                            <input type="number" id="manualKms" step="0.1" class="glass-input py-2 text-sm" placeholder="0.0">
-                        </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 uppercase mb-1">Total KMs</label>
+                        <input type="number" id="totalKms" step="0.1" class="glass-input text-xs py-2" placeholder="0.0">
                     </div>
                 </div>
 
-                <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
-                    <label class="block text-sm font-bold text-gray-300 mb-3">Completed Last Order?</label>
-                    <div class="flex gap-4 mb-3">
-                        <label class="flex items-center"><input type="radio" name="lastOrder" value="Yes" class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.remove('hidden')"><span class="ml-2 text-sm text-gray-300">Yes</span></label>
-                        <label class="flex items-center"><input type="radio" name="lastOrder" value="No" checked class="h-4 w-4 text-blue-500 bg-darkBg" onchange="document.getElementById('orderIdContainer').classList.add('hidden'); document.getElementById('orderId').value=''"><span class="ml-2 text-sm text-gray-300">No</span></label>
+                <div>
+                    <label class="text-xs font-semibold text-gray-300 mb-1 block">Completed Last Order?</label>
+                    <div class="flex gap-4 text-xs">
+                        <label class="flex items-center"><input type="radio" name="lastOrder" value="Yes" onchange="document.getElementById('orderIdContainer').classList.remove('hidden')"><span class="ml-1">Yes</span></label>
+                        <label class="flex items-center"><input type="radio" name="lastOrder" value="No" checked onchange="document.getElementById('orderIdContainer').classList.add('hidden')"><span class="ml-1">No</span></label>
                     </div>
-                    <div id="orderIdContainer" class="hidden">
-                        <label class="block text-[10px] text-gray-500 mb-1 uppercase">Order ID</label>
-                        <input type="text" id="orderId" class="glass-input py-2 text-sm" placeholder="e.g. ORDER-123">
+                    <div id="orderIdContainer" class="hidden mt-2">
+                        <input type="text" id="orderId" class="glass-input text-xs py-2" placeholder="Enter Order ID">
                     </div>
                 </div>
-            </div>
 
-            <div class="p-5 border-t border-gray-800 bg-[#111827] sticky bottom-0 z-10">
-                <button type="button" id="btnSubmitCheckOut" onclick="submitCheckOut()" class="w-full btn-glow-red py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 text-lg">
-                    Submit Check-Out <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
+                <button onclick="submitCheckOut()" class="w-full bg-rose-600 hover:bg-rose-500 py-3 rounded-xl font-bold text-sm mt-2">Submit Check-Out</button>
             </div>
         </div>
     </div>
 
     <script>
-        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
-        let currentUser = null;
-        let currentStream = null;
-        let isSubmitting = false;
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
+        let currentUser = null, currentStream = null;
         lucide.createIcons();
 
-        function showScreen(screenId) {
-            ['loginScreen', 'mainDashboard', 'managerDashboard'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.classList.add('hidden-screen');
-            });
-            const target = document.getElementById(screenId);
-            if(target) target.classList.remove('hidden-screen');
+        function showScreen(id) {
+            ['loginScreen', 'mainDashboard'].forEach(screen => document.getElementById(screen).classList.add('hidden-screen'));
+            document.getElementById(id).classList.remove('hidden-screen');
         }
 
-        function showLoader(text = "Processing...", subtext = "Please wait...") {
+        function showLoader(text = "Loading...") {
             document.getElementById('loaderText').innerText = text;
-            document.getElementById('loaderSubText').innerText = subtext;
             document.getElementById('globalLoader').style.display = 'flex';
         }
         function hideLoader() { document.getElementById('globalLoader').style.display = 'none'; }
 
-        function showToast(message, type = 'info') {
+        function showToast(msg, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            let icon = type === 'success' ? 'check-circle' : 'alert-circle';
-            toast.innerHTML = `<div class="flex items-center gap-3"><i data-lucide="${icon}" class="w-5 h-5"></i><span class="text-sm">${message}</span></div>`;
+            toast.innerText = msg;
             container.appendChild(toast);
-            lucide.createIcons({ root: toast });
-            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(-20px)'; setTimeout(() => toast.remove(), 300); }, 4000);
-        }
-
-        function togglePassword(inputId, iconId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(iconId);
-            if (input.type === "password") { input.type = "text"; icon.setAttribute('data-lucide', 'eye-off'); } 
-            else { input.type = "password"; icon.setAttribute('data-lucide', 'eye'); }
-            lucide.createIcons();
+            setTimeout(() => toast.remove(), 3500);
         }
 
         async function apiCall(action, payload) {
-            if(!APPS_SCRIPT_WEB_APP_URL || APPS_SCRIPT_WEB_APP_URL.includes('YOUR_GOOGLE')) {
-                throw new Error("Backend URL update karein code mein.");
-            }
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000);
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST', body: JSON.stringify({ action, ...payload }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                const textResult = await response.text();
-                let result;
-                try {
-                    result = JSON.parse(textResult);
-                } catch(err) {
-                    throw new Error("Server response JSON format me nahi hai. Web app deployment check karein.");
-                }
-                if (result.status === 'error') throw new Error(result.message);
-                return result;
-            } catch (error) {
-                clearTimeout(timeoutId);
-                if (error.name === 'AbortError') throw new Error("Internet slow hai, dobara try karein.");
-                throw error;
-            }
+            const res = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+                method: 'POST', body: JSON.stringify({ action, ...payload }),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            });
+            const data = await res.json();
+            if (data.status === 'error') throw new Error(data.message);
+            return data;
         }
 
         async function handleLogin() {
             const riderId = document.getElementById('riderId').value.trim();
             const secretPin = document.getElementById('secretPin').value.trim();
-            if (!riderId || !secretPin) return showToast("Dono ID aur PIN zaruri hain.", "error");
+            if (!riderId || !secretPin) return showToast("Enter ID and PIN", "error");
 
-            const btn = document.getElementById('btnLogin');
-            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
-            showLoader("Authenticating...", "Secure login in progress");
-            
+            showLoader("Authenticating...");
             try {
                 const res = await apiCall('login', { riderId, secretPin });
                 currentUser = res.data;
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
                 setupDashboard();
-            } catch (error) {
-                showToast(error.message || "Login fail ho gaya.", "error");
-            } finally {
-                hideLoader();
-                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
+            } catch (err) {
+                showToast(err.message, "error");
+            } finally { hideLoader(); }
         }
 
         function setupDashboard() {
             if (!currentUser) return;
-            if (currentUser.role === 'manager') {
-                showScreen('managerDashboard');
-                document.getElementById('managerNameDisplay').innerText = currentUser.riderName;
-                loadPendingApprovals();
-            } else {
-                showScreen('mainDashboard');
-                document.getElementById('displayRiderName').innerText = currentUser.riderName;
-                document.getElementById('displayRiderId').innerText = `ID: ${currentUser.riderId}`;
-                if(currentUser.riderName) {
-                    document.getElementById('userAvatar').innerText = currentUser.riderName.charAt(0).toUpperCase();
-                }
-                syncShiftState();
-            }
+            showScreen('mainDashboard');
+            document.getElementById('displayRiderName').innerText = currentUser.riderName;
+            document.getElementById('displayRiderId').innerText = `ID: ${currentUser.riderId}`;
+            syncShiftState();
         }
 
         function logout() {
             localStorage.removeItem('riderSession');
             currentUser = null; stopCamera();
-            document.getElementById('loginForm').reset();
             showScreen('loginScreen');
         }
 
         async function syncShiftState() {
-            if (!currentUser || currentUser.role === 'manager') return;
+            if (!currentUser) return;
             try {
                 const res = await apiCall('getShiftState', { riderId: currentUser.riderId });
-                const btnCheckIn = document.getElementById('btnCheckIn');
-                const btnCheckOut = document.getElementById('btnCheckOut');
-                
                 if (res.shiftState && res.shiftState.isShiftActive) {
-                    btnCheckIn.classList.add('hidden'); btnCheckOut.classList.remove('hidden');
+                    document.getElementById('btnCheckIn').classList.add('hidden');
+                    document.getElementById('btnCheckOut').classList.remove('hidden');
                 } else {
-                    btnCheckIn.classList.remove('hidden'); btnCheckOut.classList.add('hidden');
+                    document.getElementById('btnCheckIn').classList.remove('hidden');
+                    document.getElementById('btnCheckOut').classList.add('hidden');
                 }
-            } catch (e) { console.error("Sync error", e); }
+            } catch (e) { console.error(e); }
         }
 
-        function getLocation(type) {
-            const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
+        function getLocation() {
+            const addrInput = document.getElementById('ci_address');
             addrInput.value = "Fetching GPS...";
-            if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
+            navigator.geolocation.getCurrentPosition(pos => {
+                document.getElementById('ci_lat').value = pos.coords.latitude;
+                document.getElementById('ci_lon').value = pos.coords.longitude;
+                addrInput.value = `Lat: ${pos.coords.latitude.toFixed(4)}, Lon: ${pos.coords.longitude.toFixed(4)}`;
+            }, () => { addrInput.value = ""; showToast("GPS Error", "error"); }, { enableHighAccuracy: true });
+        }
 
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    
-                    const currentId = currentUser ? currentUser.riderId.trim().toUpperCase() : document.getElementById('riderId').value.trim().toUpperCase();
-                    const isTestUser = (currentId === 'FAR044');
-
-                    if (position.coords.accuracy > 100 && !isTestUser) {
-                        addrInput.value = "";
-                        return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Khule aasmaan ke niche aayein.`, "error");
-                    }
-
-                    document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
-                    document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
-                        const data = await res.json();
-                        addrInput.value = data.display_name || "Location found";
-                    } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
-                },
-                (err) => { 
-                    const currentId = currentUser ? currentUser.riderId.trim().toUpperCase() : '';
-                    if (currentId === 'FAR044') {
-                        document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = "28.6099";
-                        document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = "77.3400";
-                        addrInput.value = "Bypassed Location (Test Rider FAR044)";
-                        showToast("Test Rider Location Bypassed!", "success");
-                        return;
-                    }
-                    addrInput.value = ""; 
-                    showToast("Location Access zaruri hai.", "error"); 
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
+        function getLocationCheckout() {
+            const addrInput = document.getElementById('co_address');
+            addrInput.value = "Fetching GPS...";
+            navigator.geolocation.getCurrentPosition(pos => {
+                document.getElementById('co_lat').value = pos.coords.latitude;
+                document.getElementById('co_lon').value = pos.coords.longitude;
+                addrInput.value = `Lat: ${pos.coords.latitude.toFixed(4)}, Lon: ${pos.coords.longitude.toFixed(4)}`;
+            }, () => { addrInput.value = ""; showToast("GPS Error", "error"); }, { enableHighAccuracy: true });
         }
 
         async function startCamera() {
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 document.getElementById('videoElement').srcObject = currentStream;
-            } catch (err) { showToast("Camera permission denied.", "error"); }
+            } catch (e) { showToast("Camera permission denied", "error"); }
         }
 
         function stopCamera() {
@@ -469,25 +281,20 @@
 
         function captureImage() {
             if (!currentStream) return;
-            const flash = document.getElementById('screenFlash');
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('canvasElement');
             const img = document.getElementById('capturedImage');
             
-            flash.classList.remove('hidden'); flash.classList.add('animate-flash');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0);
             
-            setTimeout(() => {
-                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-                document.getElementById('selfieData').value = dataUrl;
-                img.src = dataUrl; img.classList.remove('hidden');
-                document.getElementById('btnCapture').classList.add('hidden');
-                document.getElementById('btnRetake').classList.remove('hidden');
-                setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('animate-flash'); }, 150);
-            }, 100);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            document.getElementById('selfieData').value = dataUrl;
+            img.src = dataUrl; img.classList.remove('hidden');
+            document.getElementById('btnCapture').classList.add('hidden');
+            document.getElementById('btnRetake').classList.remove('hidden');
         }
 
         function retakePhoto() {
@@ -498,106 +305,44 @@
         }
 
         async function submitCheckIn() {
-            if (isSubmitting) return;
-            const shift = document.querySelector('input[name="shiftTime"]:checked');
-            const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
-            
-            if (!shift) return showToast("Shift time select karein.", "error");
-            if (!lat) return showToast("Location zaruri hai.", "error");
-            if (!selfie) return showToast("Selfie click karein.", "error");
+            const shift = document.getElementById('shiftSelection').value;
+            const lat = document.getElementById('ci_lat').value;
+            const selfie = document.getElementById('selfieData').value;
+            if (!lat || !selfie) return showToast("Location and Selfie required", "error");
 
-            isSubmitting = true;
-            const btn = document.getElementById('btnSubmitCheckIn');
-            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
             showLoader("Submitting...");
-
             try {
                 await apiCall('submit', {
                     type: 'checkin', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
-                    shiftTime: shift.value, latitude: lat, longitude: document.getElementById('ci_lon').value,
+                    shiftTime: shift, latitude: lat, longitude: document.getElementById('ci_lon').value,
                     address: document.getElementById('ci_address').value, selfie: selfie
                 });
                 showToast("Check-In Successful!", "success");
-                closeModal('checkInModal'); retakePhoto();
-                syncShiftState();
-            } catch (e) { showToast(e.message, "error"); } 
-            finally { 
-                isSubmitting = false;
-                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
-                hideLoader(); 
-            }
+                closeModal('checkInModal'); syncShiftState();
+            } catch (e) { showToast(e.message, "error"); }
+            finally { hideLoader(); }
         }
 
         async function submitCheckOut() {
-            if (isSubmitting) return;
             const lat = document.getElementById('co_lat').value;
-            if (!lat) return showToast("Location zaruri hai.", "error");
+            if (!lat) return showToast("Location required", "error");
 
-            isSubmitting = true;
-            const btn = document.getElementById('btnSubmitCheckOut');
-            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
             showLoader("Submitting...");
-
             try {
                 await apiCall('submit', {
                     type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
                     latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value,
-                    totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value,
-                    manualOrders: document.getElementById('manualOrders').value, manualKms: document.getElementById('manualKms').value,
-                    lastOrder: document.querySelector('input[name="lastOrder"]:checked').value, orderId: document.getElementById('orderId').value,
+                    totalRides: document.getElementById('totalRides').value || 0, totalKms: document.getElementById('totalKms').value || 0,
+                    lastOrder: document.querySelector('input[name="lastOrder"]:checked').value, orderId: document.getElementById('orderId').value || '',
                     selfie: ""
                 });
                 showToast("Check-Out Successful!", "success");
                 closeModal('checkOutModal'); syncShiftState();
-            } catch (e) { showToast(e.message, "error"); } 
-            finally { 
-                isSubmitting = false;
-                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
-                hideLoader(); 
-            }
+            } catch (e) { showToast(e.message, "error"); }
+            finally { hideLoader(); }
         }
 
-        async function loadPendingApprovals() {
-            const container = document.getElementById('approvalsList');
-            if(!container) return;
-            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
-            lucide.createIcons();
-            try {
-                const res = await apiCall('getPendingApprovals', {});
-                const data = res.data;
-                if (data.length === 0) {
-                    container.innerHTML = `<div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800"><p class="text-gray-400 font-medium">No pending approvals.</p></div>`;
-                } else {
-                    container.innerHTML = '';
-                    data.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg";
-                        card.innerHTML = `
-                            <h4 class="font-bold text-white">${item.riderName} (${item.riderId})</h4>
-                            <p class="text-xs text-yellow-500 mb-3">${item.type.toUpperCase()}</p>
-                            <div class="flex gap-2">
-                                <button onclick="respondApproval(${item.rowNumber}, 'approved')" class="flex-1 bg-emerald-600 py-2 rounded-lg text-sm font-semibold">Approve</button>
-                                <button onclick="respondApproval(${item.rowNumber}, 'rejected')" class="flex-1 bg-rose-600 py-2 rounded-lg text-sm font-semibold">Reject</button>
-                            </div>
-                        `;
-                        container.appendChild(card);
-                    });
-                }
-                lucide.createIcons();
-            } catch(e) { container.innerHTML = `<p class="text-red-500 text-center">Error loading</p>`; }
-        }
-
-        async function respondApproval(rowNum, status) {
-            showLoader("Updating...");
-            try {
-                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
-                showToast(`Request ${status}`, "success");
-                loadPendingApprovals();
-            } catch(e) { showToast(e.message, "error"); } finally { hideLoader(); }
-        }
-
-        function openCheckInModal() { document.getElementById('checkInModal').classList.remove('hidden-screen'); startCamera(); }
-        function openCheckOutModal() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden-screen'); if(id==='checkInModal') startCamera(); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden-screen'); if(id==='checkInModal') stopCamera(); }
 
         window.onload = () => {
