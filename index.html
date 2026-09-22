@@ -339,13 +339,12 @@
     </div>
 
     <script>
-        // REPLACE WITH YOUR BRAND NEW DEPLOYMENT URL
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
-        // --- STORE GEO-FENCE COORDINATES ---
-        const STORE_LAT = 28.6099951; 
-        const STORE_LON = 77.3400511;
-        const ALLOWED_RADIUS_METERS = 100;
+        // --- STORE GEO-FENCE COORDINATES (UPDATED to Gurugram) ---
+        const STORE_LAT = 28.461013; 
+        const STORE_LON = 77.079280;
+        const ALLOWED_RADIUS_METERS = 200; // UPDATED to 200m
         
         let currentUser = null;
         let currentStream = null;
@@ -417,7 +416,8 @@
 
         async function apiCall(action, payload) {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000); 
+            // FIX: Timeout ko 12 sec se badhakar 20 sec kiya taaki slow internet par bhi chale
+            const timeoutId = setTimeout(() => controller.abort(), 20000); 
             
             try {
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
@@ -450,7 +450,7 @@
             }
 
             const btn = document.getElementById('btnLogin');
-            const originalHtml = btn.innerHTML; // Fix: Saving button state
+            const originalHtml = btn.innerHTML; 
             
             btn.disabled = true; 
             btn.classList.add('btn-disabled');
@@ -473,7 +473,7 @@
                 hideLoader();
                 btn.disabled = false;
                 btn.classList.remove('btn-disabled');
-                btn.innerHTML = originalHtml; // Safely restore button UI
+                btn.innerHTML = originalHtml; 
                 lucide.createIcons();
             }
         }
@@ -579,13 +579,13 @@
             addrInput.value = "Fetching GPS (High Accuracy)...";
             if (!navigator.geolocation) return showToast("Browser location support nahi karta.", "error");
 
-            // Success Handler (Geofencing yahan check hoti hai)
+            // Success Handler
             const handleSuccess = async (position, isFallback = false) => {
                 const lat = position.coords.latitude, lon = position.coords.longitude;
                 document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
                 document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
                 
-                // GEO-FENCE CHECK (100 meters strict)
+                // GEO-FENCE CHECK
                 const distance = calculateDistance(lat, lon, STORE_LAT, STORE_LON);
                 const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
 
@@ -605,22 +605,18 @@
                     addrInput.value = data.display_name || "Location found";
                 } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
                 
-                // Enable next button ONLY if inside geofence
                 nextBtn.classList.remove('btn-disabled', 'bg-gray-700'); 
                 nextBtn.classList.add('btn-glow-blue');
                 if (isFallback) showToast("Location fetched using Network/WiFi.", "success");
             };
 
-            // Attempt 1: High Accuracy (Timeout set to 20 seconds)
             navigator.geolocation.getCurrentPosition(
                 (pos) => handleSuccess(pos, false),
                 (err) => { 
-                    // Agar Open Sky/Timeout error aaye, toh Network Location par switch karein
                     if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
                         showToast("Poor GPS signal. Switching to Network Location...", "info");
                         addrInput.value = "Fetching Network Location...";
                         
-                        // Attempt 2: Fallback to Low Accuracy (No strict GPS required)
                         navigator.geolocation.getCurrentPosition(
                             (pos) => handleSuccess(pos, true),
                             (fallbackErr) => {
@@ -716,10 +712,11 @@
         async function submitCheckOut() {
             if(isSubmitting) return;
             const lat = document.getElementById('co_lat').value; if (!lat) return showToast("Location zaruri hai.", "error");
-            const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked').value; const orderIdVal = document.getElementById('orderId').value.trim();
+            const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked') ? document.querySelector('input[name="lastOrder"]:checked').value : 'No'; 
+            const orderIdVal = document.getElementById('orderId') ? document.getElementById('orderId').value.trim() : '';
             if (lastOrderVal === 'Yes' && !orderIdVal) return showToast("Order ID is required.", "error");
 
-            const payload = { type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value, totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value, manualOrders: document.getElementById('manualOrders').value || 0, manualKms: document.getElementById('manualKms').value || 0, lastOrder: lastOrderVal, orderId: orderIdVal, selfie: "" };
+            const payload = { type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail, latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value, totalRides: document.getElementById('totalRides').value, totalKms: document.getElementById('totalKms').value, manualOrders: 0, manualKms: 0, lastOrder: lastOrderVal, orderId: orderIdVal, selfie: "" };
             if (validateTime('checkout', activeShiftName, (lastOrderVal === 'Yes' && orderIdVal !== ""), activeCheckInTimeMs)) { promptApproval('checkout', payload); return; }
             await executeFinalSubmit('checkout', payload);
         }
