@@ -64,7 +64,6 @@
         <p class="text-sm text-gray-400 mt-2 text-center px-4" id="loaderSubText">Please wait...</p>
     </div>
 
-    <!-- Login Screen -->
     <div id="loginScreen" class="flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full animate-fade-in relative z-10">
         <div class="text-center mb-10">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-3xl shadow-[0_0_25px_rgba(56,189,248,0.4)] mb-6">
@@ -96,7 +95,6 @@
         </div>
     </div>
 
-    <!-- Main Dashboard -->
     <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full relative min-h-screen">
         <div class="text-center mb-10">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.4)] mb-4">
@@ -130,7 +128,35 @@
         </div>
     </div>
 
-    <!-- Check-In Modal -->
+    <div id="managerDashboard" class="hidden-screen flex-1 flex flex-col w-full min-h-screen">
+        <header class="bg-cardBg border-b border-gray-800 px-6 py-4 shadow-md sticky top-0 z-20">
+            <div class="flex justify-between items-center max-w-4xl mx-auto w-full">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-lg flex items-center justify-center">
+                        <i data-lucide="shield-half" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold leading-tight">Admin Console</h2>
+                        <p class="text-xs text-blue-400" id="managerNameDisplay">Manager Portal</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="p-2 bg-cardInner rounded-xl hover:bg-gray-700 transition border border-gray-700">
+                    <i data-lucide="log-out" class="w-5 h-5 text-gray-300"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="max-w-4xl mx-auto w-full p-4 flex-1">
+            <div class="flex justify-between items-center mb-6 mt-4">
+                <h3 class="text-xl font-bold text-white">Pending Approvals</h3>
+                <button onclick="loadPendingApprovals()" class="text-sm text-blue-400 flex items-center gap-1 bg-cardInner px-3 py-1.5 rounded-lg hover:bg-gray-700 border border-gray-700 transition">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
+                </button>
+            </div>
+            <div id="approvalsList" class="space-y-4"></div>
+        </div>
+    </div>
+
     <div id="checkInModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
             <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
@@ -174,11 +200,11 @@
                     <div class="grid grid-cols-2 gap-3">
                         <label class="relative flex items-center p-3 border border-gray-700 rounded-xl cursor-pointer hover:bg-gray-800">
                             <input type="radio" name="shiftTime" value="Morning" class="h-4 w-4 text-blue-500 bg-darkBg border-gray-600">
-                            <span class="ml-2 text-sm font-medium text-gray-300">Morning <span class="block text-[10px] text-gray-500">7AM-5PM</span></span>
+                            <span class="ml-2 text-sm font-medium text-gray-300">Morning <span class="block text-[10px] text-gray-500">6AM-3PM</span></span>
                         </label>
                         <label class="relative flex items-center p-3 border border-gray-700 rounded-xl cursor-pointer hover:bg-gray-800">
                             <input type="radio" name="shiftTime" value="Evening" class="h-4 w-4 text-blue-500 bg-darkBg border-gray-600">
-                            <span class="ml-2 text-sm font-medium text-gray-300">Evening <span class="block text-[10px] text-gray-500">4PM-2AM</span></span>
+                            <span class="ml-2 text-sm font-medium text-gray-300">Evening <span class="block text-[10px] text-gray-500">4PM-1AM</span></span>
                         </label>
                     </div>
                 </div>
@@ -192,7 +218,6 @@
         </div>
     </div>
 
-    <!-- Check-Out Modal -->
     <div id="checkOutModal" class="hidden-screen fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="dark-modal w-full max-w-md w-full flex flex-col max-h-[90vh] animate-slide-up shadow-2xl">
             <div class="p-5 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10 bg-[#111827] rounded-t-3xl">
@@ -259,16 +284,19 @@
     </div>
 
     <script>
-        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
+        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
         let currentUser = null;
         let currentStream = null;
+        let isSubmitting = false;
         lucide.createIcons();
 
         function showScreen(screenId) {
-            ['loginScreen', 'mainDashboard'].forEach(id => {
-                document.getElementById(id).classList.add('hidden-screen');
+            ['loginScreen', 'mainDashboard', 'managerDashboard'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add('hidden-screen');
             });
-            document.getElementById(screenId).classList.remove('hidden-screen');
+            const target = document.getElementById(screenId);
+            if(target) target.classList.remove('hidden-screen');
         }
 
         function showLoader(text = "Processing...", subtext = "Please wait...") {
@@ -309,7 +337,13 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: controller.signal
                 });
                 clearTimeout(timeoutId);
-                const result = await response.json();
+                const textResult = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(textResult);
+                } catch(err) {
+                    throw new Error("Server response JSON format me nahi hai. Web app deployment check karein.");
+                }
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
             } catch (error) {
@@ -343,13 +377,19 @@
 
         function setupDashboard() {
             if (!currentUser) return;
-            showScreen('mainDashboard');
-            document.getElementById('displayRiderName').innerText = currentUser.riderName;
-            document.getElementById('displayRiderId').innerText = `ID: ${currentUser.riderId}`;
-            if(currentUser.riderName) {
-                document.getElementById('userAvatar').innerText = currentUser.riderName.charAt(0).toUpperCase();
+            if (currentUser.role === 'manager') {
+                showScreen('managerDashboard');
+                document.getElementById('managerNameDisplay').innerText = currentUser.riderName;
+                loadPendingApprovals();
+            } else {
+                showScreen('mainDashboard');
+                document.getElementById('displayRiderName').innerText = currentUser.riderName;
+                document.getElementById('displayRiderId').innerText = `ID: ${currentUser.riderId}`;
+                if(currentUser.riderName) {
+                    document.getElementById('userAvatar').innerText = currentUser.riderName.charAt(0).toUpperCase();
+                }
+                syncShiftState();
             }
-            syncShiftState();
         }
 
         function logout() {
@@ -360,7 +400,7 @@
         }
 
         async function syncShiftState() {
-            if (!currentUser) return;
+            if (!currentUser || currentUser.role === 'manager') return;
             try {
                 const res = await apiCall('getShiftState', { riderId: currentUser.riderId });
                 const btnCheckIn = document.getElementById('btnCheckIn');
@@ -384,7 +424,6 @@
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     
-                    // EXACT TEST ID BYPASS: Agar ID FAR044 hai toh geofencing kabhi nahi rogegi!
                     const currentId = currentUser ? currentUser.riderId.trim().toUpperCase() : document.getElementById('riderId').value.trim().toUpperCase();
                     const isTestUser = (currentId === 'FAR044');
 
@@ -459,6 +498,7 @@
         }
 
         async function submitCheckIn() {
+            if (isSubmitting) return;
             const shift = document.querySelector('input[name="shiftTime"]:checked');
             const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
             
@@ -466,6 +506,7 @@
             if (!lat) return showToast("Location zaruri hai.", "error");
             if (!selfie) return showToast("Selfie click karein.", "error");
 
+            isSubmitting = true;
             const btn = document.getElementById('btnSubmitCheckIn');
             btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
             showLoader("Submitting...");
@@ -480,13 +521,19 @@
                 closeModal('checkInModal'); retakePhoto();
                 syncShiftState();
             } catch (e) { showToast(e.message, "error"); } 
-            finally { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); hideLoader(); }
+            finally { 
+                isSubmitting = false;
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
+                hideLoader(); 
+            }
         }
 
         async function submitCheckOut() {
+            if (isSubmitting) return;
             const lat = document.getElementById('co_lat').value;
             if (!lat) return showToast("Location zaruri hai.", "error");
 
+            isSubmitting = true;
             const btn = document.getElementById('btnSubmitCheckOut');
             btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
             showLoader("Submitting...");
@@ -503,7 +550,50 @@
                 showToast("Check-Out Successful!", "success");
                 closeModal('checkOutModal'); syncShiftState();
             } catch (e) { showToast(e.message, "error"); } 
-            finally { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); hideLoader(); }
+            finally { 
+                isSubmitting = false;
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
+                hideLoader(); 
+            }
+        }
+
+        async function loadPendingApprovals() {
+            const container = document.getElementById('approvalsList');
+            if(!container) return;
+            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
+            lucide.createIcons();
+            try {
+                const res = await apiCall('getPendingApprovals', {});
+                const data = res.data;
+                if (data.length === 0) {
+                    container.innerHTML = `<div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800"><p class="text-gray-400 font-medium">No pending approvals.</p></div>`;
+                } else {
+                    container.innerHTML = '';
+                    data.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg";
+                        card.innerHTML = `
+                            <h4 class="font-bold text-white">${item.riderName} (${item.riderId})</h4>
+                            <p class="text-xs text-yellow-500 mb-3">${item.type.toUpperCase()}</p>
+                            <div class="flex gap-2">
+                                <button onclick="respondApproval(${item.rowNumber}, 'approved')" class="flex-1 bg-emerald-600 py-2 rounded-lg text-sm font-semibold">Approve</button>
+                                <button onclick="respondApproval(${item.rowNumber}, 'rejected')" class="flex-1 bg-rose-600 py-2 rounded-lg text-sm font-semibold">Reject</button>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+                lucide.createIcons();
+            } catch(e) { container.innerHTML = `<p class="text-red-500 text-center">Error loading</p>`; }
+        }
+
+        async function respondApproval(rowNum, status) {
+            showLoader("Updating...");
+            try {
+                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
+                showToast(`Request ${status}`, "success");
+                loadPendingApprovals();
+            } catch(e) { showToast(e.message, "error"); } finally { hideLoader(); }
         }
 
         function openCheckInModal() { document.getElementById('checkInModal').classList.remove('hidden-screen'); startCamera(); }
