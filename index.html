@@ -341,10 +341,11 @@
     <script>
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
-        // --- STORE GEO-FENCE COORDINATES (UPDATED to Gurugram) ---
+        // --- STORE GEO-FENCE COORDINATES (STRICT GURUGRAM LOCATION) ---
+        // PLEASE VERIFY: Latitude is usually around 28 in North India, Longitude around 77.
         const STORE_LAT = 28.461013; 
         const STORE_LON = 77.079280;
-        const ALLOWED_RADIUS_METERS = 200; // UPDATED to 200m
+        const ALLOWED_RADIUS_METERS = 200; // Radius strict 200m
         
         let currentUser = null;
         let currentStream = null;
@@ -581,13 +582,20 @@
 
             // Success Handler
             const handleSuccess = async (position, isFallback = false) => {
-                const lat = position.coords.latitude, lon = position.coords.longitude;
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                
                 document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
                 document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
                 
-                // GEO-FENCE CHECK
+                // GEO-FENCE CHECK - using precise Haversine calculation
                 const distance = calculateDistance(lat, lon, STORE_LAT, STORE_LON);
                 const isTestUser = currentUser && currentUser.riderId.toUpperCase() === 'TESTFAR044';
+
+                // Debugging: Log the coordinates and distance to the console to help pinpoint the issue
+                console.log(`My Location: Lat ${lat}, Lon ${lon}`);
+                console.log(`Store Location: Lat ${STORE_LAT}, Lon ${STORE_LON}`);
+                console.log(`Calculated Distance: ${distance} meters`);
 
                 if (distance > ALLOWED_RADIUS_METERS && !isTestUser) {
                     addrInput.value = "";
