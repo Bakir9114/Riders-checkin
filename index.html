@@ -11,7 +11,11 @@
             theme: {
                 extend: {
                     colors: { darkBg: '#0B1120', cardBg: '#111827', cardInner: '#1F2937' },
-                    animation: { 'fade-in': 'fadeIn 0.3s ease-out', 'slide-up': 'slideUp 0.4s ease-out', 'flash': 'flash 0.15s ease-out forwards' },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'flash': 'flash 0.15s ease-out forwards',
+                    },
                     keyframes: {
                         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
                         slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
@@ -64,7 +68,6 @@
             <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Rider Check-In</h1>
             <p class="mt-2 text-xs tracking-widest text-gray-400 uppercase">Farmako Delivery System</p>
         </div>
-
         <div class="bg-cardBg rounded-3xl shadow-2xl p-8 border border-gray-800">
             <form id="loginForm" class="space-y-6">
                 <div>
@@ -94,7 +97,6 @@
             </div>
             <h1 class="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Rider Dashboard</h1>
         </div>
-
         <div class="bg-cardBg rounded-2xl p-5 flex items-center justify-between border border-gray-800 shadow-lg mb-8">
             <div class="flex items-center gap-4">
                 <div id="userAvatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">U</div>
@@ -108,7 +110,6 @@
                 <i data-lucide="log-out" class="w-5 h-5 text-gray-300"></i>
             </button>
         </div>
-
         <div class="space-y-4">
             <button onclick="openCheckInModal()" id="btnCheckIn" class="w-full btn-glow-green rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3">
                 <i data-lucide="log-in" class="w-6 h-6"></i> Check-In
@@ -117,7 +118,6 @@
                 <i data-lucide="log-out" class="w-6 h-6"></i> Check-Out
             </button>
         </div>
-
         <div id="approvalStatusArea" class="hidden mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-2xl p-4 text-center">
             <i data-lucide="clock" class="w-6 h-6 text-yellow-500 mx-auto mb-2 animate-pulse"></i>
             <h3 class="font-bold text-yellow-500 text-sm mb-1">Approval Pending</h3>
@@ -179,7 +179,6 @@
                 <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="log-in" class="text-emerald-400 w-6 h-6"></i> Check In</h3>
                 <button onclick="closeModal('checkInModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <div class="flex justify-between items-center mb-3">
@@ -189,7 +188,6 @@
                     <input type="text" id="ci_address" readonly placeholder="Tap Locate to get GPS" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none">
                     <div class="flex gap-2 mt-2 hidden"><input type="text" id="ci_lat"><input type="text" id="ci_lon"></div>
                 </div>
-
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="camera" class="w-4 h-4 text-blue-400"></i> Live Selfie</label>
                     <div id="cameraContainer" class="mb-3 flex items-center justify-center relative min-h-[250px]">
@@ -204,7 +202,6 @@
                     </div>
                     <input type="hidden" id="selfieData">
                 </div>
-
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4 text-blue-400"></i> Select Shift</label>
                     <select id="shiftSelection" class="glass-input text-sm">
@@ -231,7 +228,6 @@
                 <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="log-out" class="text-rose-500 w-6 h-6"></i> Check Out</h3>
                 <button onclick="closeModal('checkOutModal')" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <div class="flex justify-between items-center mb-3">
@@ -241,7 +237,6 @@
                     <input type="text" id="co_address" readonly placeholder="Tap Locate" class="w-full bg-darkBg border border-gray-700 rounded-lg p-3 text-sm text-gray-300 outline-none">
                     <div class="hidden"><input type="text" id="co_lat"><input type="text" id="co_lon"></div>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Rides</label>
@@ -252,7 +247,6 @@
                         <input type="number" id="totalKms" step="0.1" class="glass-input" placeholder="0.0">
                     </div>
                 </div>
-
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <label class="text-sm font-bold text-gray-300 mb-3 flex items-center gap-1.5"><i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Manual Entry</label>
                     <div class="grid grid-cols-2 gap-4">
@@ -260,7 +254,6 @@
                         <div><label class="block text-[10px] text-gray-500 mb-1 uppercase">Manual KMs</label><input type="number" id="manualKms" step="0.1" class="glass-input py-2 text-sm" placeholder="0.0"></div>
                     </div>
                 </div>
-
                 <div class="bg-cardInner p-4 rounded-xl border border-gray-800">
                     <label class="block text-sm font-bold text-gray-300 mb-3">Completed Last Order?</label>
                     <div class="flex gap-4 mb-3">
@@ -280,8 +273,7 @@
     </div>
 
     <script>
-        // ADD YOUR URL HERE
-        const APPS_SCRIPT_WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
+        const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         let currentUser = null;
         let currentStream = null;
@@ -295,7 +287,7 @@
             '7 AM to 5 PM': { startH: 7, startM: 0, endH: 17, endM: 0 },
             '8 AM to 6 PM': { startH: 8, startM: 0, endH: 18, endM: 0 },
             '9 AM to 7 PM': { startH: 9, startM: 0, endH: 19, endM: 0 },
-            '4 PM to Next day 2 AM': { startH: 16, startM: 0, endH: 2, endM: 0 }, // Handled wrap around logic below
+            '4 PM to Next day 2 AM': { startH: 16, startM: 0, endH: 2, endM: 0 },
             '5 PM to Next day 3 AM': { startH: 17, startM: 0, endH: 3, endM: 0 },
             '10 PM to Next Day 8 AM': { startH: 22, startM: 0, endH: 8, endM: 0 }
         };
@@ -340,16 +332,9 @@
         }
 
         async function apiCall(action, payload) {
-            if(!APPS_SCRIPT_WEB_APP_URL || APPS_SCRIPT_WEB_APP_URL.includes('YOUR_GOOGLE')) {
-                throw new Error("Backend URL update karein code mein.");
-            }
-            
-            showLoader("Connecting...", "Wait for a moment");
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout
-            
+            const timeoutId = setTimeout(() => controller.abort(), 60000); 
             try {
-                // 'redirect: follow' handles google apps script html redirection
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', 
                     body: JSON.stringify({ action, ...payload }),
@@ -357,27 +342,20 @@
                     signal: controller.signal,
                     redirect: 'follow'
                 });
-                
                 clearTimeout(timeoutId);
                 const textResponse = await response.text();
-                
                 let result;
                 try {
                     result = JSON.parse(textResponse);
-                } catch(e) {
-                    throw new Error("Backend connection issue (Not returning JSON). Script URL & Permissions check karein.");
-                }
+                } catch(e) { throw new Error("Backend connection issue (Not returning JSON). Script URL & Permissions check karein."); }
 
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
-                
             } catch (error) {
                 clearTimeout(timeoutId);
                 if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai.");
                 throw error;
-            } finally {
-                hideLoader();
-            }
+            } finally { hideLoader(); }
         }
 
         async function handleLogin() {
@@ -387,17 +365,14 @@
 
             const btn = document.getElementById('btnLogin');
             btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
-            
+            showLoader("Authenticating...");
             try {
                 const res = await apiCall('login', { riderId, secretPin });
                 currentUser = res.data;
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
                 setupDashboard();
-            } catch (error) {
-                showToast(error.message, "error");
-            } finally {
-                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
+            } catch (error) { showToast(error.message, "error"); } 
+            finally { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
         }
 
         function setupDashboard() {
@@ -442,7 +417,7 @@
                     btnCheckIn.classList.remove('hidden'); btnCheckOut.classList.add('hidden');
                     checkInitialApprovalStatus();
                 }
-            } catch (e) { console.error("Sync error", e); }
+            } catch (e) {}
         }
 
         function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
@@ -464,20 +439,18 @@
             let currentH = now.getHours();
             const currentM = now.getMinutes();
 
-            // Next day Wrap around shift Logic
             if (currentH < 12 && shift.startH >= 16) { currentH += 24; }
-            
             const timeInMinutes = currentH * 60 + currentM;
 
             if (type === 'checkin') {
                 const shiftStartMins = shift.startH * 60 + shift.startM;
-                if (timeInMinutes > shiftStartMins + 20) return true; // > 20 min late
+                if (timeInMinutes > shiftStartMins + 20) return true;
             } else if (type === 'checkout') {
                 if (lastOrderYes) return false;
                 let endH = shift.endH;
-                if (endH < shift.startH) endH += 24; // Handle 2 AM / 3 AM logic
+                if (endH < shift.startH) endH += 24; 
                 const shiftEndMins = endH * 60 + shift.endM;
-                if (timeInMinutes < shiftEndMins - 30) return true; // > 30 min early
+                if (timeInMinutes < shiftEndMins - 30) return true;
             }
             return false;
         }
@@ -503,7 +476,6 @@
         async function checkApprovalStatusSilent() {
             if(!currentUser) return;
             try {
-                // Call fetch directly without global loader
                 const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
                     method: 'POST', 
                     body: JSON.stringify({ action: 'checkApprovalStatus', riderId: currentUser.riderId }),
@@ -531,7 +503,6 @@
         }
 
         async function checkApprovalStatusManual() { await checkApprovalStatusSilent(); }
-        
         async function cancelApprovalRequest() {
             try {
                 await apiCall('cancelApproval', { riderId: currentUser.riderId });
@@ -602,14 +573,14 @@
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
             
-            // 🔥 FAR044 INSTANT BYPASS TRIGGER 🔥
+            // FULL BYPASS FOR TEST IDs FAR044 AND FAR024 (Case Insensitive)
             const checkId = currentUser ? currentUser.riderId.trim().toUpperCase() : "";
-            if (checkId === 'FAR044') {
-                document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = "28.6099"; // Default Dummy
-                document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = "77.3400";
+            if (checkId === 'FAR044' || checkId === 'FAR024') {
+                document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = "28.461013";
+                document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = "77.079280";
                 addrInput.value = "Test Location Granted (No GPS Check)";
                 showToast("Test ID Bypass Active!", "success");
-                return; // GPS check skipped entirely
+                return; // Entire geolocation blocked and bypassed
             }
 
             if (!navigator.geolocation) return showToast("Browser location error.", "error");
@@ -618,7 +589,7 @@
                 async (position) => {
                     if (position.coords.accuracy > 100) {
                         addrInput.value = "";
-                        return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Mock GPS band karein ya khule mein aayein.`, "error");
+                        return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Khule mein aayein.`, "error");
                     }
                     
                     const lat = position.coords.latitude, lon = position.coords.longitude;
@@ -658,7 +629,7 @@
                 ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Add Basic Stamp
+                // Timestamp
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                 ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
