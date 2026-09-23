@@ -272,16 +272,45 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration (Provided by User)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuXfTgoUD2mypeHplABKr2az-oChNSnOc",
+            authDomain: "rider-delivery-system.firebaseapp.com",
+            projectId: "rider-delivery-system",
+            storageBucket: "rider-delivery-system.firebasestorage.app",
+            messagingSenderId: "537534205110",
+            appId: "1:537534205110:web:f77f06dc8d2beec14a6a17",
+            measurementId: "G-SRT19663PF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const APP_ID = 'rider-delivery-system';
+        let firebaseUser = null;
+
+        // Initialize Anonymous Auth for Firebase Writes
+        signInAnonymously(auth).then(cred => { 
+            firebaseUser = cred.user; 
+            console.log("Firebase Connected");
+        }).catch(e => console.error("Firebase Auth Error:", e));
+
         const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxMI5XFyh9XCrC19eHlz3eUrUQ-q7BUrK5YugtTx9fGa71zrMyl-lRuicMsZXZvPThng/exec';
         
         let currentUser = null;
         let currentStream = null;
         let isSubmitting = false;
-        let pollingInterval = null;
         let approvalContext = {};
         let activeShiftName = "";
         let activeCheckInTimeMs = 0;
+        let approvalUnsubscribe = null;
+        let managerUnsubscribe = null;
 
         const shiftsConfig = {
             '7 AM to 5 PM': { startH: 7, startM: 0, endH: 17, endM: 0 },
@@ -294,21 +323,22 @@
 
         lucide.createIcons();
 
-        function showScreen(screenId) {
+        // Bind functions to window so inline HTML onclick handlers can access them within module
+        window.showScreen = function(screenId) {
             ['loginScreen', 'mainDashboard', 'managerDashboard'].forEach(id => {
                 document.getElementById(id).classList.add('hidden-screen');
             });
             document.getElementById(screenId).classList.remove('hidden-screen');
         }
 
-        function showLoader(text = "Processing...", subtext = "Please wait...") {
+        window.showLoader = function(text = "Processing...", subtext = "Please wait...") {
             document.getElementById('loaderText').innerText = text;
             document.getElementById('loaderSubText').innerText = subtext;
             document.getElementById('globalLoader').style.display = 'flex';
         }
-        function hideLoader() { document.getElementById('globalLoader').style.display = 'none'; }
+        window.hideLoader = function() { document.getElementById('globalLoader').style.display = 'none'; }
 
-        function showToast(message, type = 'info') {
+        window.showToast = function(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -323,7 +353,7 @@
             }, 4000);
         }
 
-        function togglePassword(inputId, iconId) {
+        window.togglePassword = function(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
             if (input.type === "password") { input.type = "text"; icon.setAttribute('data-lucide', 'eye-off'); } 
@@ -345,44 +375,42 @@
                 clearTimeout(timeoutId);
                 const textResponse = await response.text();
                 let result;
-                try {
-                    result = JSON.parse(textResponse);
-                } catch(e) { throw new Error("Backend connection issue (Not returning JSON). Script URL & Permissions check karein."); }
-
+                try { result = JSON.parse(textResponse); } 
+                catch(e) { throw new Error("Backend connection issue (Not returning JSON)."); }
                 if (result.status === 'error') throw new Error(result.message);
                 return result;
             } catch (error) {
                 clearTimeout(timeoutId);
                 if (error.name === 'AbortError') throw new Error("Internet slow hai ya server busy hai.");
                 throw error;
-            } finally { hideLoader(); }
+            } finally { window.hideLoader(); }
         }
 
-        async function handleLogin() {
+        window.handleLogin = async function() {
             const riderId = document.getElementById('riderId').value.trim();
             const secretPin = document.getElementById('secretPin').value.trim();
-            if (!riderId || !secretPin) return showToast("Dono ID aur PIN zaruri hain.", "error");
+            if (!riderId || !secretPin) return window.showToast("Dono ID aur PIN zaruri hain.", "error");
 
             const btn = document.getElementById('btnLogin');
             btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
-            showLoader("Authenticating...");
+            window.showLoader("Authenticating...");
             try {
-                const res = await apiCall('login', { riderId, secretPin });
+                const res = await apiCall('login', { riderId, secretPin }); // Keeps using Google Sheet for Login check
                 currentUser = res.data;
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
                 setupDashboard();
-            } catch (error) { showToast(error.message, "error"); } 
+            } catch (error) { window.showToast(error.message, "error"); } 
             finally { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
         }
 
         function setupDashboard() {
             if (!currentUser) return;
             if (currentUser.role === 'manager') {
-                showScreen('managerDashboard');
+                window.showScreen('managerDashboard');
                 document.getElementById('managerNameDisplay').innerText = currentUser.riderName;
-                loadPendingApprovals();
+                window.loadPendingApprovals();
             } else {
-                showScreen('mainDashboard');
+                window.showScreen('mainDashboard');
                 document.getElementById('displayRiderName').innerText = currentUser.riderName;
                 document.getElementById('displayRiderId').innerText = `ID: ${currentUser.riderId}`;
                 if(currentUser.riderName) {
@@ -392,23 +420,44 @@
             }
         }
 
-        function logout() {
+        window.logout = function() {
             localStorage.removeItem('riderSession');
             currentUser = null; stopCamera(); stopPolling();
+            if(managerUnsubscribe) managerUnsubscribe();
             document.getElementById('loginForm').reset();
-            showScreen('loginScreen');
+            window.showScreen('loginScreen');
         }
 
         async function syncShiftState() {
-            if (!currentUser || currentUser.role === 'manager') return;
+            if (!currentUser || currentUser.role === 'manager' || !firebaseUser) return;
             try {
-                const res = await apiCall('getShiftState', { riderId: currentUser.riderId });
+                // Fetch fast state from Firebase instead of Sheets
+                const ciSnap = await getDocs(collection(db, `artifacts/${APP_ID}/public/data/checkins`));
+                let latestCI = 0; let currentShift = "";
+                ciSnap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.riderId === currentUser.riderId && d.timestamp > latestCI) {
+                        latestCI = d.timestamp; currentShift = d.shiftTime;
+                    }
+                });
+
+                const coSnap = await getDocs(collection(db, `artifacts/${APP_ID}/public/data/checkouts`));
+                let latestCO = 0;
+                coSnap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.riderId === currentUser.riderId && d.timestamp > latestCO) {
+                        latestCO = d.timestamp;
+                    }
+                });
+
+                const isShiftActive = (latestCI > latestCO) && (Date.now() - latestCI < 16 * 60 * 60 * 1000);
+                
                 const btnCheckIn = document.getElementById('btnCheckIn');
                 const btnCheckOut = document.getElementById('btnCheckOut');
                 
-                if (res.shiftState && res.shiftState.isShiftActive) {
-                    activeShiftName = res.shiftState.currentShift;
-                    activeCheckInTimeMs = res.shiftState.checkInTime;
+                if (isShiftActive) {
+                    activeShiftName = currentShift;
+                    activeCheckInTimeMs = latestCI;
                     btnCheckIn.classList.add('hidden'); btnCheckOut.classList.remove('hidden');
                     stopPolling();
                     document.getElementById('approvalStatusArea').classList.add('hidden');
@@ -417,7 +466,7 @@
                     btnCheckIn.classList.remove('hidden'); btnCheckOut.classList.add('hidden');
                     checkInitialApprovalStatus();
                 }
-            } catch (e) {}
+            } catch (e) { console.error("State Sync Error:", e); }
         }
 
         function validateTime(type, selectedShift, lastOrderYes, checkInTimeMs) {
@@ -456,62 +505,86 @@
         }
 
         async function checkInitialApprovalStatus() {
+             if(!firebaseUser) return;
              try {
-                const res = await apiCall('checkApprovalStatus', { riderId: currentUser.riderId });
-                if (res.approvalStatus === 'pending') showApprovalPendingUI();
+                const snap = await getDocs(collection(db, `artifacts/${APP_ID}/public/data/approvals`));
+                let latestReq = null;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.riderId === currentUser.riderId && (!latestReq || d.timestamp > latestReq.timestamp)) {
+                        latestReq = d;
+                    }
+                });
+                if (latestReq && latestReq.status === 'pending') showApprovalPendingUI();
              } catch(e) {}
         }
+
         function showApprovalPendingUI() {
             document.getElementById('approvalStatusArea').classList.remove('hidden');
             document.getElementById('btnCheckIn').classList.add('hidden');
             document.getElementById('btnCheckOut').classList.add('hidden');
             startPolling();
         }
+
+        // Live Real-Time Snapshot (Replaces heavy polling interval)
         function startPolling() {
-            if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(checkApprovalStatusSilent, 10000);
-        }
-        function stopPolling() { if (pollingInterval) clearInterval(pollingInterval); }
-
-        async function checkApprovalStatusSilent() {
-            if(!currentUser) return;
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'checkApprovalStatus', riderId: currentUser.riderId }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    redirect: 'follow'
+            if (approvalUnsubscribe) approvalUnsubscribe();
+            if(!firebaseUser) return;
+            
+            approvalUnsubscribe = onSnapshot(collection(db, `artifacts/${APP_ID}/public/data/approvals`), (snap) => {
+                let latestReq = null;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.riderId === currentUser.riderId && (!latestReq || d.timestamp > latestReq.timestamp)) {
+                        latestReq = { id: doc.id, ...d };
+                    }
                 });
-                const res = JSON.parse(await response.text());
-                
-                if (res.approvalStatus === 'approved') {
-                    stopPolling();
-                    document.getElementById('approvalStatusArea').classList.add('hidden');
-                    showToast("Manager approved! Processing...", "success");
-                    if(approvalContext && approvalContext.action === 'checkin') executeFinalSubmit('checkin', approvalContext.payload);
-                    else if (approvalContext && approvalContext.action === 'checkout') executeFinalSubmit('checkout', approvalContext.payload);
-                    else syncShiftState();
-                    approvalContext = {};
-                } else if (res.approvalStatus === 'rejected') {
-                    stopPolling();
-                    document.getElementById('approvalStatusArea').classList.add('hidden');
-                    showToast("Manager rejected request.", "error");
-                    approvalContext = {};
-                    syncShiftState();
+                if (latestReq) {
+                    if (latestReq.status === 'approved') {
+                        stopPolling();
+                        document.getElementById('approvalStatusArea').classList.add('hidden');
+                        window.showToast("Manager approved! Processing...", "success");
+                        if(approvalContext && approvalContext.action === 'checkin') executeFinalSubmit('checkin', approvalContext.payload);
+                        else if (approvalContext && approvalContext.action === 'checkout') executeFinalSubmit('checkout', approvalContext.payload);
+                        else syncShiftState();
+                        approvalContext = {};
+                    } else if (latestReq.status === 'rejected') {
+                        stopPolling();
+                        document.getElementById('approvalStatusArea').classList.add('hidden');
+                        window.showToast("Manager rejected request.", "error");
+                        approvalContext = {};
+                        syncShiftState();
+                    }
                 }
-            } catch (e) {}
+            }, (error) => console.error(error));
         }
 
-        async function checkApprovalStatusManual() { await checkApprovalStatusSilent(); }
-        async function cancelApprovalRequest() {
+        function stopPolling() { 
+            if (approvalUnsubscribe) { approvalUnsubscribe(); approvalUnsubscribe = null; } 
+        }
+
+        window.checkApprovalStatusManual = async function() { window.showToast("Live sync is active. Updates are automatic.", "info"); }
+        
+        window.cancelApprovalRequest = async function() {
+            if(!firebaseUser) return;
             try {
-                await apiCall('cancelApproval', { riderId: currentUser.riderId });
+                const snap = await getDocs(collection(db, `artifacts/${APP_ID}/public/data/approvals`));
+                let targetId = null; let maxTime = 0;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.riderId === currentUser.riderId && d.status === 'pending' && d.timestamp > maxTime) {
+                        targetId = doc.id; maxTime = d.timestamp;
+                    }
+                });
+                if (targetId) {
+                    await updateDoc(doc(db, `artifacts/${APP_ID}/public/data/approvals`, targetId), { status: 'cancelled' });
+                }
                 stopPolling();
                 document.getElementById('approvalStatusArea').classList.add('hidden');
                 approvalContext = {};
-                showToast("Request cancelled.", "success");
+                window.showToast("Request cancelled.", "success");
                 syncShiftState();
-            } catch(e) { showToast(e.message, "error"); }
+            } catch(e) { window.showToast(e.message, "error"); }
         }
 
         function promptApproval(type, contextPayload) {
@@ -520,25 +593,44 @@
             document.getElementById('approvalModal').classList.remove('hidden-screen');
         }
 
-        async function submitApprovalRequest() {
+        window.submitApprovalRequest = async function() {
             const reason = document.getElementById('approvalReason').value;
-            if(!reason) return showToast("Select a reason.", "error");
+            if(!reason) return window.showToast("Select a reason.", "error");
+            if(!firebaseUser) return window.showToast("Connecting to server, please wait...", "error");
+
             const shiftT = document.getElementById('shiftSelection') ? document.getElementById('shiftSelection').value : activeShiftName;
             try {
-                await apiCall('requestApproval', { riderId: currentUser.riderId, riderName: currentUser.riderName, type: approvalContext.action, reason: reason, shiftTime: shiftT });
-                closeModal('approvalModal'); closeModal('checkInModal'); closeModal('checkOutModal');
+                await addDoc(collection(db, `artifacts/${APP_ID}/public/data/approvals`), {
+                    riderId: currentUser.riderId,
+                    riderName: currentUser.riderName,
+                    type: approvalContext.action,
+                    reason: reason,
+                    shiftTime: shiftT,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+                window.closeModal('approvalModal'); window.closeModal('checkInModal'); window.closeModal('checkOutModal');
                 showApprovalPendingUI();
-                showToast("Request sent to manager.", "success");
-            } catch (e) { showToast(e.message, "error"); }
+                window.showToast("Request sent to manager (Instant).", "success");
+            } catch (e) { window.showToast(e.message, "error"); }
         }
 
-        async function loadPendingApprovals() {
+        window.loadPendingApprovals = async function() {
+            if(!firebaseUser) return;
             const container = document.getElementById('approvalsList');
             container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
             lucide.createIcons();
-            try {
-                const res = await apiCall('getPendingApprovals', {});
-                const data = res.data;
+
+            if (managerUnsubscribe) managerUnsubscribe();
+            
+            managerUnsubscribe = onSnapshot(collection(db, `artifacts/${APP_ID}/public/data/approvals`), (snap) => {
+                const data = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.status === 'pending') data.push({ id: doc.id, ...d });
+                });
+                data.sort((a,b) => b.timestamp - a.timestamp);
+
                 if (data.length === 0) {
                     container.innerHTML = `<div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800"><p class="text-gray-400 font-medium">No pending approvals.</p></div>`;
                 } else {
@@ -551,45 +643,44 @@
                             <p class="text-xs text-yellow-500 mb-2 mt-1 uppercase">${item.type} EXCEPTION</p>
                             <p class="text-sm text-gray-300 mb-4 bg-darkBg p-2 rounded">Reason: ${item.reason}</p>
                             <div class="flex gap-2">
-                                <button onclick="respondApproval(${item.rowNumber}, 'approved')" class="flex-1 btn-glow-green py-2 rounded-lg text-sm font-semibold">Approve</button>
-                                <button onclick="respondApproval(${item.rowNumber}, 'rejected')" class="flex-1 bg-gray-800 border border-red-500 text-red-400 py-2 rounded-lg text-sm font-semibold">Reject</button>
+                                <button onclick="respondApproval('${item.id}', 'approved')" class="flex-1 btn-glow-green py-2 rounded-lg text-sm font-semibold">Approve</button>
+                                <button onclick="respondApproval('${item.id}', 'rejected')" class="flex-1 bg-gray-800 border border-red-500 text-red-400 py-2 rounded-lg text-sm font-semibold">Reject</button>
                             </div>
                         `;
                         container.appendChild(card);
                     });
                 }
                 lucide.createIcons();
-            } catch(e) { container.innerHTML = `<p class="text-red-500 text-center">Error</p>`; }
-        }
-        async function respondApproval(rowNum, status) {
-            try {
-                await apiCall('respondApproval', { rowNumber: rowNum, statusResponse: status });
-                showToast(`Request ${status}`, "success");
-                loadPendingApprovals();
-            } catch(e) { showToast(e.message, "error"); }
+            }, (err) => console.error(err));
         }
 
-        function getLocation(type) {
+        window.respondApproval = async function(docId, status) {
+            try {
+                await updateDoc(doc(db, `artifacts/${APP_ID}/public/data/approvals`, docId), { status: status });
+                window.showToast(`Request ${status}`, "success");
+            } catch(e) { window.showToast(e.message, "error"); }
+        }
+
+        window.getLocation = function(type) {
             const addrInput = document.getElementById(type === 'checkIn' ? 'ci_address' : 'co_address');
             addrInput.value = "Fetching GPS...";
             
-            // FULL BYPASS FOR TEST IDs FAR044 AND FAR024 (Case Insensitive)
             const checkId = currentUser ? currentUser.riderId.trim().toUpperCase() : "";
             if (checkId === 'FAR044' || checkId === 'FAR024') {
                 document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = "28.461013";
                 document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = "77.079280";
                 addrInput.value = "Test Location Granted (No GPS Check)";
-                showToast("Test ID Bypass Active!", "success");
-                return; // Entire geolocation blocked and bypassed
+                window.showToast("Test ID Bypass Active!", "success");
+                return; 
             }
 
-            if (!navigator.geolocation) return showToast("Browser location error.", "error");
+            if (!navigator.geolocation) return window.showToast("Browser location error.", "error");
 
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     if (position.coords.accuracy > 100) {
                         addrInput.value = "";
-                        return showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Khule mein aayein.`, "error");
+                        return window.showToast(`GPS weak hai (${Math.round(position.coords.accuracy)}m). Khule mein aayein.`, "error");
                     }
                     
                     const lat = position.coords.latitude, lon = position.coords.longitude;
@@ -601,7 +692,7 @@
                         addrInput.value = data.display_name || "Location found";
                     } catch(e) { addrInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`; }
                 },
-                (err) => { addrInput.value = ""; showToast("Location Access zaruri hai.", "error"); },
+                (err) => { addrInput.value = ""; window.showToast("Location Access zaruri hai.", "error"); },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         }
@@ -610,11 +701,11 @@
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 document.getElementById('videoElement').srcObject = currentStream;
-            } catch (err) { showToast("Camera access needed.", "error"); }
+            } catch (err) { window.showToast("Camera access needed.", "error"); }
         }
         function stopCamera() { if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); document.getElementById('videoElement').srcObject = null; } }
 
-        function captureImage() {
+        window.captureImage = function() {
             if (!currentStream) return;
             const flash = document.getElementById('screenFlash');
             const video = document.getElementById('videoElement');
@@ -629,7 +720,6 @@
                 ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Timestamp
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                 ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
@@ -647,21 +737,21 @@
             }, 100);
         }
 
-        function retakePhoto() {
+        window.retakePhoto = function() {
             document.getElementById('capturedImage').classList.add('hidden');
             document.getElementById('selfieData').value = '';
             document.getElementById('btnCapture').classList.remove('hidden');
             document.getElementById('btnRetake').classList.add('hidden');
         }
 
-        async function submitCheckIn() {
+        window.submitCheckIn = async function() {
             if(isSubmitting) return;
             const shift = document.getElementById('shiftSelection').value;
             const lat = document.getElementById('ci_lat').value, selfie = document.getElementById('selfieData').value;
             
-            if (!shift) return showToast("Shift time select karein.", "error");
-            if (!lat) return showToast("Location fetch karein.", "error");
-            if (!selfie) return showToast("Selfie click karein.", "error");
+            if (!shift) return window.showToast("Shift time select karein.", "error");
+            if (!lat) return window.showToast("Location fetch karein.", "error");
+            if (!selfie) return window.showToast("Selfie click karein.", "error");
 
             const payload = {
                 type: 'checkin', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
@@ -675,14 +765,14 @@
             await executeFinalSubmit('checkin', payload);
         }
 
-        async function submitCheckOut() {
+        window.submitCheckOut = async function() {
             if(isSubmitting) return;
             const lat = document.getElementById('co_lat').value;
-            if (!lat) return showToast("Location fetch karein.", "error");
+            if (!lat) return window.showToast("Location fetch karein.", "error");
 
             const lastOrderVal = document.querySelector('input[name="lastOrder"]:checked').value;
             const orderIdVal = document.getElementById('orderId').value.trim();
-            if (lastOrderVal === 'Yes' && !orderIdVal) return showToast("Order ID is required.", "error");
+            if (lastOrderVal === 'Yes' && !orderIdVal) return window.showToast("Order ID is required.", "error");
 
             const payload = {
                 type: 'checkout', riderId: currentUser.riderId, riderName: currentUser.riderName, riderEmail: currentUser.riderEmail,
@@ -700,26 +790,34 @@
         }
 
         async function executeFinalSubmit(type, payload) {
+            if (!firebaseUser) return window.showToast("Database connecting, try again in a sec...", "error");
             isSubmitting = true;
             const btn = document.getElementById(type === 'checkin' ? 'btnSubmitCheckIn' : 'btnSubmitCheckOut');
             if(btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
             
             try {
-                await apiCall('submit', payload);
-                showToast("Submitted Successfully!", "success");
-                closeModal(type === 'checkin' ? 'checkInModal' : 'checkOutModal'); 
-                if(type === 'checkin') retakePhoto();
+                // 1. FAST WRITE TO FIREBASE (Instant State Management)
+                const colName = type === 'checkin' ? 'checkins' : 'checkouts';
+                payload.timestamp = Date.now();
+                await addDoc(collection(db, `artifacts/${APP_ID}/public/data/${colName}`), payload);
+
+                // 2. BACKGROUND SYNC TO GOOGLE SHEETS (Does not block UI)
+                apiCall('submit_background', payload).catch(e => console.log("Background sheet sync taking time: ", e));
+                
+                window.showToast("Submitted Successfully!", "success");
+                window.closeModal(type === 'checkin' ? 'checkInModal' : 'checkOutModal'); 
+                if(type === 'checkin') window.retakePhoto();
                 syncShiftState();
-            } catch (e) { showToast(e.message, "error"); } 
+            } catch (e) { window.showToast(e.message, "error"); } 
             finally { 
                 isSubmitting = false; 
                 if(btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
             }
         }
 
-        function openCheckInModal() { document.getElementById('checkInModal').classList.remove('hidden-screen'); startCamera(); }
-        function openCheckOutModal() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden-screen'); if(id==='checkInModal') stopCamera(); }
+        window.openCheckInModal = function() { document.getElementById('checkInModal').classList.remove('hidden-screen'); startCamera(); }
+        window.openCheckOutModal = function() { document.getElementById('checkOutModal').classList.remove('hidden-screen'); }
+        window.closeModal = function(id) { document.getElementById(id).classList.add('hidden-screen'); if(id==='checkInModal') stopCamera(); }
 
         window.onload = () => {
             const saved = localStorage.getItem('riderSession');
