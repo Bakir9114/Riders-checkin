@@ -133,7 +133,7 @@
     <div id="checkInScreen" class="hidden-screen flex-1 flex flex-col w-full min-h-screen bg-darkBg absolute inset-0 z-40">
         <div class="p-5 border-b border-gray-800 flex items-center gap-4 bg-[#111827] sticky top-0 z-10">
             <button onclick="handleCiBack()" class="p-2 bg-gray-800 rounded-full hover:bg-gray-700 text-gray-300 transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-            <h3 class="text-xl font-bold text-white flex-1 flex items-center gap-2"><i data-lucide="log-in" class="text-emerald-400 w-5 h-5"></i> Check In Process</h3>
+            <h3 id="ci-header-title" class="text-xl font-bold text-white flex-1 flex items-center gap-2"><i data-lucide="log-in" class="text-emerald-400 w-5 h-5"></i> Check In Process</h3>
         </div>
         
         <div class="w-full bg-gray-800 h-1">
@@ -199,8 +199,6 @@
                 <canvas id="canvasElement" class="hidden"></canvas>
                 <input type="hidden" id="selfieData">
                 
-                <!-- Manual override if auto fails -->
-                <button id="btnManualCapture" onclick="executeSilentCapture()" class="hidden w-full bg-gray-700 text-white py-3 rounded-xl font-bold mt-4"><i data-lucide="camera" class="inline w-5 h-5 mr-2"></i> Take Photo Manually</button>
             </div>
 
             <!-- Check-In Step 4: SUBMIT -->
@@ -237,7 +235,7 @@
     <div id="checkOutScreen" class="hidden-screen flex-1 flex flex-col w-full min-h-screen bg-darkBg absolute inset-0 z-40">
         <div class="p-5 border-b border-gray-800 flex items-center gap-4 bg-[#111827] sticky top-0 z-10">
             <button onclick="handleCoBack()" class="p-2 bg-gray-800 rounded-full hover:bg-gray-700 text-gray-300 transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-            <h3 class="text-xl font-bold text-white flex-1 flex items-center gap-2"><i data-lucide="log-out" class="text-rose-500 w-5 h-5"></i> Check Out Process</h3>
+            <h3 id="co-header-title" class="text-xl font-bold text-white flex-1 flex items-center gap-2"><i data-lucide="log-out" class="text-rose-500 w-5 h-5"></i> Check Out Process</h3>
         </div>
         
         <div class="w-full bg-gray-800 h-1">
@@ -430,7 +428,12 @@
 
         lucide.createIcons();
 
-        window.showScreen = function(screenId) {
+        window.showScreen = function(screenId, pushHistory = true) {
+            // Strict state guard: Do not allow check-in screen if currently active shift
+            if (screenId === 'checkInScreen' && localStorage.getItem('shiftState') === 'active') {
+                screenId = 'mainDashboard';
+            }
+
             ['loginScreen', 'mainDashboard', 'managerDashboard', 'checkInScreen', 'checkOutScreen', 'approvalModal'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.classList.add('hidden-screen');
@@ -440,7 +443,33 @@
                 target.classList.remove('hidden-screen');
                 lucide.createIcons({ root: target }); // refresh icons
             }
+            
+            // Push state for back button handling
+            if (pushHistory && screenId !== 'loginScreen') {
+                history.pushState({ screen: screenId }, "", `#${screenId}`);
+            }
         }
+        
+        // Handle Browser Back Button perfectly
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.screen) {
+                window.showScreen(event.state.screen, false);
+            } else {
+                if (currentUser) {
+                    window.showScreen(currentUser.role === 'manager' ? 'managerDashboard' : 'mainDashboard', false);
+                } else {
+                    window.showScreen('loginScreen', false);
+                }
+            }
+        });
+
+        // Handle returning to tab/app
+        document.addEventListener('visibilitychange', () => {
+            if(document.visibilityState === 'visible' && currentUser) {
+                applyLocalShiftStateUI();
+                syncShiftState();
+            }
+        });
 
         window.showLoader = function(text = "Processing...", subtext = "Please wait...") {
             document.getElementById('loaderText').innerText = text;
@@ -536,6 +565,7 @@
         window.logout = function() {
             localStorage.removeItem('riderSession');
             localStorage.removeItem('shiftState');
+            localStorage.removeItem('checkInTime');
             currentUser = null; stopCamera(); stopPolling();
             if(managerUnsubscribe) managerUnsubscribe();
             document.getElementById('loginForm').reset();
@@ -544,10 +574,26 @@
 
         function applyLocalShiftStateUI() {
             const state = localStorage.getItem('shiftState');
+            const checkInTime = parseInt(localStorage.getItem('checkInTime') || '0');
+            const now = Date.now();
+            
+            let isActive = state === 'active';
+            
+            // Local fallback expiry (16 hours)
+            if (isActive && checkInTime > 0 && (now - checkInTime) > 16 * 60 * 60 * 1000) {
+                isActive = false; 
+                localStorage.setItem('shiftState', 'inactive');
+            }
+
             const btnCheckIn = document.getElementById('btnCheckIn');
             const btnCheckOut = document.getElementById('btnCheckOut');
-            if (state === 'active') {
+            
+            if (isActive) {
                 btnCheckIn.classList.add('hidden'); btnCheckOut.classList.remove('hidden');
+                // Force exit check-in screen if open
+                if (!document.getElementById('checkInScreen').classList.contains('hidden-screen')) {
+                    window.showScreen('mainDashboard');
+                }
             } else {
                 btnCheckIn.classList.remove('hidden'); btnCheckOut.classList.add('hidden');
             }
@@ -838,6 +884,10 @@
         }
 
         window.startCheckInFlow = function() {
+            if(localStorage.getItem('shiftState') === 'active') {
+                window.showToast("Aap pehle se checked-in hain. Please Check Out first.", "error");
+                return;
+            }
             window.showScreen('checkInScreen');
             document.getElementById('shiftSelection').value = "";
             document.getElementById('ci_address').value = "";
@@ -880,6 +930,12 @@
             document.getElementById(`ci-step-${step}`).classList.remove('hidden');
             document.getElementById('ci-progress').style.width = `${step * 25}%`;
 
+            // Dynamic Header Text
+            const headers = { 1: "1. Select Shift", 2: "2. Fetch Location", 3: "3. Auto-Selfie", 4: "4. Final Review" };
+            const headerTitle = document.getElementById('ci-header-title');
+            if(headerTitle) headerTitle.innerHTML = `<i data-lucide="log-in" class="text-emerald-400 w-5 h-5"></i> ${headers[step]}`;
+            lucide.createIcons();
+
             if(step === 3) startAutoSelfie();
             if(step === 4) {
                 document.getElementById('summaryShift').innerText = document.getElementById('shiftSelection').value;
@@ -892,7 +948,6 @@
             document.getElementById('selfieOverlay').classList.remove('hidden');
             document.getElementById('selfieOverlay').classList.add('bg-black/60');
             document.getElementById('selfieCountdownText').innerText = "3";
-            document.getElementById('btnManualCapture').classList.add('hidden');
             
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -911,7 +966,8 @@
                 }, 1000);
             } catch (err) { 
                 window.showToast("Camera access needed for Selfie.", "error"); 
-                document.getElementById('selfieStatusText').innerText = "Camera Permission Denied!";
+                document.getElementById('selfieStatusText').innerText = "Camera Permission Denied! Allow camera to proceed.";
+                setTimeout(() => { goToCheckInStep(2); }, 3000); // Send back to step 2 automatically
             }
         }
 
@@ -997,6 +1053,12 @@
             currentCoStep = step;
             document.getElementById(`co-step-${step}`).classList.remove('hidden');
             document.getElementById('co-progress').style.width = `${(step / 3) * 100}%`;
+            
+            // Dynamic Header Text
+            const headers = { 1: "1. End Location", 2: "2. Ride Details", 3: "3. Final Confirm" };
+            const headerTitle = document.getElementById('co-header-title');
+            if(headerTitle) headerTitle.innerHTML = `<i data-lucide="log-out" class="text-rose-500 w-5 h-5"></i> ${headers[step]}`;
+            lucide.createIcons();
         }
 
         window.submitCheckIn = async function() {
@@ -1062,8 +1124,15 @@
                 
                 window.showToast("Submitted Successfully!", "success");
                 
-                // Set Local State immediately to prevent UI flicker
+                // Set Local State immediately to prevent UI flicker and strictly enforce persistence
                 localStorage.setItem('shiftState', type === 'checkin' ? 'active' : 'inactive');
+                if (type === 'checkin') {
+                    localStorage.setItem('checkInTime', payload.timestamp.toString());
+                    activeCheckInTimeMs = payload.timestamp;
+                } else {
+                    localStorage.removeItem('checkInTime');
+                    activeCheckInTimeMs = 0;
+                }
                 
                 window.showScreen('mainDashboard');
                 applyLocalShiftStateUI();
