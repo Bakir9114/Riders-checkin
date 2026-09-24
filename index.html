@@ -70,15 +70,15 @@
             <p class="mt-2 text-xs tracking-widest text-gray-400 uppercase">Farmako Delivery System</p>
         </div>
         <div class="bg-cardBg rounded-3xl shadow-2xl p-8 border border-gray-800">
-            <form id="loginForm" class="space-y-6">
+            <form id="loginForm" class="space-y-6" onsubmit="event.preventDefault(); handleLogin();">
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Rider ID</label>
-                    <input type="text" id="riderId" class="glass-input" placeholder="e.g. FAR044">
+                    <input type="text" id="riderId" class="glass-input" placeholder="e.g. FAR044" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Secret PIN</label>
                     <div class="relative">
-                        <input type="password" id="secretPin" class="glass-input pr-12" placeholder="Enter your PIN">
+                        <input type="password" id="secretPin" class="glass-input pr-12" placeholder="Enter your PIN" required>
                         <button type="button" onclick="togglePassword('secretPin', 'eyeIcon')" class="absolute inset-y-0 right-0 pr-4 flex items-center">
                             <i data-lucide="eye" id="eyeIcon" class="h-5 w-5 text-gray-400 hover:text-white"></i>
                         </button>
@@ -88,12 +88,13 @@
                     <i data-lucide="log-in" class="w-5 h-5"></i> Secure Login
                 </button>
             </form>
+            <p class="text-center text-[10px] text-gray-500 mt-4"><i data-lucide="lock" class="w-3 h-3 inline"></i> Device Lock is Active</p>
         </div>
     </div>
 
-    <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full relative min-h-screen">
-        <div class="text-center mb-10">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.4)] mb-4">
+    <div id="mainDashboard" class="hidden-screen flex-1 flex flex-col px-6 py-8 max-w-md mx-auto w-full relative min-h-screen">
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.4)] mb-4 mt-4">
                 <i data-lucide="clock" class="w-8 h-8 text-white"></i>
             </div>
             <h1 class="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Rider Dashboard</h1>
@@ -118,6 +119,10 @@
             <button onclick="startCheckOutFlow()" id="btnCheckOut" class="w-full btn-glow-red rounded-xl py-5 text-white font-bold text-lg flex items-center justify-center gap-3 hidden">
                 <i data-lucide="log-out" class="w-6 h-6"></i> Check-Out
             </button>
+            
+            <button onclick="showHistoryScreen()" class="w-full bg-cardBg border border-gray-700 text-gray-300 hover:text-white rounded-xl py-4 font-semibold text-sm flex items-center justify-center gap-2 transition">
+                <i data-lucide="history" class="w-5 h-5"></i> View Approvals History
+            </button>
         </div>
         <div id="approvalStatusArea" class="hidden mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-2xl p-4 text-center">
             <i data-lucide="clock" class="w-6 h-6 text-yellow-500 mx-auto mb-2 animate-pulse"></i>
@@ -141,7 +146,7 @@
         </div>
 
         <div class="flex-1 p-6 overflow-y-auto w-full max-w-md mx-auto">
-            <!-- Check-In Step 1: SHIFT -->
+            <!-- Step 1: SHIFT -->
             <div id="ci-step-1" class="step-container">
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 1 of 4: Select Shift</h4>
                 <div class="bg-cardInner p-5 rounded-2xl border border-gray-800 shadow-lg">
@@ -160,19 +165,22 @@
                 </div>
             </div>
 
-            <!-- Check-In Step 2: LOCATION -->
+            <!-- Step 2: LOCATION & GEOFENCE -->
             <div id="ci-step-2" class="step-container hidden">
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 2 of 4: Fetch Location</h4>
-                <div class="bg-cardInner p-5 rounded-2xl border border-gray-800 shadow-lg">
-                    <div class="flex justify-center mb-4">
+                <div class="bg-cardInner p-5 rounded-2xl border border-gray-800 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-blue-600 text-[10px] text-white px-2 py-1 rounded-bl-lg font-bold tracking-wider z-10 flex items-center gap-1">
+                        <i data-lucide="shield-alert" class="w-3 h-3"></i> Geofence Active
+                    </div>
+                    <div class="flex justify-center mb-4 mt-2">
                         <div class="w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center border border-blue-500/50"><i data-lucide="map-pin" class="w-8 h-8 text-blue-400"></i></div>
                     </div>
-                    <p class="text-center text-sm text-gray-400 mb-6">Check-in ke liye aapki current location zaruri hai.</p>
+                    <p class="text-center text-sm text-gray-400 mb-6">Check-in is locked within 200 meters of the hub.</p>
                     
-                    <button type="button" onclick="getLocation('checkIn')" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold hover:bg-gray-600 mb-4 flex justify-center items-center gap-2"><i data-lucide="crosshair" class="w-5 h-5 text-blue-400"></i> Get My GPS Location</button>
+                    <button type="button" onclick="getLocation('checkIn')" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold hover:bg-gray-600 mb-4 flex justify-center items-center gap-2"><i data-lucide="crosshair" class="w-5 h-5 text-blue-400"></i> Fetch Geofenced GPS</button>
                     
                     <div class="bg-darkBg rounded-xl p-3 border border-gray-700 mb-6 text-center">
-                        <span class="text-xs text-gray-500 uppercase block mb-1">Current Coordinates</span>
+                        <span class="text-xs text-gray-500 uppercase block mb-1">Current Status</span>
                         <input type="text" id="ci_address" readonly placeholder="Waiting for GPS..." class="w-full bg-transparent text-sm text-white outline-none text-center font-medium">
                     </div>
                     <div class="hidden"><input type="text" id="ci_lat"><input type="text" id="ci_lon"></div>
@@ -181,7 +189,7 @@
                 </div>
             </div>
 
-            <!-- Check-In Step 3: AUTO-SELFIE -->
+            <!-- Step 3: AUTO-SELFIE -->
             <div id="ci-step-3" class="step-container hidden text-center">
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Step 3 of 4: Auto-Selfie</h4>
                 <p class="text-xs text-gray-500 mb-6">Please look straight at the screen. Capturing automatically...</p>
@@ -198,10 +206,9 @@
                 
                 <canvas id="canvasElement" class="hidden"></canvas>
                 <input type="hidden" id="selfieData">
-                
             </div>
 
-            <!-- Check-In Step 4: SUBMIT -->
+            <!-- Step 4: SUBMIT -->
             <div id="ci-step-4" class="step-container hidden">
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 4 of 4: Final Review</h4>
                 <div class="bg-cardInner p-5 rounded-2xl border border-gray-800 shadow-lg space-y-4 mb-6">
@@ -223,7 +230,7 @@
                         <div class="p-2 bg-emerald-900/30 rounded-lg"><i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i></div>
                         <div>
                             <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Security</p>
-                            <p class="text-xs text-emerald-400 font-medium">Selfie successfully captured & timestamped</p>
+                            <p class="text-xs text-emerald-400 font-medium">Selfie & Location verified</p>
                         </div>
                     </div>
                 </div>
@@ -243,12 +250,14 @@
         </div>
 
         <div class="flex-1 p-6 overflow-y-auto w-full max-w-md mx-auto">
-            
-            <!-- Check-Out Step 1: LOCATION -->
+            <!-- Step 1: LOCATION -->
             <div id="co-step-1" class="step-container">
-                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 1 of 3: Location</h4>
-                <div class="bg-cardInner p-5 rounded-2xl border border-gray-800 shadow-lg">
-                    <button type="button" onclick="getLocation('checkOut')" class="w-full bg-gray-700 text-white py-4 rounded-xl font-bold hover:bg-gray-600 mb-4 flex justify-center items-center gap-2"><i data-lucide="crosshair" class="w-5 h-5 text-blue-400"></i> Fetch End Location</button>
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 1 of 3: Location Verification</h4>
+                <div class="bg-cardInner p-5 rounded-2xl border border-gray-800 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-blue-600 text-[10px] text-white px-2 py-1 rounded-bl-lg font-bold tracking-wider z-10 flex items-center gap-1">
+                        <i data-lucide="shield-alert" class="w-3 h-3"></i> Geofence Active
+                    </div>
+                    <button type="button" onclick="getLocation('checkOut')" class="w-full mt-4 bg-gray-700 text-white py-4 rounded-xl font-bold hover:bg-gray-600 mb-4 flex justify-center items-center gap-2"><i data-lucide="crosshair" class="w-5 h-5 text-blue-400"></i> Fetch Geofenced GPS</button>
                     
                     <div class="bg-darkBg rounded-xl p-3 border border-gray-700 mb-6 text-center">
                         <input type="text" id="co_address" readonly placeholder="Waiting for GPS..." class="w-full bg-transparent text-sm text-white outline-none text-center font-medium">
@@ -259,7 +268,7 @@
                 </div>
             </div>
 
-            <!-- Check-Out Step 2: RIDE DETAILS -->
+            <!-- Step 2: RIDE DETAILS -->
             <div id="co-step-2" class="step-container hidden">
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 2 of 3: Ride Details</h4>
                 <div class="space-y-4">
@@ -292,7 +301,7 @@
                 </div>
             </div>
 
-            <!-- Check-Out Step 3: CONFIRM & SUBMIT -->
+            <!-- Step 3: CONFIRM & SUBMIT -->
             <div id="co-step-3" class="step-container hidden">
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step 3 of 3: Final Confirm</h4>
                 
@@ -316,7 +325,16 @@
 
                 <button type="button" id="btnSubmitCheckOut" onclick="submitCheckOut()" class="w-full btn-glow-red py-4 rounded-xl text-white font-bold flex justify-center items-center gap-2 text-lg shadow-lg">Submit Check-Out <i data-lucide="log-out" class="w-6 h-6"></i></button>
             </div>
-            
+        </div>
+    </div>
+
+    <div id="historyScreen" class="hidden-screen flex-1 flex flex-col w-full min-h-screen bg-darkBg absolute inset-0 z-50">
+        <div class="p-5 border-b border-gray-800 flex items-center gap-4 bg-[#111827] sticky top-0 z-10 shadow-lg">
+            <button onclick="window.showScreen('mainDashboard')" class="p-2 bg-gray-800 rounded-full hover:bg-gray-700 text-gray-300 transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+            <h3 class="text-xl font-bold text-white flex-1 flex items-center gap-2"><i data-lucide="history" class="text-blue-400 w-5 h-5"></i> My Approvals</h3>
+        </div>
+        <div class="flex-1 p-6 overflow-y-auto w-full max-w-md mx-auto" id="historyList">
+            <!-- Dynamic history list gets injected here -->
         </div>
     </div>
 
@@ -413,7 +431,6 @@
         let managerUnsubscribe = null;
         let autoSelfieTimer = null;
         
-        // Navigation State
         let currentCiStep = 1;
         let currentCoStep = 1;
 
@@ -428,29 +445,37 @@
 
         lucide.createIcons();
 
+        function getOrCreateDeviceId() {
+            let id = localStorage.getItem('farmako_device_id');
+            if (!id) {
+                // Generate a unique fallback string if crypto.randomUUID is not available
+                id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+                localStorage.setItem('farmako_device_id', id);
+            }
+            return id;
+        }
+
         window.showScreen = function(screenId, pushHistory = true) {
             // Strict state guard: Do not allow check-in screen if currently active shift
             if (screenId === 'checkInScreen' && localStorage.getItem('shiftState') === 'active') {
                 screenId = 'mainDashboard';
             }
 
-            ['loginScreen', 'mainDashboard', 'managerDashboard', 'checkInScreen', 'checkOutScreen', 'approvalModal'].forEach(id => {
+            ['loginScreen', 'mainDashboard', 'managerDashboard', 'checkInScreen', 'checkOutScreen', 'approvalModal', 'historyScreen'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.classList.add('hidden-screen');
             });
             const target = document.getElementById(screenId);
             if(target) {
                 target.classList.remove('hidden-screen');
-                lucide.createIcons({ root: target }); // refresh icons
+                lucide.createIcons({ root: target });
             }
             
-            // Push state for back button handling
             if (pushHistory && screenId !== 'loginScreen') {
                 history.pushState({ screen: screenId }, "", `#${screenId}`);
             }
         }
         
-        // Handle Browser Back Button perfectly
         window.addEventListener('popstate', (event) => {
             if (event.state && event.state.screen) {
                 window.showScreen(event.state.screen, false);
@@ -463,7 +488,6 @@
             }
         });
 
-        // Handle returning to tab/app
         document.addEventListener('visibilitychange', () => {
             if(document.visibilityState === 'visible' && currentUser) {
                 applyLocalShiftStateUI();
@@ -529,11 +553,13 @@
             const secretPin = document.getElementById('secretPin').value.trim();
             if (!riderId || !secretPin) return window.showToast("Dono ID aur PIN zaruri hain.", "error");
 
+            const deviceId = getOrCreateDeviceId(); // Pass device ID for lock binding
+
             const btn = document.getElementById('btnLogin');
             btn.disabled = true; 
-            window.showLoader("Authenticating...");
+            window.showLoader("Authenticating Device...");
             try {
-                const res = await apiCall('login', { riderId, secretPin });
+                const res = await apiCall('login', { riderId, secretPin, deviceId });
                 currentUser = res.data;
                 localStorage.setItem('riderSession', JSON.stringify(currentUser));
                 setupDashboard();
@@ -555,9 +581,7 @@
                     document.getElementById('userAvatar').innerText = currentUser.riderName.charAt(0).toUpperCase();
                 }
                 
-                // Fast Local State UI Render to prevent flicker
                 applyLocalShiftStateUI();
-                // Then Verify with Firebase
                 syncShiftState();
             }
         }
@@ -579,7 +603,6 @@
             
             let isActive = state === 'active';
             
-            // Local fallback expiry (16 hours)
             if (isActive && checkInTime > 0 && (now - checkInTime) > 16 * 60 * 60 * 1000) {
                 isActive = false; 
                 localStorage.setItem('shiftState', 'inactive');
@@ -590,7 +613,6 @@
             
             if (isActive) {
                 btnCheckIn.classList.add('hidden'); btnCheckOut.classList.remove('hidden');
-                // Force exit check-in screen if open
                 if (!document.getElementById('checkInScreen').classList.contains('hidden-screen')) {
                     window.showScreen('mainDashboard');
                 }
@@ -785,56 +807,71 @@
                     timestamp: Date.now()
                 });
                 window.closeApprovalModal(); 
-                window.showScreen('mainDashboard'); // Exit full screens
+                window.showScreen('mainDashboard');
                 showApprovalPendingUI();
                 window.showToast("Request sent to manager.", "success");
             } catch (e) { window.showToast(e.message, "error"); }
         }
 
-        window.loadPendingApprovals = async function() {
-            if(!firebaseUser) return;
-            const container = document.getElementById('approvalsList');
-            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
-            lucide.createIcons();
-
-            if (managerUnsubscribe) managerUnsubscribe();
-            
-            managerUnsubscribe = onSnapshot(collection(db, `artifacts/${APP_ID}/public/data/approvals`), (snap) => {
-                const data = [];
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    if(d.status === 'pending') data.push({ id: doc.id, ...d });
-                });
-                data.sort((a,b) => b.timestamp - a.timestamp);
-
-                if (data.length === 0) {
-                    container.innerHTML = `<div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800"><p class="text-gray-400 font-medium">No pending approvals.</p></div>`;
-                } else {
-                    container.innerHTML = '';
-                    data.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg mb-3";
-                        card.innerHTML = `
-                            <h4 class="font-bold text-white">${item.riderName} <span class="text-xs text-gray-500 ml-1">(${item.riderId})</span></h4>
-                            <p class="text-xs text-yellow-500 mb-2 mt-1 uppercase font-bold tracking-wider">${item.type} EXCEPTION</p>
-                            <p class="text-sm text-gray-300 mb-4 bg-darkBg p-3 rounded-lg border border-gray-700">Reason: ${item.reason}</p>
-                            <div class="flex gap-2">
-                                <button onclick="respondApproval('${item.id}', 'approved')" class="flex-1 btn-glow-green py-3 rounded-lg text-sm font-semibold">Approve</button>
-                                <button onclick="respondApproval('${item.id}', 'rejected')" class="flex-1 bg-gray-800 border border-red-500/50 text-red-400 py-3 rounded-lg text-sm font-semibold hover:bg-red-900/30">Reject</button>
-                            </div>
-                        `;
-                        container.appendChild(card);
-                    });
-                }
-                lucide.createIcons();
-            }, (err) => console.error(err));
+        window.showHistoryScreen = function() {
+            window.showScreen('historyScreen');
+            loadApprovalHistory();
         }
 
-        window.respondApproval = async function(docId, status) {
+        async function loadApprovalHistory() {
+            if(!firebaseUser) return;
+            const container = document.getElementById('historyList');
+            container.innerHTML = '<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>';
+            lucide.createIcons();
+            
             try {
-                await updateDoc(doc(db, `artifacts/${APP_ID}/public/data/approvals`, docId), { status: status });
-                window.showToast(`Request ${status}`, "success");
-            } catch(e) { window.showToast(e.message, "error"); }
+                const snap = await getDocs(collection(db, `artifacts/${APP_ID}/public/data/approvals`));
+                const myReqs = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.riderId === currentUser.riderId) {
+                        myReqs.push(d);
+                    }
+                });
+                myReqs.sort((a,b) => b.timestamp - a.timestamp);
+                
+                if(myReqs.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800">
+                            <i data-lucide="inbox" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+                            <p class="text-gray-400 font-medium">No past requests found.</p>
+                        </div>`;
+                    lucide.createIcons();
+                    return;
+                }
+                
+                let html = '<div class="space-y-3 pb-8">';
+                myReqs.forEach(req => {
+                    const date = new Date(req.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                    let color = 'text-yellow-500';
+                    let bg = 'bg-yellow-500/10';
+                    if(req.status === 'approved') { color = 'text-emerald-500'; bg = 'bg-emerald-500/10'; }
+                    if(req.status === 'rejected' || req.status === 'cancelled') { color = 'text-rose-500'; bg = 'bg-rose-500/10'; }
+                    
+                    html += `
+                    <div class="bg-cardInner p-4 rounded-xl border border-gray-800 shadow relative overflow-hidden">
+                        <div class="absolute top-0 right-0 px-3 py-1 ${bg} ${color} rounded-bl-lg text-[10px] font-bold uppercase tracking-wider">
+                            ${req.status}
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="p-1.5 bg-gray-800 rounded-md"><i data-lucide="clock" class="w-4 h-4 text-blue-400"></i></div>
+                            <span class="text-sm font-bold text-gray-300 uppercase">${req.type} Exception</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-2 pl-8">Reason: <span class="text-white">${req.reason}</span></p>
+                        <p class="text-[11px] text-gray-500 font-medium pl-8">${date}</p>
+                    </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+                lucide.createIcons();
+            } catch(e) {
+                container.innerHTML = `<p class="text-rose-500 text-center py-4">Error loading history: ${e.message}</p>`;
+            }
         }
 
         window.getLocation = function(type) {
@@ -842,12 +879,14 @@
             addrInput.value = "Fetching GPS...";
             
             const checkId = currentUser ? currentUser.riderId.trim().toUpperCase() : "";
-            // Test Account Bypass for Devs
-            if (checkId === 'FAR044' || checkId === 'FAR024') {
+            // Keep bypass IDs for admins only
+            const bypassIds = ['FAR044', 'MGR9114'];
+
+            if (bypassIds.includes(checkId)) {
                 document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = "28.461013";
                 document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = "77.079280";
-                addrInput.value = "Test Location Granted (No GPS Check)";
-                window.showToast("Test ID Bypass Active!", "success");
+                addrInput.value = "Test Location Granted (Bypass Active)";
+                window.showToast("Admin Bypass Active!", "success");
                 if(type === 'checkIn') { document.getElementById('btnCiStep2Next').disabled = false; document.getElementById('btnCiStep2Next').classList.remove('opacity-50', 'cursor-not-allowed'); }
                 else { document.getElementById('btnCoStep1Next').disabled = false; document.getElementById('btnCoStep1Next').classList.remove('opacity-50', 'cursor-not-allowed'); }
                 return; 
@@ -863,12 +902,37 @@
                     }
                     
                     const lat = position.coords.latitude, lon = position.coords.longitude;
+                    
+                    // GEOFENCING: Target Hub Coordinates
+                    const targetLat = 28.461013;
+                    const targetLon = 77.079280;
+                    const maxRadius = 200; // 200 Meters absolute limit
+
+                    // Haversine distance formula to calculate exact meter distance
+                    const R = 6371e3; // Earth's radius in meters
+                    const phi1 = lat * Math.PI/180;
+                    const phi2 = targetLat * Math.PI/180;
+                    const deltaPhi = (targetLat-lat) * Math.PI/180;
+                    const deltaLambda = (targetLon-lon) * Math.PI/180;
+
+                    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                              Math.cos(phi1) * Math.cos(phi2) *
+                              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const distance = R * c;
+
+                    // Execute Geofence Block under 200 Meters
+                    if (distance > maxRadius) {
+                        addrInput.value = "";
+                        return window.showToast(`🚫 App Locked: Aap hub se ${Math.round(distance)} meters door hain. Max 200 meters allowed for access.`, "error");
+                    }
+
                     document.getElementById(type === 'checkIn' ? 'ci_lat' : 'co_lat').value = lat;
                     document.getElementById(type === 'checkIn' ? 'ci_lon' : 'co_lon').value = lon;
                     try {
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
                         const data = await res.json();
-                        addrInput.value = data.display_name || "Location found";
+                        addrInput.value = data.display_name || "Location within Geofence";
                         
                         if(type === 'checkIn') { document.getElementById('btnCiStep2Next').disabled = false; document.getElementById('btnCiStep2Next').classList.remove('opacity-50', 'cursor-not-allowed'); }
                         else { document.getElementById('btnCoStep1Next').disabled = false; document.getElementById('btnCoStep1Next').classList.remove('opacity-50', 'cursor-not-allowed'); }
@@ -908,7 +972,6 @@
         }
 
         window.goToCheckInStep = function(step) {
-            // Validations before moving forward
             if(step === 2 && currentCiStep === 1) {
                 const shift = document.getElementById('shiftSelection').value;
                 if(!shift) return window.showToast("Pehle shift select karein", "error");
@@ -918,19 +981,16 @@
                 if(!lat) return window.showToast("Location fetch karna zaruri hai", "error");
             }
 
-            // Hide all steps
             for(let i=1; i<=4; i++) {
                 document.getElementById(`ci-step-${i}`).classList.add('hidden');
             }
             
-            // Clean up camera if moving away from step 3 backward
             if(currentCiStep === 3 && step !== 3) { stopCamera(); clearInterval(autoSelfieTimer); }
 
             currentCiStep = step;
             document.getElementById(`ci-step-${step}`).classList.remove('hidden');
             document.getElementById('ci-progress').style.width = `${step * 25}%`;
 
-            // Dynamic Header Text
             const headers = { 1: "1. Select Shift", 2: "2. Fetch Location", 3: "3. Auto-Selfie", 4: "4. Final Review" };
             const headerTitle = document.getElementById('ci-header-title');
             if(headerTitle) headerTitle.innerHTML = `<i data-lucide="log-in" class="text-emerald-400 w-5 h-5"></i> ${headers[step]}`;
@@ -967,7 +1027,7 @@
             } catch (err) { 
                 window.showToast("Camera access needed for Selfie.", "error"); 
                 document.getElementById('selfieStatusText').innerText = "Camera Permission Denied! Allow camera to proceed.";
-                setTimeout(() => { goToCheckInStep(2); }, 3000); // Send back to step 2 automatically
+                setTimeout(() => { goToCheckInStep(2); }, 3000);
             }
         }
 
@@ -976,7 +1036,6 @@
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('canvasElement');
             
-            // flash effect on overlay
             const overlay = document.getElementById('selfieOverlay');
             overlay.classList.remove('bg-black/60', 'hidden');
             overlay.classList.add('bg-white/90');
@@ -985,10 +1044,9 @@
             setTimeout(() => {
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
-                ctx.translate(canvas.width, 0); ctx.scale(-1, 1); // Flip mirror
+                ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Add Timestamp Banner
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
                 ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
@@ -1001,7 +1059,6 @@
                 
                 stopCamera(); 
                 
-                // Move to step 4 immediately after flash
                 overlay.classList.remove('bg-white/90');
                 goToCheckInStep(4);
             }, 200);
@@ -1054,7 +1111,6 @@
             document.getElementById(`co-step-${step}`).classList.remove('hidden');
             document.getElementById('co-progress').style.width = `${(step / 3) * 100}%`;
             
-            // Dynamic Header Text
             const headers = { 1: "1. End Location", 2: "2. Ride Details", 3: "3. Final Confirm" };
             const headerTitle = document.getElementById('co-header-title');
             if(headerTitle) headerTitle.innerHTML = `<i data-lucide="log-out" class="text-rose-500 w-5 h-5"></i> ${headers[step]}`;
@@ -1096,7 +1152,7 @@
                 latitude: lat, longitude: document.getElementById('co_lon').value, address: document.getElementById('co_address').value,
                 totalRides: document.getElementById('totalRides').value || 0, totalKms: document.getElementById('totalKms').value || 0,
                 manualOrders: document.getElementById('manualOrders').value || 0, manualKms: document.getElementById('manualKms').value || 0,
-                lastOrder: lastOrderVal, orderId: orderIdVal, selfie: "" // Skipping selfie for checkout based on flow rules
+                lastOrder: lastOrderVal, orderId: orderIdVal, selfie: ""
             };
 
             const lastOrderCompleted = (lastOrderVal === 'Yes' && orderIdVal !== "");
@@ -1114,17 +1170,14 @@
             
             window.showLoader("Saving Data...");
             try {
-                // 1. FAST WRITE TO FIREBASE
                 const colName = type === 'checkin' ? 'checkins' : 'checkouts';
                 payload.timestamp = Date.now();
                 await addDoc(collection(db, `artifacts/${APP_ID}/public/data/${colName}`), payload);
 
-                // 2. BACKGROUND SYNC TO GOOGLE SHEETS
                 apiCall('submit_background', payload).catch(e => console.log("Background sync delay: ", e));
                 
                 window.showToast("Submitted Successfully!", "success");
                 
-                // Set Local State immediately to prevent UI flicker and strictly enforce persistence
                 localStorage.setItem('shiftState', type === 'checkin' ? 'active' : 'inactive');
                 if (type === 'checkin') {
                     localStorage.setItem('checkInTime', payload.timestamp.toString());
@@ -1136,13 +1189,59 @@
                 
                 window.showScreen('mainDashboard');
                 applyLocalShiftStateUI();
-                syncShiftState(); // confirm with DB
+                syncShiftState();
             } catch (e) { window.showToast(e.message, "error"); } 
             finally { 
                 isSubmitting = false; 
                 window.hideLoader();
                 if(btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
             }
+        }
+
+        window.loadPendingApprovals = async function() {
+            if(!firebaseUser) return;
+            const container = document.getElementById('approvalsList');
+            container.innerHTML = `<div class="flex justify-center p-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-500"></i></div>`;
+            lucide.createIcons();
+
+            if (managerUnsubscribe) managerUnsubscribe();
+            
+            managerUnsubscribe = onSnapshot(collection(db, `artifacts/${APP_ID}/public/data/approvals`), (snap) => {
+                const data = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.status === 'pending') data.push({ id: doc.id, ...d });
+                });
+                data.sort((a,b) => b.timestamp - a.timestamp);
+
+                if (data.length === 0) {
+                    container.innerHTML = `<div class="text-center py-10 bg-cardInner rounded-xl border border-gray-800"><p class="text-gray-400 font-medium">No pending approvals.</p></div>`;
+                } else {
+                    container.innerHTML = '';
+                    data.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = "bg-cardInner p-5 rounded-xl border border-gray-800 shadow-lg mb-3";
+                        card.innerHTML = `
+                            <h4 class="font-bold text-white">${item.riderName} <span class="text-xs text-gray-500 ml-1">(${item.riderId})</span></h4>
+                            <p class="text-xs text-yellow-500 mb-2 mt-1 uppercase font-bold tracking-wider">${item.type} EXCEPTION</p>
+                            <p class="text-sm text-gray-300 mb-4 bg-darkBg p-3 rounded-lg border border-gray-700">Reason: ${item.reason}</p>
+                            <div class="flex gap-2">
+                                <button onclick="respondApproval('${item.id}', 'approved')" class="flex-1 btn-glow-green py-3 rounded-lg text-sm font-semibold">Approve</button>
+                                <button onclick="respondApproval('${item.id}', 'rejected')" class="flex-1 bg-gray-800 border border-red-500/50 text-red-400 py-3 rounded-lg text-sm font-semibold hover:bg-red-900/30">Reject</button>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+                lucide.createIcons();
+            }, (err) => console.error(err));
+        }
+
+        window.respondApproval = async function(docId, status) {
+            try {
+                await updateDoc(doc(db, `artifacts/${APP_ID}/public/data/approvals`, docId), { status: status });
+                window.showToast(`Request ${status}`, "success");
+            } catch(e) { window.showToast(e.message, "error"); }
         }
 
         window.onload = () => {
